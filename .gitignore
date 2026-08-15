@@ -34,6 +34,9 @@ idris2docs_venv
 
 /custom.mk
 
+# Repo-local Edric toolchain
+/.tools
+
 # NixOS
 /result
 
