@@ -1,4 +1,6 @@
 1/1: Building EdricBootstrap (EdricBootstrap.idr)
 Main> "Idriç"
 Main> "Idris2"
+Main> 3
+Main> 3
 Main> Bye for now!

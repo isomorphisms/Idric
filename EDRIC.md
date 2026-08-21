@@ -20,7 +20,7 @@ The older `isomorphisms/Idri-` / `Idris2-boot` work is historical reference only
 
 Use ordinary, current Idris 2 to implement Edric until an Edric change is itself stable enough to be deliberately dogfooded. Do not make the compiler depend on an unbuilt dialect of itself.
 
-At this checkpoint **no Edric-specific syntax change is being claimed**. The project first establishes a modern, reproducible base and a testable handoff.
+At this checkpoint **no Edric-specific parser syntax change is being claimed**. The project first establishes a modern, reproducible base and a testable handoff.
 
 ## Working copy
 
@@ -107,5 +107,6 @@ A new thread working on Edric should:
 - Ordinary Idris 2 implementation language: established.
 - Pinned repo-local threaded Chez Scheme bootstrap: established.
 - Focused Edric handoff test: checked in.
-- Edric-specific syntax or semantic changes on this modern base: not yet claimed by this checkpoint.
+- Edriç vocabulary: `the_smaller_of` and `the_lesser_of` are public aliases for `min` on every `Ord` type.
+- Edric-specific parser syntax changes on this modern base: not yet claimed by this checkpoint.
 - Historical broad mechanical Unicode rewrite: reference only, not the base.

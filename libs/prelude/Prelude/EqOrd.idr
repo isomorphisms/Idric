@@ -141,6 +141,16 @@ interface Eq ty => Ord ty where
   min : ty -> ty -> ty
   min x y = if (x < y) then x else y
 
+||| An Idriç word-form alias for `min`.
+public export
+the_smaller_of : Ord ty => ty -> ty -> ty
+the_smaller_of = min
+
+||| An Idriç word-form alias for `min`.
+public export
+the_lesser_of : Ord ty => ty -> ty -> ty
+the_lesser_of = min
+
 export
 comparing : Ord a => (b -> a) -> b -> b -> Ordering
 comparing p x y = compare (p x) (p y)
