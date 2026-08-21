@@ -1,0 +1,23 @@
+source_repository isomorphisms/Idri-
+source_repository_id 1332702546
+source_parent_repository edwinb/Idris2-boot
+
+source_ref refs/heads/master 0fb1192cd30ec4747cbc727f26ddbfad515d1363
+source_ref refs/heads/idric/unicode-arrows fe3456c0a28f3665e41d10383de5a372ad438aac
+
+target_ref refs/heads/master 0fb1192cd30ec4747cbc727f26ddbfad515d1363
+target_ref refs/heads/idric/unicode-arrows fd4e8716810316f2ca09c93a653480e9198cc3a1
+
+source_tree 3de0416e873a8fed45f1f8181fed7ba95c32421a
+target_tree 3de0416e873a8fed45f1f8181fed7ba95c32421a
+shared_parent 0fb1192cd30ec4747cbc727f26ddbfad515d1363
+
+The migrated unicode-arrows commit has the exact source tree, parent, message,
+author name, and author email. Its commit date is the migration date because
+the repository interface did not preserve the original timestamp.
+
+The exact original commit object is stored in original_commit_object. After
+fetching the migrated branches, it can be restored as a Git commit object with:
+
+git hash-object -t commit -w < archive/idri_dash/original_commit_object
+git update-ref refs/heads/idric/unicode-arrows fe3456c0a28f3665e41d10383de5a372ad438aac
