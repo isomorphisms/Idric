@@ -20,7 +20,51 @@ The older `isomorphisms/Idri-` / `Idris2-boot` work is historical reference only
 
 Use ordinary, current Idris 2 to implement Edric until an Edric change is itself stable enough to be deliberately dogfooded. Do not make the compiler depend on an unbuilt dialect of itself.
 
-At this checkpoint **no Edric-specific syntax change is being claimed**. The project first establishes a modern, reproducible base and a testable handoff.
+The first Edric-specific syntax is the storage-neutral `choice` declaration described below. The compiler remains implemented in ordinary Idris 2.
+
+## Storage-neutral choices
+
+Files ending in `.idric` may declare a non-parameterized choice with lower
+snake_case names:
+
+```idris
+choice existing_touch_target one_of
+  fixed_value Nat
+  zero Nat
+  pole Nat
+
+choice touch_beginning one_of
+  near_existing existing_touch_target
+  empty_domain
+
+choice placement_kind one_of
+  new_zero
+  new_pole
+```
+
+For Wegert, these declarations keep two decisions separate: `touch_beginning`
+records what was under the finger when it went down, while `placement_kind`
+records what an empty-space tap should add.
+
+`choice` starts the declaration and `one_of` is its contextual separator.
+Each indented alternative has a lower snake_case name followed by zero or more
+ordinary Idris payload types. Standard documentation, visibility, and totality
+modifiers are accepted; exported models should use `export` or `public export`
+as usual.
+
+The declaration means that a value is exactly one of the listed alternatives
+and is lowered directly to the compiler's existing data-declaration
+representation. “Storage-neutral” means the syntax makes no promise about
+runtime layout, alternative marker values, alternative ordering as an ABI,
+serialization, or persistent storage. It introduces neither product nor
+whole-value syntax.
+
+The dialect distinction is filename-scoped. Only `.idric` promotes `choice` to
+a keyword, and `one_of` remains contextual. In ordinary `.idr` files both
+`choice` and `one_of` remain available as identifiers. Lowercase choice type
+and alternative names resolve correctly in signatures and exhaustive patterns,
+without disabling normal Idris auto-implicit binding for unrelated lowercase
+names.
 
 ## Working copy
 
@@ -79,6 +123,8 @@ The individual underlying commands remain available:
 make bootstrap SCHEME="$PWD/.tools/bin/scheme"
 make test only=idris2/basic/edric001
 make test only=idris2/basic/edric002
+make test only=idris2/basic/edric003
+make test only=idris2/basic/edric004
 ```
 
 ## Change discipline
@@ -109,5 +155,6 @@ A new thread working on Edric should:
 - Pinned repo-local threaded Chez Scheme bootstrap: established.
 - Focused Edric handoff test: checked in.
 - Idriç source extension: `.idric`; `.idr` remains accepted for Idris compatibility.
-- Edric-specific syntax or semantic changes on this modern base: not yet claimed by this checkpoint.
+- Storage-neutral, lower snake_case `choice ... one_of` syntax: implemented for `.idric` only.
+- Ordinary `.idr` use of `choice` and `one_of` as identifiers: preserved and regression-tested.
 - Historical broad mechanical Unicode rewrite: reference only, not the base.

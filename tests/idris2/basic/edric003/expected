@@ -1,0 +1,8 @@
+fixed_value 2
+zero 3
+pole 5
+near_existing (pole 7)
+empty_domain
+new_zero
+new_pole
+3
