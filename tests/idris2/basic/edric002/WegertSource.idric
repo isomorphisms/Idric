@@ -1,0 +1,5 @@
+module WegertSource
+
+export
+project_name : String
+project_name = "Wegert"
