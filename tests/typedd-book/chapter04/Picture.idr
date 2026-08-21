@@ -5,7 +5,7 @@ data Shape = ||| A triangle, with its base length and height
            | ||| A circle, with its radius
              Circle Double
 
-area : Shape -> Double
+area : Shape → Double
 area (Triangle base height) = 0.5 * base * height
 area (Rectangle length height) = length * height
 area (Circle radius) = pi * radius * radius
@@ -29,7 +29,7 @@ testPicture = Combine (Translate 5 5 rectangle)
               (Combine (Translate 35 5 circle)
               (Translate 15 25 triangle))
 
-pictureArea : Picture -> Double
+pictureArea : Picture → Double
 pictureArea (Primitive shape) = area shape
 pictureArea (Combine pic pic1) = pictureArea pic + pictureArea pic1
 pictureArea (Rotate x pic) = pictureArea pic

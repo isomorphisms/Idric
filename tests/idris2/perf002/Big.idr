@@ -1,6 +1,6 @@
 import Data.Vect
 
-test : Vect 2 () -> IO ()
+test : Vect 2 () → IO ()
 test b =
   let i = index 1 b in
   let i = index 1 b in

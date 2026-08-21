@@ -1,14 +1,14 @@
-data Vect : Nat -> Type -> Type where
+data Vect : Nat → Type → Type where
      Nil  : Vect Z a
-     (::) : a -> Vect k a -> Vect (S k) a
+     (::) : a → Vect k a → Vect (S k) a
 
-append : Vect n a -> Vect m a -> Vect (n + m) a
+append : Vect n a → Vect m a → Vect (n + m) a
 append [] ys = ys
 append (x :: xs) ys = x :: append xs ys
 
 -- Primarily to check the number of cases in the totality checker doesn't
 -- explode because of all the Nils and Nats
-funny : Vect 4 Bool -> Int
+funny : Vect 4 Bool → Int
 funny [False, False, False, False] = 0
 funny [False, False, False, True] = 1
 funny [False, False, True, False] = 2
@@ -26,7 +26,7 @@ funny [True, True, False, True] = 13
 funny [True, True, True, False] = 14
 funny [True, True, True, True] = 15
 
-notFunny : Vect 4 Bool -> Int
+notFunny : Vect 4 Bool → Int
 notFunny [False, False, False, False] = 0
 notFunny [False, False, False, True] = 1
 notFunny [False, False, True, False] = 2

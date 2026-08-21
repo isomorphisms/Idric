@@ -31,25 +31,25 @@ record Binary where
   size : Int -- Capacity
   used : Int -- Amount used
 
-newBinary : Buffer -> Binary
+newBinary : Buffer → Binary
 newBinary b = MkBin b 0 (size b) 0
 
 blockSize : Int
 blockSize = 655360
 
-avail : Binary -> Int
+avail : Binary → Int
 avail c = (size c - loc c) - 1
 
-toRead : Binary -> Int
+toRead : Binary → Int
 toRead c = used c - loc c
 
-appended : Int -> Binary -> Binary
+appended : Int → Binary → Binary
 appended i (MkBin b loc s used) = MkBin b (loc+i) s (used + i)
 
-incLoc : Int -> Binary -> Binary
+incLoc : Int → Binary → Binary
 incLoc i c = record { loc $= (+i) } c
 
-dumpBin : Binary -> IO ()
+dumpBin : Binary → IO ()
 dumpBin chunk
    = do -- printLn !(traverse bufferData (map buf done))
         printLn !(bufferData (buf chunk))
@@ -59,30 +59,30 @@ nonEmptyRev : NonEmpty (xs ++ y :: ys)
 nonEmptyRev {xs = []} = IsNonEmpty
 nonEmptyRev {xs = (x :: xs)} = IsNonEmpty
 
-fromBuffer : Buffer -> IO Binary
+fromBuffer : Buffer → IO Binary
 fromBuffer buf
     = do len <- rawSize buf
          pure (MkBin buf 0 len len)
 
 export
-writeToFile : (fname : String) -> Binary -> IO (Either FileError ())
+writeToFile : (fname : String) → Binary → IO (Either FileError ())
 writeToFile fname c
     = do Right h <- openFile fname WriteTruncate
-               | Left err => pure (Left err)
+               | Left err ⇒ pure (Left err)
          writeBufferToFile h (resetBuffer (buf c)) (used c)
          closeFile h
          pure (Right ())
 
 export
-readFromFile : (fname : String) -> IO (Either FileError Binary)
+readFromFile : (fname : String) → IO (Either FileError Binary)
 readFromFile fname
     = do Right h <- openFile fname Read
-               | Left err => pure (Left err)
+               | Left err ⇒ pure (Left err)
          Right fsize <- fileSize h
-               | Left err => do closeFile h
+               | Left err ⇒ do closeFile h
                                 pure (Left err)
          Just b <- newBuffer fsize
-               | Nothing => do closeFile h
+               | Nothing ⇒ do closeFile h
                                pure (Left (GenericFileError 0)) --- um, not really
          b <- readBufferFromFile h b fsize
          closeFile h
@@ -91,38 +91,38 @@ readFromFile fname
 public export
 interface TTC a where -- TTC = TT intermediate code/interface file
   -- Add binary data representing the value to the given buffer
-  toBuf : Ref Bin Binary -> a -> Core ()
+  toBuf : Ref Bin Binary → a → Core ()
   -- Return the data representing a thing of type 'a' from the given buffer.
   -- Throws if the data can't be parsed as an 'a'
-  fromBuf : Ref Bin Binary -> Core a
+  fromBuf : Ref Bin Binary → Core a
 
 -- Create a new list of chunks, initialised with one 64k chunk
 export
 initBinary : Core (Ref Bin Binary)
 initBinary
     = do Just buf <- coreLift $ newBuffer blockSize
-             | Nothing => throw (InternalError "Buffer creation failed")
+             | Nothing ⇒ throw (InternalError "Buffer creation failed")
          newRef Bin (newBinary buf)
 
 export
-initBinaryS : Int -> Core (Ref Bin Binary)
+initBinaryS : Int → Core (Ref Bin Binary)
 initBinaryS s
     = do Just buf <- coreLift $ newBuffer s
-             | Nothing => throw (InternalError "Buffer creation failed")
+             | Nothing ⇒ throw (InternalError "Buffer creation failed")
          newRef Bin (newBinary buf)
 
-extendBinary : Int -> Binary -> Core Binary
+extendBinary : Int → Binary → Core Binary
 extendBinary need (MkBin buf l s u)
     = do let newsize = s * 2
          let s' = if (newsize - l) < need
                      then newsize + need
                      else newsize
          Just buf' <- coreLift $ resizeBuffer buf s'
-             | Nothing => throw (InternalError "Buffer expansion failed")
+             | Nothing ⇒ throw (InternalError "Buffer expansion failed")
          pure (MkBin buf' l s' u)
 
 export
-corrupt : String -> Core a
+corrupt : String → Core a
 corrupt ty = throw (TTCError (Corrupt ty))
 
 -- Primitives; these are the only things that have to deal with growing
@@ -150,11 +150,11 @@ TTC Bits8 where
               else throw (TTCError (EndOfBuffer "Byte"))
 
 export
-tag : {auto b : Ref Bin Binary} -> Bits8 -> Core ()
+tag : {auto b : Ref Bin Binary} → Bits8 → Core ()
 tag {b} val = toBuf b val
 
 export
-getTag : {auto b : Ref Bin Binary} -> Core Bits8
+getTag : {auto b : Ref Bin Binary} → Core Bits8
 getTag {b} = fromBuf b
 
 -- Some useful types from the prelude
@@ -180,8 +180,8 @@ TTC Int where
                  pure val
               else throw (TTCError (EndOfBuffer ("Int " ++ show (loc chunk, size chunk))))
 
-strBytelen : String -> IO Int
-strBytelen = foreign FFI_C "strlen" (String -> IO Int)
+strBytelen : String → IO Int
+strBytelen = foreign FFI_C "strlen" (String → IO Int)
 
 export
 TTC String where
@@ -232,7 +232,7 @@ TTC Binary where
          if toRead chunk >= len
             then
               do Just newbuf <- coreLift $ newBuffer len
-                      | Nothing => throw (InternalError "Can't create buffer")
+                      | Nothing ⇒ throw (InternalError "Can't create buffer")
                  coreLift $ copyData (buf chunk) (loc chunk) len
                                      newbuf 0
                  put Bin (incLoc len chunk)
@@ -245,9 +245,9 @@ TTC Bool where
   toBuf b True = tag 1
   fromBuf b
       = case !getTag of
-             0 => pure False
-             1 => pure True
-             _ => corrupt "Bool"
+             0 ⇒ pure False
+             1 ⇒ pure True
+             _ ⇒ corrupt "Bool"
 
 export
 TTC Char where
@@ -278,7 +278,7 @@ TTC Double where
               else throw (TTCError (EndOfBuffer "Double"))
 
 export
-(TTC a, TTC b) => TTC (a, b) where
+(TTC a, TTC b) ⇒ TTC (a, b) where
   toBuf b (x, y)
      = do toBuf b x
           toBuf b y
@@ -293,7 +293,7 @@ TTC () where
   fromBuf b = pure ()
 
 export
-(TTC a, {y : a} -> TTC (p y)) => TTC (DPair a p) where
+(TTC a, {y : a} → TTC (p y)) ⇒ TTC (DPair a p) where
   toBuf b (vs ** tm)
       = do toBuf b vs
            toBuf b tm
@@ -304,7 +304,7 @@ export
            pure (x ** p)
 
 export
-TTC a => TTC (Maybe a) where
+TTC a ⇒ TTC (Maybe a) where
   toBuf b Nothing
      = tag 0
   toBuf b (Just val)
@@ -313,13 +313,13 @@ TTC a => TTC (Maybe a) where
 
   fromBuf b
      = case !getTag of
-            0 => pure Nothing
-            1 => do val <- fromBuf b
+            0 ⇒ pure Nothing
+            1 ⇒ do val <- fromBuf b
                     pure (Just val)
-            _ => corrupt "Maybe"
+            _ ⇒ corrupt "Maybe"
 
 export
-(TTC a, TTC b) => TTC (Either a b) where
+(TTC a, TTC b) ⇒ TTC (Either a b) where
   toBuf b (Left val)
      = do tag 0
           toBuf b val
@@ -329,14 +329,14 @@ export
 
   fromBuf b
      = case !getTag of
-            0 => do val <- fromBuf b
+            0 ⇒ do val <- fromBuf b
                     pure (Left val)
-            1 => do val <- fromBuf b
+            1 ⇒ do val <- fromBuf b
                     pure (Right val)
-            _ => corrupt "Either"
+            _ ⇒ corrupt "Either"
 
 export
-TTC a => TTC (List a) where
+TTC a ⇒ TTC (List a) where
   toBuf b xs
       = do toBuf b (TailRec_length xs)
            traverse_ (toBuf b) xs
@@ -344,34 +344,34 @@ TTC a => TTC (List a) where
       ||| Tail-recursive length as buffer sizes can get large
       ||| 
       ||| Once we port to Idris2, can use Data.List.TailRec.length instead
-      length_aux : List a -> Int -> Int
+      length_aux : List a → Int → Int
       length_aux [] len = len
       length_aux (_::xs) len = length_aux xs (1 + len)
       
-      TailRec_length : List a -> Int
+      TailRec_length : List a → Int
       TailRec_length xs = length_aux xs 0
 
   fromBuf b
       = do len <- fromBuf b {a = Int}
            readElems [] (cast len)
     where
-      readElems : List a -> Nat -> Core (List a)
+      readElems : List a → Nat → Core (List a)
       readElems xs Z = pure (reverse xs)
       readElems xs (S k)
           = do val <- fromBuf b
                readElems (val :: xs) k
 
 export
-TTC a => TTC (Vect n a) where
+TTC a ⇒ TTC (Vect n a) where
   toBuf b xs = writeAll xs
     where
-      writeAll : Vect n a -> Core ()
+      writeAll : Vect n a → Core ()
       writeAll [] = pure ()
       writeAll (x :: xs) = do toBuf b x; writeAll xs
 
   fromBuf {n} b = rewrite sym (plusZeroRightNeutral n) in readElems [] n
     where
-      readElems : Vect done a -> (todo : Nat) -> Core (Vect (todo + done) a)
+      readElems : Vect done a → (todo : Nat) → Core (Vect (todo + done) a)
       readElems {done} xs Z
           = pure (reverse xs)
       readElems {done} xs (S k)
@@ -379,18 +379,18 @@ TTC a => TTC (Vect n a) where
                rewrite (plusSuccRightSucc k done)
                readElems (val :: xs) k
 
-count : List.Elem x xs -> Int
+count : List.Elem x xs → Int
 count Here = 0
 count (There p) = 1 + count p
 
-toLimbs : Integer -> List Bits8
+toLimbs : Integer → List Bits8
 toLimbs x
     = if x == 0
          then []
          else fromInteger (prim__andBigInt x 0xff) ::
               toLimbs (prim__ashrBigInt x 8)
 
-fromLimbs : List Bits8 -> Integer
+fromLimbs : List Bits8 → Integer
 fromLimbs [] = 0
 fromLimbs (x :: xs) = prim__zextB8_BigInt x + prim__shlBigInt (fromLimbs xs) 8
 
@@ -405,11 +405,11 @@ TTC Integer where
   fromBuf b
     = do val <- fromBuf b {a = Bits8}
          case val of
-              0 => do val <- fromBuf b
+              0 ⇒ do val <- fromBuf b
                       pure (-(fromLimbs val))
-              1 => do val <- fromBuf b
+              1 ⇒ do val <- fromBuf b
                       pure (fromLimbs val)
-              _ => corrupt "Integer"
+              _ ⇒ corrupt "Integer"
 
 export
 TTC Nat where

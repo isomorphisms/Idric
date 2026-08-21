@@ -1,16 +1,16 @@
-data ErlList : List Type -> Type where
+data ErlList : List Type → Type where
   Nil : ErlList []
-  (::) : x -> ErlList xs -> ErlList (x :: xs)
+  (::) : x → ErlList xs → ErlList (x :: xs)
 
-data ErlType : Type -> Type where
+data ErlType : Type → Type where
   ETInteger : ErlType Integer
   ETString : ErlType String
 
-data ErlTypes : List Type -> Type where
+data ErlTypes : List Type → Type where
   ETErlTypesNil : ErlTypes []
-  ETErlTypesCons : (ErlType x, ErlTypes xs) => ErlTypes (x :: xs)
+  ETErlTypesCons : (ErlType x, ErlTypes xs) ⇒ ErlTypes (x :: xs)
 
-erlCall : ErlList xs -> {auto prf : ErlTypes xs} -> ()
+erlCall : ErlList xs → {auto prf : ErlTypes xs} → ()
 erlCall args = ()
 
 foo : ()

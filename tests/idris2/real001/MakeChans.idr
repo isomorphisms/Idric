@@ -9,21 +9,21 @@ Utils : Protocol ()
 Utils
     = do cmd <- Request Cmd
          case cmd of
-              Add => do Request (Int, Int)
+              Add ⇒ do Request (Int, Int)
                         Respond Int
                         Done
-              Append => do Request (String, String)
+              Append ⇒ do Request (String, String)
                            Respond String
                            Done
 
-utilServer : (1 chan : Server Utils) -> Any IO ()
+utilServer : (1 chan : Server Utils) → Any IO ()
 utilServer chan
     = do cmd @@ chan <- recv chan
          case cmd of
-              Add => do (x, y) @@ chan <- recv chan
+              Add ⇒ do (x, y) @@ chan <- recv chan
                         chan <- send chan (x + y)
                         close chan
-              Append => do (x, y) @@ chan <- recv chan
+              Append ⇒ do (x, y) @@ chan <- recv chan
                            chan <- send chan (x ++ y)
                            close chan
 
@@ -33,7 +33,7 @@ MakeUtils = do cmd <- Request Bool
                   then do Respond (Client Utils); Loop MakeUtils
                   else Done
 
-sendUtils : (1 chan : Server MakeUtils) -> Any IO ()
+sendUtils : (1 chan : Server MakeUtils) → Any IO ()
 sendUtils chan
     = do cmd @@ chan <- recv chan
          if cmd
@@ -42,14 +42,14 @@ sendUtils chan
                     sendUtils chan
             else close chan
 
-getUtilsChan : (1 chan : Client MakeUtils) ->
+getUtilsChan : (1 chan : Client MakeUtils) →
                One IO (Client Utils, Client MakeUtils)
 getUtilsChan chan
     = do chan <- send chan True
          cchan @@ chan <- recv chan
          pure (cchan, chan)
 
-closeUtilsChan : (1 chan : Client MakeUtils) ->
+closeUtilsChan : (1 chan : Client MakeUtils) →
                  Any IO ()
 closeUtilsChan chan
     = do chan <- send chan False

@@ -4,5 +4,5 @@ module Syntax.WithProof
 ||| poor-man's replacement.
 prefix 10 @@
 public export
-(@@) : (t : a ) -> (u : a ** t = u)
+(@@) : (t : a ) → (u : a ** t = u)
 (@@) x = ( x ** Refl)

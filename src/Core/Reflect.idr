@@ -10,58 +10,58 @@ import Core.Value
 
 public export
 interface Reify a where
-  reify : Defs -> NF vars -> Core a
+  reify : Defs → NF vars → Core a
 
 public export
 interface Reflect a where
-  reflect : FC -> Defs -> Env Term vars -> a -> Core (Term vars)
+  reflect : FC → Defs → Env Term vars → a → Core (Term vars)
 
 export
-getCon : FC -> Defs -> Name -> Core (Term vars)
+getCon : FC → Defs → Name → Core (Term vars)
 getCon fc defs n
     = case !(lookupDefExact n (gamma defs)) of
-           Just (DCon t a) => resolved (gamma defs) (Ref fc (DataCon t a) n)
-           Just (TCon t a _ _ _ _ _ _) => resolved (gamma defs) (Ref fc (TyCon t a) n)
-           Just _ => resolved (gamma defs) (Ref fc Func n)
-           _ => throw (UndefinedName fc n)
+           Just (DCon t a) ⇒ resolved (gamma defs) (Ref fc (DataCon t a) n)
+           Just (TCon t a _ _ _ _ _ _) ⇒ resolved (gamma defs) (Ref fc (TyCon t a) n)
+           Just _ ⇒ resolved (gamma defs) (Ref fc Func n)
+           _ ⇒ throw (UndefinedName fc n)
 
 export
-appCon : FC -> Defs -> Name -> List (Term vars) -> Core (Term vars)
+appCon : FC → Defs → Name → List (Term vars) → Core (Term vars)
 appCon fc defs n args
     = do fn <- getCon fc defs n
          resolved (gamma defs) (apply fc fn args)
 
 export
-prelude : String -> Name
+prelude : String → Name
 prelude n = NS ["Prelude"] (UN n)
 
 export
-builtin : String -> Name
+builtin : String → Name
 builtin n = NS ["Builtin"] (UN n)
 
 export
-primio : String -> Name
+primio : String → Name
 primio n = NS ["PrimIO"] (UN n)
 
 export
-reflection : String -> Name
+reflection : String → Name
 reflection n = NS ["Reflection", "Language"] (UN n)
 
 export
-reflectiontt : String -> Name
+reflectiontt : String → Name
 reflectiontt n = NS ["TT", "Reflection", "Language"] (UN n)
 
 export
-reflectionttimp : String -> Name
+reflectionttimp : String → Name
 reflectionttimp n = NS ["TTImp", "Reflection", "Language"] (UN n)
 
 export
-cantReify : NF vars -> String -> Core a
+cantReify : NF vars → String → Core a
 cantReify val ty
     = throw (GenericMsg (getLoc val) ("Can't reify as " ++ ty))
 
 export
-cantReflect : FC -> String -> Core a
+cantReflect : FC → String → Core a
 cantReflect fc ty
     = throw (GenericMsg fc ("Can't reflect as " ++ ty))
 
@@ -146,7 +146,7 @@ Reflect Nat where
            appCon fc defs (prelude "S") [k']
 
 export
-Reify a => Reify (List a) where
+Reify a ⇒ Reify (List a) where
   reify defs (NDCon _ (NS _ (UN "Nil")) _ _ _)
       = pure []
   reify defs (NDCon _ (NS _ (UN "::")) _ _ [_, x, xs])
@@ -156,7 +156,7 @@ Reify a => Reify (List a) where
   reify defs val = cantReify val "List"
 
 export
-Reflect a => Reflect (List a) where
+Reflect a ⇒ Reflect (List a) where
   reflect fc defs env [] = appCon fc defs (prelude "Nil") [Erased fc False]
   reflect fc defs env (x :: xs)
       = do x' <- reflect fc defs env x
@@ -164,7 +164,7 @@ Reflect a => Reflect (List a) where
            appCon fc defs (prelude "::") [Erased fc False, x', xs']
 
 export
-Reify a => Reify (Maybe a) where
+Reify a ⇒ Reify (Maybe a) where
   reify defs (NDCon _ (NS _ (UN "Nothing")) _ _ _)
       = pure Nothing
   reify defs (NDCon _ (NS _ (UN "Just")) _ _ [_, x])
@@ -173,7 +173,7 @@ Reify a => Reify (Maybe a) where
   reify defs val = cantReify val "Maybe"
 
 export
-Reflect a => Reflect (Maybe a) where
+Reflect a ⇒ Reflect (Maybe a) where
   reflect fc defs env Nothing = appCon fc defs (prelude "Nothing") [Erased fc False]
   reflect fc defs env (Just x)
       = do x' <- reflect fc defs env x
@@ -181,7 +181,7 @@ Reflect a => Reflect (Maybe a) where
 
 
 export
-(Reify a, Reify b) => Reify (a, b) where
+(Reify a, Reify b) ⇒ Reify (a, b) where
   reify defs (NDCon _ (NS _ (UN "MkPair")) _ _ [_, _, x, y])
       = do x' <- reify defs !(evalClosure defs x)
            y' <- reify defs !(evalClosure defs y)
@@ -189,7 +189,7 @@ export
   reify defs val = cantReify val "Pair"
 
 export
-(Reflect a, Reflect b) => Reflect (a, b) where
+(Reflect a, Reflect b) ⇒ Reflect (a, b) where
   reflect fc defs env (x, y)
       = do x' <- reflect fc defs env x
            y' <- reflect fc defs env y

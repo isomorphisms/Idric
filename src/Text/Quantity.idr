@@ -17,28 +17,28 @@ Show Quantity where
     where
       showMax : String
       showMax = case max of
-                     Nothing => ","
-                     Just max' => if min == max'
+                     Nothing ⇒ ","
+                     Just max' ⇒ if min == max'
                                      then ""
                                      else "," ++ show max'
 
 public export
-between : Nat -> Nat -> Quantity
+between : Nat → Nat → Quantity
 between min max = Qty min (Just max)
 
 public export
-atLeast : Nat -> Quantity
+atLeast : Nat → Quantity
 atLeast min = Qty min Nothing
 
 public export
-atMost : Nat -> Quantity
+atMost : Nat → Quantity
 atMost max = Qty 0 (Just max)
 
 public export
-exactly : Nat -> Quantity
+exactly : Nat → Quantity
 exactly n = Qty n (Just n)
 
 public export
-inOrder : Quantity -> Bool
+inOrder : Quantity → Bool
 inOrder (Qty min Nothing) = True
 inOrder (Qty min (Just max)) = min <= max

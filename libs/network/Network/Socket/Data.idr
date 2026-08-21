@@ -63,14 +63,14 @@ getErrno : IO SocketError
 getErrno = cCall Int "idrnet_errno" []
 
 export
-nullPtr : AnyPtr -> IO Bool
+nullPtr : AnyPtr → IO Bool
 nullPtr p = cCall Bool "isNull" [p]
 
 -- -------------------------------------------------------------- [ Interfaces ]
 
 public export
 interface ToCode a where
-  toCode : a -> Int
+  toCode : a → Int
 
 -- --------------------------------------------------------- [ Socket Families ]
 
@@ -108,7 +108,7 @@ ToCode SocketFamily where
   toCode AF_INET6  = 10
 
 export
-getSocketFamily : Int -> Maybe SocketFamily
+getSocketFamily : Int → Maybe SocketFamily
 getSocketFamily i =
     lookup i [ (toCode AF_UNSPEC, AF_UNSPEC)
              , (toCode AF_UNIX, AF_UNIX)
@@ -152,12 +152,12 @@ ToCode SocketType where
 ||| Network Addresses
 public export
 data SocketAddress : Type where
-  IPv4Addr : Int -> Int -> Int -> Int -> SocketAddress
+  IPv4Addr : Int → Int → Int → Int → SocketAddress
 
   ||| Not implemented (yet)
   IPv6Addr : SocketAddress
 
-  Hostname : String -> SocketAddress
+  Hostname : String → SocketAddress
 
   ||| Used when there's a parse error
   InvalidAddress : SocketAddress
@@ -171,20 +171,20 @@ Show SocketAddress where
 
 ||| Parses a textual representation of an IPv4 address into a SocketAddress
 export
-parseIPv4 : String -> SocketAddress
+parseIPv4 : String → SocketAddress
 parseIPv4 str =
     case splitted of
-      (i1 :: i2 :: i3 :: i4 :: _) => IPv4Addr i1 i2 i3 i4
-      otherwise                   => InvalidAddress
+      (i1 :: i2 :: i3 :: i4 :: _) ⇒ IPv4Addr i1 i2 i3 i4
+      otherwise                   ⇒ InvalidAddress
   where
-    toInt' : String -> Integer
+    toInt' : String → Integer
     toInt' = cast
 
-    toInt : String -> Int
+    toInt : String → Int
     toInt s = fromInteger $ toInt' s
 
     splitted : List1 Int
-    splitted = map toInt (split (\c => c == '.') str)
+    splitted = map toInt (split (\c ⇒ c == '.') str)
 
 -- --------------------------------------------------------- [ UDP Information ]
 

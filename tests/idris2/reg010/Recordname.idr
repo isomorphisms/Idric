@@ -6,7 +6,7 @@ namespace Foo
     constructor MkName
     foo : Int
 
-  x : Name -> Int
+  x : Name → Int
   x = foo
 
 test : Recordname.Foo.Name

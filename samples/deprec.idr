@@ -15,11 +15,11 @@ record Class where
     students : Vect n Person
     className : String
 
-addStudent : Person -> Class -> Class
+addStudent : Person → Class → Class
 addStudent p c = record { students = p :: students c } c
 
-addStudent' : Person -> SizedClass n -> SizedClass (S n)
+addStudent' : Person → SizedClass n → SizedClass (S n)
 addStudent' p c =  SizedClassInfo (p :: students c) (className c)
 
-addStudent'' : Person -> SizedClass n -> SizedClass (S n)
+addStudent'' : Person → SizedClass n → SizedClass (S n)
 addStudent'' p c = record { students = p :: students c } c

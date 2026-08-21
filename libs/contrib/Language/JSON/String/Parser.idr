@@ -20,7 +20,7 @@ quotedString = let q = match JSTQuote in
                       pure $ pack chars
 
 export
-parseString : List JSONStringToken -> Maybe String
+parseString : List JSONStringToken → Maybe String
 parseString toks = case parse quotedString toks of
-                        Right (str, []) => Just str
-                        _ => Nothing
+                        Right (str, []) ⇒ Just str
+                        _ ⇒ Nothing

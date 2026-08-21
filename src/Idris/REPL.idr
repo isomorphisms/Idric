@@ -49,8 +49,8 @@ import System
 
 %default covering
 
-showInfo : {auto c : Ref Ctxt Defs} ->
-           (Name, Int, GlobalDef) -> Core ()
+showInfo : {auto c : Ref Ctxt Defs} →
+           (Name, Int, GlobalDef) → Core ()
 showInfo (n, idx, d)
     = do coreLift $ putStrLn (show (fullname d) ++ " ==> " ++
                               show !(toFullNames (definition d)))
@@ -60,50 +60,50 @@ showInfo (n, idx, d)
          coreLift $ putStrLn ("Specialise args: " ++ show (specArgs d))
          coreLift $ putStrLn ("Inferrable args: " ++ show (inferrable d))
          case compexpr d of
-              Nothing => pure ()
-              Just expr => coreLift $ putStrLn ("Compiled: " ++ show expr)
+              Nothing ⇒ pure ()
+              Just expr ⇒ coreLift $ putStrLn ("Compiled: " ++ show expr)
          coreLift $ putStrLn ("Refers to: " ++
                                show !(traverse getFullName (keys (refersTo d))))
          coreLift $ putStrLn ("Refers to (runtime): " ++
                                show !(traverse getFullName (keys (refersToRuntime d))))
          when (not (isNil (sizeChange d))) $
-            let scinfo = map (\s => show (fnCall s) ++ ": " ++
+            let scinfo = map (\s ⇒ show (fnCall s) ++ ": " ++
                                     show (fnArgs s)) !(traverse toFullNames (sizeChange d)) in
                 coreLift $ putStrLn $
                         "Size change: " ++ showSep ", " scinfo
 
-isHole : GlobalDef -> Maybe Nat
+isHole : GlobalDef → Maybe Nat
 isHole def
     = case definition def of
-           Hole locs _ => Just locs
-           PMDef pi _ _ _ _ =>
+           Hole locs _ ⇒ Just locs
+           PMDef pi _ _ _ _ ⇒
                  case holeInfo pi of
-                      NotHole => Nothing
-                      SolvedHole n => Just n
-           _ => Nothing
+                      NotHole ⇒ Nothing
+                      SolvedHole n ⇒ Just n
+           _ ⇒ Nothing
 
-showCount : RigCount -> String
+showCount : RigCount → String
 showCount = elimSemi
                  " 0 "
                  " 1 "
                  (const "   ")
 
-impBracket : Bool -> String -> String
+impBracket : Bool → String → String
 impBracket False str = str
 impBracket True str = "{" ++ str ++ "}"
 
-showName : Name -> Bool
+showName : Name → Bool
 showName (UN "_") = False
 showName (MN _ _) = False
 showName _ = True
 
-tidy : Name -> String
+tidy : Name → String
 tidy (MN n _) = n
 tidy n = show n
 
-showEnv : {auto c : Ref Ctxt Defs} ->
-          {auto s : Ref Syn SyntaxInfo} ->
-          Defs -> Env Term vars -> Name -> Nat -> Term vars ->
+showEnv : {auto c : Ref Ctxt Defs} →
+          {auto s : Ref Syn SyntaxInfo} →
+          Defs → Env Term vars → Name → Nat → Term vars →
           Core (List (Name, String), String)
 showEnv defs env fn (S args) (Bind fc x (Let c val ty) sc)
     = showEnv defs env fn args (subst val sc)
@@ -116,7 +116,7 @@ showEnv defs env fn (S args) (Bind fc x b sc)
          (envstr, ret) <- showEnv defs (b :: env) fn args sc
          pure ((x, pre) :: envstr, ret)
   where
-    implicitBind : Binder (Term vars) -> Bool
+    implicitBind : Binder (Term vars) → Bool
     implicitBind (Pi _ Explicit _) = False
     implicitBind (Pi _ _ _) = True
     implicitBind (Lam _ Explicit _) = False
@@ -127,9 +127,9 @@ showEnv defs env fn args ty
          pure ([], "-------------------------------------\n" ++
                     nameRoot fn ++ " : " ++ show ity)
 
-showHole : {auto c : Ref Ctxt Defs} ->
-           {auto s : Ref Syn SyntaxInfo} ->
-           Defs -> Env Term vars -> Name -> Nat -> Term vars ->
+showHole : {auto c : Ref Ctxt Defs} →
+           {auto s : Ref Syn SyntaxInfo} →
+           Defs → Env Term vars → Name → Nat → Term vars →
            Core String
 showHole gam env fn args ty
     = do (envs, ret) <- showEnv gam env fn args ty
@@ -139,24 +139,24 @@ showHole gam env fn args ty
                         else dropShadows envs
          pure (concat (map snd envs') ++ ret)
   where
-    dropShadows : List (Name, a) -> List (Name, a)
+    dropShadows : List (Name, a) → List (Name, a)
     dropShadows [] = []
     dropShadows ((n, ty) :: ns)
         = if n `elem` map fst ns
              then dropShadows ns
              else (n, ty) :: dropShadows ns
 
-displayType : {auto c : Ref Ctxt Defs} ->
-              {auto s : Ref Syn SyntaxInfo} ->
-              Defs -> (Name, Int, GlobalDef) ->
+displayType : {auto c : Ref Ctxt Defs} →
+              {auto s : Ref Syn SyntaxInfo} →
+              Defs → (Name, Int, GlobalDef) →
               Core String
 displayType defs (n, i, gdef)
     = maybe (do tm <- resugar [] !(normaliseHoles defs [] (type gdef))
                 pure (show (fullname gdef) ++ " : " ++ show tm))
-            (\num => showHole defs [] n num (type gdef))
+            (\num ⇒ showHole defs [] n num (type gdef))
             (isHole gdef)
 
-getEnvTerm : List Name -> Env Term vars -> Term vars ->
+getEnvTerm : List Name → Env Term vars → Term vars →
              (vars' ** (Env Term vars', Term vars'))
 getEnvTerm (n :: ns) env (Bind fc x b sc)
     = if n == x
@@ -164,46 +164,46 @@ getEnvTerm (n :: ns) env (Bind fc x b sc)
          else (_ ** (env, Bind fc x b sc))
 getEnvTerm _ env tm = (_ ** (env, tm))
 
-displayTerm : {auto c : Ref Ctxt Defs} ->
-              {auto s : Ref Syn SyntaxInfo} ->
-              Defs -> ClosedTerm ->
+displayTerm : {auto c : Ref Ctxt Defs} →
+              {auto s : Ref Syn SyntaxInfo} →
+              Defs → ClosedTerm →
               Core String
 displayTerm defs tm
     = do ptm <- resugar [] !(normaliseHoles defs [] tm)
          pure (show ptm)
 
-displayPatTerm : {auto c : Ref Ctxt Defs} ->
-                 {auto s : Ref Syn SyntaxInfo} ->
-                 Defs -> ClosedTerm ->
+displayPatTerm : {auto c : Ref Ctxt Defs} →
+                 {auto s : Ref Syn SyntaxInfo} →
+                 Defs → ClosedTerm →
                  Core String
 displayPatTerm defs tm
     = do ptm <- resugarNoPatvars [] !(normaliseHoles defs [] tm)
          pure (show ptm)
 
-displayClause : {auto c : Ref Ctxt Defs} ->
-                {auto s : Ref Syn SyntaxInfo} ->
-                Defs -> (vs ** (Env Term vs, Term vs, Term vs)) ->
+displayClause : {auto c : Ref Ctxt Defs} →
+                {auto s : Ref Syn SyntaxInfo} →
+                Defs → (vs ** (Env Term vs, Term vs, Term vs)) →
                 Core String
 displayClause defs (vs ** (env, lhs, rhs))
     = do lhstm <- resugar env !(normaliseHoles defs env lhs)
          rhstm <- resugar env !(normaliseHoles defs env rhs)
          pure (show lhstm ++ " = " ++ show rhstm)
 
-displayPats : {auto c : Ref Ctxt Defs} ->
-              {auto s : Ref Syn SyntaxInfo} ->
-              Defs -> (Name, Int, GlobalDef) ->
+displayPats : {auto c : Ref Ctxt Defs} →
+              {auto s : Ref Syn SyntaxInfo} →
+              Defs → (Name, Int, GlobalDef) →
               Core String
 displayPats defs (n, idx, gdef)
     = case definition gdef of
            PMDef _ _ _ _ pats
-               => do ty <- displayType defs (n, idx, gdef)
+               ⇒ do ty <- displayType defs (n, idx, gdef)
                      ps <- traverse (displayClause defs) pats
                      pure (ty ++ "\n" ++ showSep "\n" ps)
-           _ => pure (show n ++ " is not a pattern matching definition")
+           _ ⇒ pure (show n ++ " is not a pattern matching definition")
 
-setOpt : {auto c : Ref Ctxt Defs} ->
-         {auto o : Ref ROpts REPLOpts} ->
-         REPLOpt -> Core ()
+setOpt : {auto c : Ref Ctxt Defs} →
+         {auto o : Ref ROpts REPLOpts} →
+         REPLOpt → Core ()
 setOpt (ShowImplicits t)
     = do pp <- getPPrint
          setPPrint (record { showImplicits = t } pp)
@@ -221,11 +221,11 @@ setOpt (Editor e)
          put ROpts (record { editor = e } opts)
 setOpt (CG e)
     = case getCG e of
-           Just cg => setCG cg
-           Nothing => iputStrLn "No such code generator available"
+           Just cg ⇒ setCG cg
+           Nothing ⇒ iputStrLn "No such code generator available"
 
-getOptions : {auto c : Ref Ctxt Defs} ->
-         {auto o : Ref ROpts REPLOpts} ->
+getOptions : {auto c : Ref Ctxt Defs} →
+         {auto o : Ref ROpts REPLOpts} →
          Core (List REPLOpt)
 getOptions = do
   pp <- getPPrint
@@ -236,20 +236,20 @@ getOptions = do
          ]
 
 export
-findCG : {auto c : Ref Ctxt Defs} -> Core Codegen
+findCG : {auto c : Ref Ctxt Defs} → Core Codegen
 findCG
     = do defs <- get Ctxt
          case codegen (session (options defs)) of
-              Chez => pure codegenChez
-              Racket => pure codegenRacket
-              Gambit => pure codegenGambit
+              Chez ⇒ pure codegenChez
+              Racket ⇒ pure codegenRacket
+              Gambit ⇒ pure codegenGambit
 
-anyAt : (FC -> Bool) -> FC -> a -> Bool
+anyAt : (FC → Bool) → FC → a → Bool
 anyAt p loc y = p loc
 
-printClause : {auto c : Ref Ctxt Defs} ->
-              {auto s : Ref Syn SyntaxInfo} ->
-              Maybe String -> Nat -> ImpClause ->
+printClause : {auto c : Ref Ctxt Defs} →
+              {auto s : Ref Syn SyntaxInfo} →
+              Maybe String → Nat → ImpClause →
               Core String
 printClause l i (PatClause _ lhsraw rhsraw)
     = do lhs <- pterm lhsraw
@@ -266,45 +266,45 @@ printClause l i (ImpossibleClause _ lhsraw)
          pure (relit l (pack (replicate i ' ') ++ show lhs ++ " impossible"))
 
 
-lookupDefTyName : Name -> Context ->
+lookupDefTyName : Name → Context →
                   Core (List (Name, Int, (Def, ClosedTerm)))
-lookupDefTyName = lookupNameBy (\g => (definition g, type g))
+lookupDefTyName = lookupNameBy (\g ⇒ (definition g, type g))
 
 public export
 data EditResult : Type where
-  DisplayEdit : List String -> EditResult
-  EditError : String -> EditResult
-  MadeLemma : Maybe String -> Name -> PTerm -> String -> EditResult
+  DisplayEdit : List String → EditResult
+  EditError : String → EditResult
+  MadeLemma : Maybe String → Name → PTerm → String → EditResult
 
-updateFile : {auto r : Ref ROpts REPLOpts} ->
-             (List String -> List String) -> Core EditResult
+updateFile : {auto r : Ref ROpts REPLOpts} →
+             (List String → List String) → Core EditResult
 updateFile update
     = do opts <- get ROpts
          let Just f = mainfile opts
-             | Nothing => pure (DisplayEdit []) -- no file, nothing to do
+             | Nothing ⇒ pure (DisplayEdit []) -- no file, nothing to do
          Right content <- coreLift $ readFile f
-               | Left err => throw (FileErr f err)
+               | Left err ⇒ throw (FileErr f err)
          coreLift $ writeFile (f ++ "~") content
          coreLift $ writeFile f (unlines (update (lines content)))
          pure (DisplayEdit [])
 
-rtrim : String -> String
+rtrim : String → String
 rtrim str = reverse (ltrim (reverse str))
 
-addClause : String -> Nat -> List String -> List String
+addClause : String → Nat → List String → List String
 addClause c Z xs = rtrim c :: xs
 addClause c (S k) (x :: xs) = x :: addClause c k xs
 addClause c (S k) [] = [c]
 
-caseSplit : String -> Nat -> List String -> List String
+caseSplit : String → Nat → List String → List String
 caseSplit c Z (x :: xs) = rtrim c :: xs
 caseSplit c (S k) (x :: xs) = x :: caseSplit c k xs
 caseSplit c _ [] = [c]
 
-proofSearch : Name -> String -> Nat -> List String -> List String
+proofSearch : Name → String → Nat → List String → List String
 proofSearch n res Z (x :: xs) = replaceStr ("?" ++ show n) res x :: xs
   where
-    replaceStr : String -> String -> String -> String
+    replaceStr : String → String → String → String
     replaceStr rep new "" = ""
     replaceStr rep new str
         = if isPrefixOf rep str
@@ -314,38 +314,38 @@ proofSearch n res Z (x :: xs) = replaceStr ("?" ++ show n) res x :: xs
 proofSearch n res (S k) (x :: xs) = x :: proofSearch n res k xs
 proofSearch n res _ [] = []
 
-addMadeLemma : Maybe String -> Name -> String -> String -> Nat -> List String -> List String
+addMadeLemma : Maybe String → Name → String → String → Nat → List String → List String
 addMadeLemma lit n ty app line content
     = addApp lit line [] (proofSearch n app line content)
   where
     -- Put n : ty in the first blank line
-    insertInBlank : Maybe String -> List String -> List String
+    insertInBlank : Maybe String → List String → List String
     insertInBlank lit [] = [relit lit $ show n ++ " : " ++ ty ++ "\n"]
     insertInBlank lit (x :: xs)
         = if trim x == ""
              then ("\n" ++ (relit lit $ show n ++ " : " ++ ty ++ "\n")) :: xs
              else x :: insertInBlank lit xs
 
-    addApp : Maybe String -> Nat -> List String -> List String -> List String
+    addApp : Maybe String → Nat → List String → List String → List String
     addApp lit Z acc rest = reverse (insertInBlank lit acc) ++ rest
     addApp lit (S k) acc (x :: xs) = addApp lit k (x :: acc) xs
     addApp _ (S k) acc [] = reverse acc
 
-processEdit : {auto c : Ref Ctxt Defs} ->
-              {auto u : Ref UST UState} ->
-              {auto s : Ref Syn SyntaxInfo} ->
-              {auto m : Ref MD Metadata} ->
-              {auto o : Ref ROpts REPLOpts} ->
-              EditCmd -> Core EditResult
+processEdit : {auto c : Ref Ctxt Defs} →
+              {auto u : Ref UST UState} →
+              {auto s : Ref Syn SyntaxInfo} →
+              {auto m : Ref MD Metadata} →
+              {auto o : Ref ROpts REPLOpts} →
+              EditCmd → Core EditResult
 processEdit (TypeAt line col name)
     = do defs <- get Ctxt
          glob <- lookupCtxtName name (gamma defs)
          res <- the (Core String) $ case glob of
-                     [] => pure ""
-                     ts => do tys <- traverse (displayType defs) ts
+                     [] ⇒ pure ""
+                     ts ⇒ do tys <- traverse (displayType defs) ts
                               pure (showSep "\n" tys)
-         Just (n, num, t) <- findTypeAt (\p, n => within (line-1, col-1) p)
-            | Nothing => if res == ""
+         Just (n, num, t) <- findTypeAt (\p, n ⇒ within (line-1, col-1) p)
+            | Nothing ⇒ if res == ""
                             then throw (UndefinedName (MkFC "(interactive)" (0,0) (0,0)) name)
                             else pure (DisplayEdit [res])
          if res == ""
@@ -357,45 +357,45 @@ processEdit (CaseSplit upd line col name)
                        then within (line-1, col-1)
                        else onLine (line-1)
          OK splits <- getSplits (anyAt find) name
-             | SplitFail err => pure (EditError (show err))
+             | SplitFail err ⇒ pure (EditError (show err))
          lines <- updateCase splits (line-1) (col-1)
          if upd
             then updateFile (caseSplit (unlines lines) (cast (line - 1)))
             else pure $ DisplayEdit lines
 processEdit (AddClause upd line name)
     = do Just c <- getClause line name
-             | Nothing => pure (EditError (show name ++ " not defined here"))
+             | Nothing ⇒ pure (EditError (show name ++ " not defined here"))
          if upd
             then updateFile (addClause c (cast line))
             else pure $ DisplayEdit [c]
 processEdit (ExprSearch upd line name hints all)
     = do defs <- get Ctxt
          syn <- get Syn
-         let brack = elemBy (\x, y => dropNS x == dropNS y) name (bracketholes syn)
+         let brack = elemBy (\x, y ⇒ dropNS x == dropNS y) name (bracketholes syn)
          case !(lookupDefName name (gamma defs)) of
-              [(n, nidx, Hole locs _)] =>
+              [(n, nidx, Hole locs _)] ⇒
                   do tms <- exprSearch replFC name []
                      defs <- get Ctxt
                      restms <- traverse (normaliseHoles defs []) tms
                      itms <- the (Core (List PTerm))
-                               (traverse (\tm =>
+                               (traverse (\tm ⇒
                                            do let (_ ** (env, tm')) = dropLams locs [] tm
                                               resugar env tm') restms)
                      if all
                         then pure $ DisplayEdit (map show itms)
                         else case itms of
-                                  [] => pure $ EditError "No search results"
-                                  (x :: xs) =>
+                                  [] ⇒ pure $ EditError "No search results"
+                                  (x :: xs) ⇒
                                      let res = show (if brack
                                                         then addBracket replFC x
                                                         else x) in
                                        if upd
                                           then updateFile (proofSearch name res (cast (line - 1)))
                                           else pure $ DisplayEdit [res]
-              [(n, nidx, PMDef pi [] (STerm tm) _ _)] =>
+              [(n, nidx, PMDef pi [] (STerm tm) _ _)] ⇒
                   case holeInfo pi of
-                       NotHole => pure $ EditError "Not a searchable hole"
-                       SolvedHole locs =>
+                       NotHole ⇒ pure $ EditError "Not a searchable hole"
+                       SolvedHole locs ⇒
                           do let (_ ** (env, tm')) = dropLams locs [] tm
                              itm <- resugar env tm'
                              let res = show (if brack
@@ -404,40 +404,40 @@ processEdit (ExprSearch upd line name hints all)
                              if upd
                                 then updateFile (proofSearch name res (cast (line - 1)))
                                 else pure $ DisplayEdit [res]
-              [] => pure $ EditError $ "Unknown name " ++ show name
-              _ => pure $ EditError "Not a searchable hole"
+              [] ⇒ pure $ EditError $ "Unknown name " ++ show name
+              _ ⇒ pure $ EditError "Not a searchable hole"
   where
-    dropLams : Nat -> Env Term vars -> Term vars ->
+    dropLams : Nat → Env Term vars → Term vars →
                (vars' ** (Env Term vars', Term vars'))
     dropLams Z env tm = (_ ** (env, tm))
     dropLams (S k) env (Bind _ _ b sc) = dropLams k (b :: env) sc
     dropLams _ env tm = (_ ** (env, tm))
 processEdit (GenerateDef upd line name)
     = do defs <- get Ctxt
-         Just (_, n', _, _) <- findTyDeclAt (\p, n => onLine line p)
-             | Nothing => pure (EditError ("Can't find declaration for " ++ show name ++ " on line " ++ show line))
+         Just (_, n', _, _) <- findTyDeclAt (\p, n ⇒ onLine line p)
+             | Nothing ⇒ pure (EditError ("Can't find declaration for " ++ show name ++ " on line " ++ show line))
          case !(lookupDefExact n' (gamma defs)) of
-              Just None =>
+              Just None ⇒
                   catch
-                    (do Just (fc, cs) <- makeDef (\p, n => onLine line p) n'
-                           | Nothing => processEdit (AddClause upd line name)
+                    (do Just (fc, cs) <- makeDef (\p, n ⇒ onLine line p) n'
+                           | Nothing ⇒ processEdit (AddClause upd line name)
                         Just srcLine <- getSourceLine line
-                           | Nothing => pure (EditError "Source line not found")
+                           | Nothing ⇒ pure (EditError "Source line not found")
                         let (markM, srcLineUnlit) = isLitLine srcLine
                         let l : Nat =  cast (snd (startPos fc))
                         ls <- traverse (printClause markM l) cs
                         if upd
                            then updateFile (addClause (unlines ls) (cast line))
                            else pure $ DisplayEdit ls)
-                    (\err => pure $ EditError $ "Can't find a definition for " ++ show n' ++ ": " ++ show err)
-              Just _ => pure $ EditError "Already defined"
-              Nothing => pure $ EditError $ "Can't find declaration for " ++ show name
+                    (\err ⇒ pure $ EditError $ "Can't find a definition for " ++ show n' ++ ": " ++ show err)
+              Just _ ⇒ pure $ EditError "Already defined"
+              Nothing ⇒ pure $ EditError $ "Can't find declaration for " ++ show name
 processEdit (MakeLemma upd line name)
     = do defs <- get Ctxt
          syn <- get Syn
-         let brack = elemBy (\x, y => dropNS x == dropNS y) name (bracketholes syn)
+         let brack = elemBy (\x, y ⇒ dropNS x == dropNS y) name (bracketholes syn)
          case !(lookupDefTyName name (gamma defs)) of
-              [(n, nidx, Hole locs _, ty)] =>
+              [(n, nidx, Hole locs _, ty)] ⇒
                   do (lty, lapp) <- makeLemma replFC name locs ty
                      pty <- pterm lty
                      papp <- pterm lapp
@@ -446,59 +446,59 @@ processEdit (MakeLemma upd line name)
                                             then addBracket replFC papp
                                             else papp)
                      Just srcLine <- getSourceLine line
-                       | Nothing => pure (EditError "Source line not found")
+                       | Nothing ⇒ pure (EditError "Source line not found")
                      let (markM,_) = isLitLine srcLine
                      let markML : Nat = length (fromMaybe "" markM)
                      if upd
                         then updateFile (addMadeLemma markM name (show pty) pappstr
                                                       (max 0 (cast (line - 1))))
                         else pure $ MadeLemma markM name pty pappstr
-              _ => pure $ EditError "Can't make lifted definition"
+              _ ⇒ pure $ EditError "Can't make lifted definition"
 processEdit (MakeCase upd line name)
     = pure $ EditError "Not implemented yet"
 processEdit (MakeWith upd line name)
     = do Just l <- getSourceLine line
-              | Nothing => pure (EditError "Source line not available")
+              | Nothing ⇒ pure (EditError "Source line not available")
          pure $ DisplayEdit [makeWith name l]
 
 public export
 data MissedResult : Type where
-  CasesMissing : Name -> List String  -> MissedResult
-  CallsNonCovering : Name -> List Name -> MissedResult
-  AllCasesCovered : Name -> MissedResult
+  CasesMissing : Name → List String  → MissedResult
+  CallsNonCovering : Name → List Name → MissedResult
+  AllCasesCovered : Name → MissedResult
 
 public export
 data REPLResult : Type where
   Done : REPLResult
-  REPLError : String -> REPLResult
-  Executed : PTerm -> REPLResult
+  REPLError : String → REPLResult
+  Executed : PTerm → REPLResult
   RequestedHelp : REPLResult
-  Evaluated : PTerm -> (Maybe PTerm) -> REPLResult
-  Printed : List String -> REPLResult
-  TermChecked : PTerm -> PTerm -> REPLResult
-  FileLoaded : String -> REPLResult
-  ErrorLoadingFile : String -> FileError -> REPLResult
-  ErrorsBuildingFile : String -> List Error -> REPLResult
+  Evaluated : PTerm → (Maybe PTerm) → REPLResult
+  Printed : List String → REPLResult
+  TermChecked : PTerm → PTerm → REPLResult
+  FileLoaded : String → REPLResult
+  ErrorLoadingFile : String → FileError → REPLResult
+  ErrorsBuildingFile : String → List Error → REPLResult
   NoFileLoaded : REPLResult
-  CurrentDirectory : String -> REPLResult
+  CurrentDirectory : String → REPLResult
   CompilationFailed: REPLResult
-  Compiled : String -> REPLResult
-  ProofFound : PTerm -> REPLResult
-  Missed : List MissedResult -> REPLResult
-  CheckedTotal : List (Name, Totality) -> REPLResult
-  FoundHoles : List Name -> REPLResult
-  OptionsSet : List REPLOpt -> REPLResult
-  LogLevelSet : Nat -> REPLResult
-  VersionIs : Version -> REPLResult
+  Compiled : String → REPLResult
+  ProofFound : PTerm → REPLResult
+  Missed : List MissedResult → REPLResult
+  CheckedTotal : List (Name, Totality) → REPLResult
+  FoundHoles : List Name → REPLResult
+  OptionsSet : List REPLOpt → REPLResult
+  LogLevelSet : Nat → REPLResult
+  VersionIs : Version → REPLResult
   Exited : REPLResult
-  Edited : EditResult -> REPLResult
+  Edited : EditResult → REPLResult
 
 export
-execExp : {auto c : Ref Ctxt Defs} ->
-          {auto u : Ref UST UState} ->
-          {auto s : Ref Syn SyntaxInfo} ->
-          {auto m : Ref MD Metadata} ->
-          PTerm -> Core REPLResult
+execExp : {auto c : Ref Ctxt Defs} →
+          {auto u : Ref UST UState} →
+          {auto s : Ref Syn SyntaxInfo} →
+          {auto m : Ref MD Metadata} →
+          PTerm → Core REPLResult
 execExp ctm
     = do ttimp <- desugar AnyExpr [] (PApp replFC (PRef replFC (UN "unsafePerformIO")) ctm)
          inidx <- resolveName (UN "[input]")
@@ -510,12 +510,12 @@ execExp ctm
 
 
 export
-compileExp : {auto c : Ref Ctxt Defs} ->
-             {auto u : Ref UST UState} ->
-             {auto s : Ref Syn SyntaxInfo} ->
-             {auto m : Ref MD Metadata} ->
-             {auto o : Ref ROpts REPLOpts} ->
-             PTerm -> String -> Core REPLResult
+compileExp : {auto c : Ref Ctxt Defs} →
+             {auto u : Ref UST UState} →
+             {auto s : Ref Syn SyntaxInfo} →
+             {auto m : Ref MD Metadata} →
+             {auto o : Ref ROpts REPLOpts} →
+             PTerm → String → Core REPLResult
 compileExp ctm outfile
     = do inidx <- resolveName (UN "[input]")
          ttimp <- desugar AnyExpr [] (PApp replFC (PRef replFC (UN "unsafePerformIO")) ctm)
@@ -528,23 +528,23 @@ compileExp ctm outfile
                ok
 
 export
-loadMainFile : {auto c : Ref Ctxt Defs} ->
-               {auto u : Ref UST UState} ->
-               {auto s : Ref Syn SyntaxInfo} ->
-               {auto m : Ref MD Metadata} ->
-               {auto o : Ref ROpts REPLOpts} ->
-               String -> Core REPLResult
+loadMainFile : {auto c : Ref Ctxt Defs} →
+               {auto u : Ref UST UState} →
+               {auto s : Ref Syn SyntaxInfo} →
+               {auto m : Ref MD Metadata} →
+               {auto o : Ref ROpts REPLOpts} →
+               String → Core REPLResult
 loadMainFile f
     = do resetContext
          Right res <- coreLift (readFile f)
-            | Left err => do setSource ""
+            | Left err ⇒ do setSource ""
                              pure (ErrorLoadingFile f err)
          errs <- logTime "Build deps" $ buildDeps f
          updateErrorLine errs
          setSource res
          case errs of
-           [] => pure (FileLoaded f)
-           _ => pure (ErrorsBuildingFile f errs)
+           [] ⇒ pure (FileLoaded f)
+           _ ⇒ pure (ErrorsBuildingFile f errs)
 
 
 ||| Process a single `REPLCmd`
@@ -552,17 +552,17 @@ loadMainFile f
 ||| Returns `REPLResult` for display by the higher level shell which
 ||| is invoking this interactive command processing.
 export
-process : {auto c : Ref Ctxt Defs} ->
-          {auto u : Ref UST UState} ->
-          {auto s : Ref Syn SyntaxInfo} ->
-          {auto m : Ref MD Metadata} ->
-          {auto o : Ref ROpts REPLOpts} ->
-          REPLCmd -> Core REPLResult
+process : {auto c : Ref Ctxt Defs} →
+          {auto u : Ref UST UState} →
+          {auto s : Ref Syn SyntaxInfo} →
+          {auto m : Ref MD Metadata} →
+          {auto o : Ref ROpts REPLOpts} →
+          REPLCmd → Core REPLResult
 process (Eval itm)
     = do opts <- get ROpts
          case evalMode opts of
-            Execute => do execExp itm; pure (Executed itm)
-            _ =>
+            Execute ⇒ do execExp itm; pure (Executed itm)
+            _ ⇒
               do ttimp <- desugar AnyExpr [] itm
                  inidx <- resolveName (UN "[input]")
                  -- a TMP HACK to prioritise list syntax for List: hide
@@ -571,7 +571,7 @@ process (Eval itm)
                  -- 'with' disambiguation we can use that instead.
                  catch (do hide replFC (NS ["PrimIO"] (UN "::"))
                            hide replFC (NS ["PrimIO"] (UN "Nil")))
-                       (\err => pure ())
+                       (\err ⇒ pure ())
                  (tm, gty) <- elabTerm inidx (emode (evalMode opts)) [] (MkNested [])
                                        [] ttimp Nothing
                  defs <- get Ctxt
@@ -586,18 +586,18 @@ process (Eval itm)
                             pure (Evaluated itm (Just ity))
                     else pure (Evaluated itm Nothing)
   where
-    emode : REPLEval -> ElabMode
+    emode : REPLEval → ElabMode
     emode EvalTC = InType
     emode _ = InExpr
 
-    nfun : REPLEval -> Defs -> Env Term vs -> Term vs -> Core (Term vs)
+    nfun : REPLEval → Defs → Env Term vs → Term vs → Core (Term vs)
     nfun NormaliseAll = normaliseAll
     nfun _ = normalise
 process (Check (PRef fc fn))
     = do defs <- get Ctxt
          case !(lookupCtxtName fn (gamma defs)) of
-              [] => throw (UndefinedName fc fn)
-              ts => do tys <- traverse (displayType defs) ts
+              [] ⇒ throw (UndefinedName fc fn)
+              ts ⇒ do tys <- traverse (displayType defs) ts
                        pure (Printed tys)
 process (Check itm)
     = do inidx <- resolveName (UN "[input]")
@@ -612,14 +612,14 @@ process (Check itm)
 process (PrintDef fn)
     = do defs <- get Ctxt
          case !(lookupCtxtName fn (gamma defs)) of
-              [] => throw (UndefinedName replFC fn)
-              ts => do defs <- traverse (displayPats defs) ts
+              [] ⇒ throw (UndefinedName replFC fn)
+              ts ⇒ do defs <- traverse (displayPats defs) ts
                        pure (Printed defs)
 process Reload
     = do opts <- get ROpts
          case mainfile opts of
-              Nothing => pure NoFileLoaded
-              Just f => loadMainFile f
+              Nothing ⇒ pure NoFileLoaded
+              Just f ⇒ loadMainFile f
 process (Load f)
     = do opts <- get ROpts
          put ROpts (record { mainfile = Just f } opts)
@@ -635,9 +635,9 @@ process CWD
 process Edit
     = do opts <- get ROpts
          case mainfile opts of
-              Nothing => pure NoFileLoaded
-              Just f =>
-                do let line = maybe "" (\i => " +" ++ show (i + 1)) (errorLine opts)
+              Nothing ⇒ pure NoFileLoaded
+              Just f ⇒
+                do let line = maybe "" (\i ⇒ " +" ++ show (i + 1)) (errorLine opts)
                    coreLift $ system (editor opts ++ " " ++ f ++ line)
                    loadMainFile f
 process (Compile ctm outfile)
@@ -649,32 +649,32 @@ process Help
 process (ProofSearch n_in)
     = do defs <- get Ctxt
          [(n, i, ty)] <- lookupTyName n_in (gamma defs)
-              | [] => throw (UndefinedName replFC n_in)
-              | ns => throw (AmbiguousName replFC (map fst ns))
+              | [] ⇒ throw (UndefinedName replFC n_in)
+              | ns ⇒ throw (AmbiguousName replFC (map fst ns))
          tm <- search replFC top False 1000 n ty []
          itm <- resugar [] !(normaliseHoles defs [] tm)
          pure $ ProofFound itm
 process (Missing n)
     = do defs <- get Ctxt
          case !(lookupCtxtName n (gamma defs)) of
-              [] => throw (UndefinedName replFC n)
-              ts => map Missed $ traverse (\fn =>
+              [] ⇒ throw (UndefinedName replFC n)
+              ts ⇒ map Missed $ traverse (\fn ⇒
                                          do tot <- getTotality replFC fn
                                             the (Core MissedResult) $ case isCovering tot of
-                                                 MissingCases cs =>
+                                                 MissingCases cs ⇒
                                                     do tms <- traverse (displayPatTerm defs) cs
                                                        pure $ CasesMissing fn tms
-                                                 NonCoveringCall ns_in =>
+                                                 NonCoveringCall ns_in ⇒
                                                    do ns <- traverse getFullName ns_in
                                                       pure $ CallsNonCovering fn ns
-                                                 _ => pure $ AllCasesCovered fn)
+                                                 _ ⇒ pure $ AllCasesCovered fn)
                                (map fst ts)
 process (Total n)
     = do defs <- get Ctxt
          case !(lookupCtxtName n (gamma defs)) of
-              [] => throw (UndefinedName replFC n)
-              ts => map CheckedTotal $
-                    traverse (\fn =>
+              [] ⇒ throw (UndefinedName replFC n)
+              ts ⇒ map CheckedTotal $
+                    traverse (\fn ⇒
                           do checkTotal replFC fn
                              tot <- getTotality replFC fn >>= toFullNames
                              pure $ (fn, tot))
@@ -711,12 +711,12 @@ process NOP
 process ShowVersion
     = pure $ VersionIs  version
 
-processCatch : {auto c : Ref Ctxt Defs} ->
-               {auto u : Ref UST UState} ->
-               {auto s : Ref Syn SyntaxInfo} ->
-               {auto m : Ref MD Metadata} ->
-               {auto o : Ref ROpts REPLOpts} ->
-               REPLCmd -> Core REPLResult
+processCatch : {auto c : Ref Ctxt Defs} →
+               {auto u : Ref UST UState} →
+               {auto s : Ref Syn SyntaxInfo} →
+               {auto m : Ref MD Metadata} →
+               {auto o : Ref ROpts REPLOpts} →
+               REPLCmd → Core REPLResult
 processCatch cmd
     = do c' <- branch
          u' <- get UST
@@ -726,7 +726,7 @@ processCatch cmd
                    r <- process cmd
                    commit
                    pure r)
-               (\err => do put Ctxt c'
+               (\err ⇒ do put Ctxt c'
                            put UST u'
                            put Syn s'
                            put ROpts o'
@@ -740,18 +740,18 @@ parseCmd : EmptyRule (Maybe REPLCmd)
 parseCmd = do c <- command; eoi; pure $ Just c
 
 export
-parseRepl : String -> Either ParseError (Maybe REPLCmd)
+parseRepl : String → Either ParseError (Maybe REPLCmd)
 parseRepl inp
     = case fnameCmd [(":load ", Load), (":l ", Load), (":cd ", CD)] inp of
-           Nothing => runParser Nothing inp (parseEmptyCmd <|> parseCmd)
-           Just cmd => Right $ Just cmd
+           Nothing ⇒ runParser Nothing inp (parseEmptyCmd <|> parseCmd)
+           Just cmd ⇒ Right $ Just cmd
   where
     -- a right load of hackery - we can't tokenise the filename using the
     -- ordinary parser. There's probably a better way...
-    getLoad : Nat -> (String -> REPLCmd) -> String -> Maybe REPLCmd
+    getLoad : Nat → (String → REPLCmd) → String → Maybe REPLCmd
     getLoad n cmd str = Just (cmd (trim (substr n (length str) str)))
 
-    fnameCmd : List (String, String -> REPLCmd) -> String -> Maybe REPLCmd
+    fnameCmd : List (String, String → REPLCmd) → String → Maybe REPLCmd
     fnameCmd [] inp = Nothing
     fnameCmd ((pre, cmd) :: rest) inp
         = if isPrefixOf pre inp
@@ -759,37 +759,37 @@ parseRepl inp
              else fnameCmd rest inp
 
 export
-interpret : {auto c : Ref Ctxt Defs} ->
-            {auto u : Ref UST UState} ->
-            {auto s : Ref Syn SyntaxInfo} ->
-            {auto m : Ref MD Metadata} ->
-            {auto o : Ref ROpts REPLOpts} ->
-            String -> Core REPLResult
+interpret : {auto c : Ref Ctxt Defs} →
+            {auto u : Ref UST UState} →
+            {auto s : Ref Syn SyntaxInfo} →
+            {auto m : Ref MD Metadata} →
+            {auto o : Ref ROpts REPLOpts} →
+            String → Core REPLResult
 interpret inp
     = case parseRepl inp of
-           Left err => pure $ REPLError (show err)
-           Right Nothing => pure Done
-           Right (Just cmd) => processCatch cmd
+           Left err ⇒ pure $ REPLError (show err)
+           Right Nothing ⇒ pure Done
+           Right (Just cmd) ⇒ processCatch cmd
 
 mutual
   export
-  replCmd : {auto c : Ref Ctxt Defs} ->
-            {auto u : Ref UST UState} ->
-            {auto s : Ref Syn SyntaxInfo} ->
-            {auto m : Ref MD Metadata} ->
-            {auto o : Ref ROpts REPLOpts} ->
-            String -> Core ()
+  replCmd : {auto c : Ref Ctxt Defs} →
+            {auto u : Ref UST UState} →
+            {auto s : Ref Syn SyntaxInfo} →
+            {auto m : Ref MD Metadata} →
+            {auto o : Ref ROpts REPLOpts} →
+            String → Core ()
   replCmd "" = pure ()
   replCmd cmd
       = do res <- interpret cmd
            displayResult res
 
   export
-  repl : {auto c : Ref Ctxt Defs} ->
-         {auto u : Ref UST UState} ->
-         {auto s : Ref Syn SyntaxInfo} ->
-         {auto m : Ref MD Metadata} ->
-         {auto o : Ref ROpts REPLOpts} ->
+  repl : {auto c : Ref Ctxt Defs} →
+         {auto u : Ref UST UState} →
+         {auto s : Ref Syn SyntaxInfo} →
+         {auto m : Ref MD Metadata} →
+         {auto o : Ref ROpts REPLOpts} →
          Core ()
   repl
       = do ns <- getNS
@@ -806,34 +806,34 @@ mutual
                       handleResult res
 
     where
-      prompt : REPLEval -> String
+      prompt : REPLEval → String
       prompt EvalTC = "[tc] "
       prompt NormaliseAll = ""
       prompt Execute = "[exec] "
 
-  handleMissing : MissedResult -> String
+  handleMissing : MissedResult → String
   handleMissing (CasesMissing x xs) = show x ++ ":\n" ++ showSep "\n" xs
   handleMissing (CallsNonCovering fn ns) = (show fn ++ ": Calls non covering function"
                                            ++ (case ns of
-                                                 [f] => " " ++ show f
-                                                 _ => "s: " ++ showSep ", " (map show ns)))
+                                                 [f] ⇒ " " ++ show f
+                                                 _ ⇒ "s: " ++ showSep ", " (map show ns)))
   handleMissing (AllCasesCovered fn) = show fn ++ ": All cases covered"
 
   export
-  handleResult : {auto c : Ref Ctxt Defs} ->
-         {auto u : Ref UST UState} ->
-         {auto s : Ref Syn SyntaxInfo} ->
-         {auto m : Ref MD Metadata} ->
-         {auto o : Ref ROpts REPLOpts} -> REPLResult -> Core ()
+  handleResult : {auto c : Ref Ctxt Defs} →
+         {auto u : Ref UST UState} →
+         {auto s : Ref Syn SyntaxInfo} →
+         {auto m : Ref MD Metadata} →
+         {auto o : Ref ROpts REPLOpts} → REPLResult → Core ()
   handleResult Exited = iputStrLn "Bye for now!"
   handleResult other = do { displayResult other ; repl }
 
   export
-  displayResult : {auto c : Ref Ctxt Defs} ->
-         {auto u : Ref UST UState} ->
-         {auto s : Ref Syn SyntaxInfo} ->
-         {auto m : Ref MD Metadata} ->
-         {auto o : Ref ROpts REPLOpts} -> REPLResult -> Core ()
+  displayResult : {auto c : Ref Ctxt Defs} →
+         {auto u : Ref UST UState} →
+         {auto s : Ref Syn SyntaxInfo} →
+         {auto m : Ref MD Metadata} →
+         {auto o : Ref ROpts REPLOpts} → REPLResult → Core ()
   displayResult  (REPLError err) = printError err
   displayResult  (Evaluated x Nothing) = printResult $ show x
   displayResult  (Evaluated x (Just y)) = printResult $ show x ++ " : " ++ show y
@@ -848,7 +848,7 @@ mutual
   displayResult  (Compiled f) = printResult $ "File " ++ f ++ " written"
   displayResult  (ProofFound x) = printResult $ show x
   displayResult  (Missed cases) = printResult $ showSep "\n" $ map handleMissing cases
-  displayResult  (CheckedTotal xs) = printResult $ showSep "\n" $ map (\ (fn, tot) => (show fn ++ " is " ++ show tot)) xs
+  displayResult  (CheckedTotal xs) = printResult $ showSep "\n" $ map (\ (fn, tot) ⇒ (show fn ++ " is " ++ show tot)) xs
   displayResult  (FoundHoles []) = printResult $ "No holes"
   displayResult  (FoundHoles [x]) = printResult $ "1 hole: " ++ show x
   displayResult  (FoundHoles xs) = printResult $ show (length xs) ++ " holes: " ++
@@ -867,22 +867,22 @@ mutual
   displayHelp =
     showSep "\n" $ map cmdInfo help
     where
-      makeSpace : Nat -> String
+      makeSpace : Nat → String
       makeSpace n = pack $ take n (repeat ' ')
 
-      col : Nat -> Nat -> String -> String -> String -> String
+      col : Nat → Nat → String → String → String → String
       col c1 c2 l m r =
         l ++ (makeSpace $ c1 `minus` length l) ++
         m ++ (makeSpace $ c2 `minus` length m) ++ r
 
-      cmdInfo : (List String, CmdArg, String) -> String
+      cmdInfo : (List String, CmdArg, String) → String
       cmdInfo (cmds, args, text) = "   " ++ col 16 12 (showSep " " cmds) (show args) text
 
   export
-  displayErrors : {auto c : Ref Ctxt Defs} ->
-         {auto u : Ref UST UState} ->
-         {auto s : Ref Syn SyntaxInfo} ->
-         {auto m : Ref MD Metadata} ->
-         {auto o : Ref ROpts REPLOpts} -> REPLResult -> Core ()
+  displayErrors : {auto c : Ref Ctxt Defs} →
+         {auto u : Ref UST UState} →
+         {auto s : Ref Syn SyntaxInfo} →
+         {auto m : Ref MD Metadata} →
+         {auto o : Ref ROpts REPLOpts} → REPLResult → Core ()
   displayErrors  (ErrorLoadingFile x err) = printError $ "File error in " ++ x ++ ": " ++ show err
   displayErrors _ = pure ()

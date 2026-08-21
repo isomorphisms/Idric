@@ -10,7 +10,7 @@ import public Language.JSON.Tokens
 %default total
 
 private
-punct : Punctuation -> Grammar JSONToken True ()
+punct : Punctuation → Grammar JSONToken True ()
 punct p = match $ JTPunct p
 
 private
@@ -18,8 +18,8 @@ rawString : Grammar JSONToken True String
 rawString = do mstr <- match JTString
                the (Grammar _ False _) $
                    case mstr of
-                        Just str => pure str
-                        Nothing => fail "invalid string"
+                        Just str ⇒ pure str
+                        Nothing ⇒ fail "invalid string"
 
 mutual
   private
@@ -74,7 +74,7 @@ mutual
   null = map (const JNull) $ match JTNull
 
 export
-parseJSON : List JSONToken -> Maybe JSON
+parseJSON : List JSONToken → Maybe JSON
 parseJSON toks = case parse json $ filter (not . ignored) toks of
-                      Right (j, []) => Just j
-                      _ => Nothing
+                      Right (j, []) ⇒ Just j
+                      _ ⇒ Nothing

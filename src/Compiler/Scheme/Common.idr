@@ -16,20 +16,20 @@ import System.Info
 %default covering
 
 export
-firstExists : List String -> IO (Maybe String)
+firstExists : List String → IO (Maybe String)
 firstExists [] = pure Nothing
 firstExists (x :: xs) = if !(exists x) then pure (Just x) else firstExists xs
 
-schString : String -> String
+schString : String → String
 schString s = concatMap okchar (unpack s)
   where
-    okchar : Char -> String
+    okchar : Char → String
     okchar c = if isAlphaNum c || c =='_'
                   then cast c
                   else "C-" ++ show (cast {to=Int} c)
 
 export
-schName : Name -> String
+schName : Name → String
 schName (NS ns n) = showSep "-" ns ++ "-" ++ schName n
 schName (UN n) = schString n
 schName (MN n i) = schString n ++ "-" ++ show i
@@ -43,45 +43,45 @@ schName (Resolved i) = "fn--" ++ show i
 
 -- local variable names as scheme names - we need to invent new names for the locals
 -- because there might be shadows in the original expression which can't be resolved
--- by the same scoping rules. (e.g. something that computes \x, x => x + x where the
+-- by the same scoping rules. (e.g. something that computes \x, x ⇒ x + x where the
 -- names are the same but refer to different bindings in the scope)
 public export
-data SVars : List Name -> Type where
+data SVars : List Name → Type where
      Nil : SVars []
-     (::) : (svar : String) -> SVars ns -> SVars (n :: ns)
+     (::) : (svar : String) → SVars ns → SVars (n :: ns)
 
-extendSVars : (xs : List Name) -> SVars ns -> SVars (xs ++ ns)
+extendSVars : (xs : List Name) → SVars ns → SVars (xs ++ ns)
 extendSVars {ns} xs vs = extSVars' (cast (length ns)) xs vs
   where
-    extSVars' : Int -> (xs : List Name) -> SVars ns -> SVars (xs ++ ns)
+    extSVars' : Int → (xs : List Name) → SVars ns → SVars (xs ++ ns)
     extSVars' i [] vs = vs
     extSVars' i (x :: xs) vs = schName (MN "v" i) :: extSVars' (i + 1) xs vs
 
 export
-initSVars : (xs : List Name) -> SVars xs
+initSVars : (xs : List Name) → SVars xs
 initSVars xs = rewrite sym (appendNilRightNeutral xs) in extendSVars xs []
 
-lookupSVar : {idx : Nat} -> .(IsVar n idx xs) -> SVars xs -> String
+lookupSVar : {idx : Nat} → .(IsVar n idx xs) → SVars xs → String
 lookupSVar First (n :: ns) = n
 lookupSVar (Later p) (n :: ns) = lookupSVar p ns
 
 export
-schConstructor : (String -> String) -> Name -> Maybe Int -> List String -> String
+schConstructor : (String → String) → Name → Maybe Int → List String → String
 schConstructor _ _ (Just t) args
     = "(vector " ++ show t ++ " " ++ showSep " " args ++ ")"
 schConstructor schString n Nothing args
     = "(vector " ++ schString (show n) ++ " " ++ showSep " " args ++ ")"
 
 ||| Generate scheme for a plain function.
-op : String -> List String -> String
+op : String → List String → String
 op o args = "(" ++ o ++ " " ++ showSep " " args ++ ")"
 
 ||| Generate scheme for a boolean operation.
-boolop : String -> List String -> String
+boolop : String → List String → String
 boolop o args = "(or (and " ++ op o args ++ " 1) 0)"
 
 ||| Generate scheme for a primitive function.
-schOp : PrimFn arity -> Vect arity String -> String
+schOp : PrimFn arity → Vect arity String → String
 schOp (Add IntType) [x, y] = op "b+" [x, y, "63"]
 schOp (Sub IntType) [x, y] = op "b-" [x, y, "63"]
 schOp (Mul IntType) [x, y] = op "b*" [x, y, "63"]
@@ -189,7 +189,7 @@ Show ExtPrim where
   show (Unknown n) = "Unknown " ++ show n
 
 ||| Match on a user given name to get the scheme primitive
-toPrim : Name -> ExtPrim
+toPrim : Name → ExtPrim
 toPrim pn@(NS _ n)
     = cond [(n == UN "prim__schemeCall", SchemeCall),
             (n == UN "prim__cCall", CCall),
@@ -209,10 +209,10 @@ toPrim pn@(NS _ n)
 toPrim pn = Unknown pn
 
 export
-mkWorld : String -> String
+mkWorld : String → String
 mkWorld res = res -- MkIORes is a newtype now! schConstructor 0 [res, "#f"] -- MkIORes
 
-schConstant : (String -> String) -> Constant -> String
+schConstant : (String → String) → Constant → String
 schConstant _ (I x) = show x
 schConstant _ (BI x) = show x
 schConstant schString (Str x) = schString x
@@ -229,18 +229,18 @@ schConstant _ CharType = "#t"
 schConstant _ DoubleType = "#t"
 schConstant _ WorldType = "#t"
 
-schCaseDef : Maybe String -> String
+schCaseDef : Maybe String → String
 schCaseDef Nothing = ""
 schCaseDef (Just tm) = "(else " ++ tm ++ ")"
 
 export
-schArglist : List Name -> String
+schArglist : List Name → String
 schArglist [] = ""
 schArglist [x] = schName x
 schArglist (x :: xs) = schName x ++ " " ++ schArglist xs
 
 mutual
-  used : Name -> NamedCExp -> Bool
+  used : Name → NamedCExp → Bool
   used n (NmLocal fc n') = n == n'
   used n (NmRef _ _) = False
   used n (NmLam _ _ sc) = used n sc
@@ -259,25 +259,25 @@ mutual
             || maybe False (used n) def
   used n _ = False
 
-  usedCon : Name -> NamedConAlt -> Bool
+  usedCon : Name → NamedConAlt → Bool
   usedCon n (MkNConAlt _ _ _ sc) = used n sc
 
-  usedConst : Name -> NamedConstAlt -> Bool
+  usedConst : Name → NamedConstAlt → Bool
   usedConst n (MkNConstAlt _ sc) = used n sc
 
-parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
-            schString : String -> String)
-  showTag : Name -> Maybe Int -> String
+parameters (schExtPrim : Int → ExtPrim → List NamedCExp → Core String,
+            schString : String → String)
+  showTag : Name → Maybe Int → String
   showTag n (Just i) = show i
   showTag n Nothing = schString (show n)
 
   mutual
-    schConAlt : Int -> String -> NamedConAlt -> Core String
+    schConAlt : Int → String → NamedConAlt → Core String
     schConAlt i target (MkNConAlt n tag args sc)
         = pure $ "((" ++ showTag n tag ++ ") "
                       ++ bindArgs 1 args !(schExp i sc) ++ ")"
       where
-        bindArgs : Int -> (ns : List Name) -> String -> String
+        bindArgs : Int → (ns : List Name) → String → String
         bindArgs i [] body = body
         bindArgs i (n :: ns) body
             = if used n sc
@@ -285,11 +285,11 @@ parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
                     ++ bindArgs (i + 1) ns body ++ ")"
                  else bindArgs (i + 1) ns body
 
-    schConUncheckedAlt : Int -> String -> NamedConAlt -> Core String
+    schConUncheckedAlt : Int → String → NamedConAlt → Core String
     schConUncheckedAlt i target (MkNConAlt n tag args sc)
         = pure $ bindArgs 1 args !(schExp i sc)
       where
-        bindArgs : Int -> (ns : List Name) -> String -> String
+        bindArgs : Int → (ns : List Name) → String → String
         bindArgs i [] body = body
         bindArgs i (n :: ns) body
             = if used n sc
@@ -297,17 +297,17 @@ parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
                     ++ bindArgs (i + 1) ns body ++ ")"
                  else bindArgs (i + 1) ns body
 
-    schConstAlt : Int -> String -> NamedConstAlt -> Core String
+    schConstAlt : Int → String → NamedConstAlt → Core String
     schConstAlt i target (MkNConstAlt c exp)
         = pure $ "((equal? " ++ target ++ " " ++ schConstant schString c ++ ") " ++ !(schExp i exp) ++ ")"
 
     -- oops, no traverse for Vect in Core
-    schArgs : Int -> Vect n NamedCExp -> Core (Vect n String)
+    schArgs : Int → Vect n NamedCExp → Core (Vect n String)
     schArgs i [] = pure []
     schArgs i (arg :: args) = pure $ !(schExp i arg) :: !(schArgs i args)
 
     export
-    schExp : Int -> NamedCExp -> Core String
+    schExp : Int → NamedCExp → Core String
     schExp i (NmLocal fc n) = pure $ schName n
     schExp i (NmRef fc n) = pure $ schName n
     schExp i (NmLam fc x sc)
@@ -347,7 +347,7 @@ parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
                      ++ !(showAlts n alts) ++
                      "))"
       where
-        showAlts : String -> List NamedConAlt -> Core String
+        showAlts : String → List NamedConAlt → Core String
         showAlts n [] = pure ""
         showAlts n [alt]
            = pure $ "(else " ++ !(schConUncheckedAlt (i + 1) n alt) ++ ")"
@@ -356,7 +356,7 @@ parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
                     !(showAlts n alts)
     schExp i (NmConCase fc sc alts def)
         = do tcode <- schExp (i+1) sc
-             defc <- maybe (pure Nothing) (\v => pure (Just !(schExp i v))) def
+             defc <- maybe (pure Nothing) (\v ⇒ pure (Just !(schExp i v))) def
              let n = "sc" ++ show i
              pure $ "(let ((" ++ n ++ " " ++ tcode ++ ")) (case (vector-ref " ++ n ++ " 0) "
                      ++ showSep " " !(traverse (schConAlt (i+1) n) alts)
@@ -368,7 +368,7 @@ parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
                       ++ !(showConstAlts n alts)
                       ++ "))"
       where
-        showConstAlts : String -> List NamedConstAlt -> Core String
+        showConstAlts : String → List NamedConstAlt → Core String
         showConstAlts n [] = pure ""
         showConstAlts n [MkNConstAlt c exp]
            = pure $ "(else " ++ !(schExp (i + 1) exp) ++ ")"
@@ -376,7 +376,7 @@ parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
            = pure $ !(schConstAlt (i + 1) n alt) ++ " " ++
                     !(showConstAlts n alts)
     schExp i (NmConstCase fc sc alts def)
-        = do defc <- maybe (pure Nothing) (\v => pure (Just !(schExp i v))) def
+        = do defc <- maybe (pure Nothing) (\v ⇒ pure (Just !(schExp i v))) def
              tcode <- schExp (i+1) sc
              let n = "sc" ++ show i
              pure $ "(let ((" ++ n ++ " " ++ tcode ++ ")) (cond "
@@ -388,16 +388,16 @@ parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
 
   -- Need to convert the argument (a list of scheme arguments that may
   -- have been constructed at run time) to a scheme list to be passed to apply
-  readArgs : Int -> NamedCExp -> Core String
+  readArgs : Int → NamedCExp → Core String
   readArgs i tm = pure $ "(blodwen-read-args " ++ !(schExp i tm) ++ ")"
 
-  fileOp : String -> String
+  fileOp : String → String
   fileOp op = "(blodwen-file-op (lambda () " ++ op ++ "))"
 
   -- External primitives which are common to the scheme codegens (they can be
   -- overridden)
   export
-  schExtCommon : Int -> ExtPrim -> List NamedCExp -> Core String
+  schExtCommon : Int → ExtPrim → List NamedCExp → Core String
   schExtCommon i SchemeCall [ret, NmPrimVal fc (Str fn), args, world]
      = pure $ mkWorld ("(apply " ++ fn ++" "
                   ++ !(readArgs i args) ++ ")")
@@ -432,8 +432,8 @@ parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
       = throw (InternalError ("Badly formed external primitive " ++ show prim
                                 ++ " " ++ show args))
 
-  schDef : {auto c : Ref Ctxt Defs} ->
-           Name -> NamedDef -> Core String
+  schDef : {auto c : Ref Ctxt Defs} →
+           Name → NamedDef → Core String
   schDef n (MkNmFun args exp)
      = pure $ "(define " ++ schName !(getFullName n) ++ " (lambda (" ++ schArglist args ++ ") "
                       ++ !(schExp 0 exp) ++ "))\n"
@@ -445,9 +445,9 @@ parameters (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String,
 -- Convert the name to scheme code
 -- (There may be no code generated, for example if it's a constructor)
 export
-getScheme : {auto c : Ref Ctxt Defs} ->
-            (schExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String) ->
-            (schString : String -> String) ->
-            (Name, FC, NamedDef) -> Core String
+getScheme : {auto c : Ref Ctxt Defs} →
+            (schExtPrim : Int → ExtPrim → List NamedCExp → Core String) →
+            (schString : String → String) →
+            (Name, FC, NamedDef) → Core String
 getScheme schExtPrim schString (n, fc, d)
     = schDef schExtPrim schString n d

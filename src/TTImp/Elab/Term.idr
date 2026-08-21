@@ -33,16 +33,16 @@ import TTImp.TTImp
 
 -- If the expected type has an implicit pi, elaborate with leading
 -- implicit lambdas if they aren't there already.
-insertImpLam : {auto c : Ref Ctxt Defs} ->
-               {auto u : Ref UST UState} ->
-               Env Term vars ->
-               (term : RawImp) -> (expected : Maybe (Glued vars)) ->
+insertImpLam : {auto c : Ref Ctxt Defs} →
+               {auto u : Ref UST UState} →
+               Env Term vars →
+               (term : RawImp) → (expected : Maybe (Glued vars)) →
                Core RawImp
 insertImpLam {vars} env tm (Just ty) = bindLam tm ty
   where
     -- If we can decide whether we need implicit lambdas without looking
     -- at the normal form, do so
-    bindLamTm : RawImp -> Term vs -> Core (Maybe RawImp)
+    bindLamTm : RawImp → Term vs → Core (Maybe RawImp)
     bindLamTm tm@(ILam _ _ Implicit _ _ _) (Bind fc n (Pi _ Implicit _) sc)
         = pure (Just tm)
     bindLamTm tm@(ILam _ _ AutoImplicit _ _ _) (Bind fc n (Pi _ AutoImplicit _) sc)
@@ -50,21 +50,21 @@ insertImpLam {vars} env tm (Just ty) = bindLam tm ty
     bindLamTm tm (Bind fc n (Pi c Implicit ty) sc)
         = do n' <- genVarName (nameRoot n)
              Just sc' <- bindLamTm tm sc
-                 | Nothing => pure Nothing
+                 | Nothing ⇒ pure Nothing
              pure $ Just (ILam fc c Implicit (Just n') (Implicit fc False) sc')
     bindLamTm tm (Bind fc n (Pi c AutoImplicit ty) sc)
         = do n' <- genVarName (nameRoot n)
              Just sc' <- bindLamTm tm sc
-                 | Nothing => pure Nothing
+                 | Nothing ⇒ pure Nothing
              pure $ Just (ILam fc c AutoImplicit (Just n') (Implicit fc False) sc')
     bindLamTm tm exp
         = case getFn exp of
-               Ref _ Func _ => pure Nothing -- might still be implicit
-               TForce _ _ _ => pure Nothing
-               Bind _ _ (Lam _ _ _) _ => pure Nothing
-               _ => pure $ Just tm
+               Ref _ Func _ ⇒ pure Nothing -- might still be implicit
+               TForce _ _ _ ⇒ pure Nothing
+               Bind _ _ (Lam _ _ _) _ ⇒ pure Nothing
+               _ ⇒ pure $ Just tm
 
-    bindLamNF : RawImp -> NF vars -> Core RawImp
+    bindLamNF : RawImp → NF vars → Core RawImp
     bindLamNF tm@(ILam _ _ Implicit _ _ _) (NBind fc n (Pi _ Implicit _) sc)
         = pure tm
     bindLamNF tm@(ILam _ _ AutoImplicit _ _ _) (NBind fc n (Pi _ AutoImplicit _) sc)
@@ -83,11 +83,11 @@ insertImpLam {vars} env tm (Just ty) = bindLam tm ty
              pure $ ILam fc c AutoImplicit (Just n') (Implicit fc False) sc'
     bindLamNF tm sc = pure tm
 
-    bindLam : RawImp -> Glued vars -> Core RawImp
+    bindLam : RawImp → Glued vars → Core RawImp
     bindLam tm gty
         = do ty <- getTerm gty
              Just tm' <- bindLamTm tm ty
-                | Nothing =>
+                | Nothing ⇒
                     do nf <- getNF gty
                        bindLamNF tm nf
              pure tm'
@@ -95,13 +95,13 @@ insertImpLam env tm _ = pure tm
 
 -- Main driver for checking terms, after implicits have been added.
 -- Implements 'checkImp' in TTImp.Elab.Check
-checkTerm : {vars : _} ->
-            {auto c : Ref Ctxt Defs} ->
-            {auto m : Ref MD Metadata} ->
-            {auto u : Ref UST UState} ->
-            {auto e : Ref EST (EState vars)} ->
-            RigCount -> ElabInfo ->
-            NestedNames vars -> Env Term vars -> RawImp -> Maybe (Glued vars) ->
+checkTerm : {vars : _} →
+            {auto c : Ref Ctxt Defs} →
+            {auto m : Ref MD Metadata} →
+            {auto u : Ref UST UState} →
+            {auto e : Ref EST (EState vars)} →
+            RigCount → ElabInfo →
+            NestedNames vars → Env Term vars → RawImp → Maybe (Glued vars) →
             Core (Term vars, Glued vars)
 checkTerm rig elabinfo nest env (IVar fc n) exp
     = -- It may actually turn out to be an application, if the expected
@@ -112,9 +112,9 @@ checkTerm rig elabinfo nest env (IPi fc r p (Just n) argTy retTy) exp
     = checkPi rig elabinfo nest env fc r p n argTy retTy exp
 checkTerm rig elabinfo nest env (IPi fc r p Nothing argTy retTy) exp
     = do n <- case p of
-                   Explicit => genVarName "arg"
-                   Implicit => genVarName "impArg"
-                   AutoImplicit => genVarName "conArg"
+                   Explicit ⇒ genVarName "arg"
+                   Implicit ⇒ genVarName "impArg"
+                   AutoImplicit ⇒ genVarName "conArg"
          checkPi rig elabinfo nest env fc r p n argTy retTy exp
 checkTerm rig elabinfo nest env (ILam fc r p (Just n) argTy scope) exp
     = checkLambda rig elabinfo nest env fc r p n argTy scope exp
@@ -217,13 +217,13 @@ checkTerm rig elabinfo nest env (Implicit fc b) Nothing
          pure (metaval, gnf env ty)
 
 -- Declared in TTImp.Elab.Check
--- check : {vars : _} ->
---         {auto c : Ref Ctxt Defs} ->
---         {auto m : Ref MD Metadata} ->
---         {auto u : Ref UST UState} ->
---         {auto e : Ref EST (EState vars)} ->
---         RigCount -> ElabInfo -> Env Term vars -> RawImp ->
---         Maybe (Glued vars) ->
+-- check : {vars : _} →
+--         {auto c : Ref Ctxt Defs} →
+--         {auto m : Ref MD Metadata} →
+--         {auto u : Ref UST UState} →
+--         {auto e : Ref EST (EState vars)} →
+--         RigCount → ElabInfo → Env Term vars → RawImp →
+--         Maybe (Glued vars) →
 --         Core (Term vars, Glued vars)
 -- If we've just inserted an implicit coercion (in practice, that's either
 -- a force or delay) then check the term with any further insertions
@@ -241,18 +241,18 @@ TTImp.Elab.Check.check rigc elabinfo nest env tm_in exp
          est <- get EST
          tm <- expandAmbigName (elabMode elabinfo) nest env tm_in [] tm_in exp
          case elabMode elabinfo of
-              InLHS _ => -- Don't expand implicit lambda on lhs
+              InLHS _ ⇒ -- Don't expand implicit lambda on lhs
                  checkImp rigc elabinfo nest env tm exp
-              _ => do tm' <- insertImpLam env tm exp
+              _ ⇒ do tm' <- insertImpLam env tm exp
                       checkImp rigc elabinfo nest env tm' exp
 
 -- As above, but doesn't add any implicit lambdas, forces, delays, etc
--- checkImp : {vars : _} ->
---            {auto c : Ref Ctxt Defs} ->
---            {auto m : Ref MD Metadata} ->
---            {auto u : Ref UST UState} ->
---            {auto e : Ref EST (EState vars)} ->
---            RigCount -> ElabInfo -> Env Term vars -> RawImp -> Maybe (Glued vars) ->
+-- checkImp : {vars : _} →
+--            {auto c : Ref Ctxt Defs} →
+--            {auto m : Ref MD Metadata} →
+--            {auto u : Ref UST UState} →
+--            {auto e : Ref EST (EState vars)} →
+--            RigCount → ElabInfo → Env Term vars → RawImp → Maybe (Glued vars) →
 --            Core (Term vars, Glued vars)
 TTImp.Elab.Check.checkImp rigc elabinfo nest env tm exp
     = checkTerm rigc elabinfo nest env tm exp

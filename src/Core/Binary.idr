@@ -30,7 +30,7 @@ ttcVersion : Int
 ttcVersion = 26
 
 export
-checkTTCVersion : String -> Int -> Int -> Core ()
+checkTTCVersion : String → Int → Int → Core ()
 checkTTCVersion file ver exp
   = when (ver /= exp) (throw $ TTCError $ Format file ver exp)
 
@@ -55,15 +55,15 @@ record TTCFile extra where
   transforms : List (Name, Transform)
   extraData : extra
 
-HasNames a => HasNames (List a) where
+HasNames a ⇒ HasNames (List a) where
   full c ns = full_aux c [] ns
-    where full_aux : Context -> List a -> List a -> Core (List a)
+    where full_aux : Context → List a → List a → Core (List a)
           full_aux c res [] = pure (reverse res)
           full_aux c res (n :: ns) = full_aux c (!(full c n):: res) ns
 
 
   resolved c ns = resolved_aux c [] ns
-    where resolved_aux : Context -> List a -> List a -> Core (List a)
+    where resolved_aux : Context → List a → List a → Core (List a)
           resolved_aux c res [] = pure (reverse res)
           resolved_aux c res (n :: ns) = resolved_aux c (!(resolved c n) :: res) ns
 HasNames (Int, FC, Name) where
@@ -86,7 +86,7 @@ HasNames (Name, Name, Bool) where
   full c (n1, n2, b) = pure (!(full c n1), !(full c n2), b)
   resolved c (n1, n2, b) = pure (!(resolved c n1), !(resolved c n2), b)
 
-HasNames e => HasNames (TTCFile e) where
+HasNames e ⇒ HasNames (TTCFile e) where
   full gam (MkTTCFile version ifaceHash iHashes
                       context userHoles
                       autoHints typeHints
@@ -107,17 +107,17 @@ HasNames e => HasNames (TTCFile e) where
                          !(full gam trans)
                          !(full gam extra)
     where
-      fullPair : Context -> Maybe PairNames -> Core (Maybe PairNames)
+      fullPair : Context → Maybe PairNames → Core (Maybe PairNames)
       fullPair gam Nothing = pure Nothing
       fullPair gam (Just (MkPairNs t f s))
           = pure $ Just $ MkPairNs !(full gam t) !(full gam f) !(full gam s)
 
-      fullRW : Context -> Maybe RewriteNames -> Core (Maybe RewriteNames)
+      fullRW : Context → Maybe RewriteNames → Core (Maybe RewriteNames)
       fullRW gam Nothing = pure Nothing
       fullRW gam (Just (MkRewriteNs e r))
           = pure $ Just $ MkRewriteNs !(full gam e) !(full gam r)
 
-      fullPrim : Context -> PrimNames -> Core PrimNames
+      fullPrim : Context → PrimNames → Core PrimNames
       fullPrim gam (MkPrimNs mi ms mc)
           = pure $ MkPrimNs !(full gam mi) !(full gam ms) !(full gam mc)
 
@@ -145,22 +145,22 @@ HasNames e => HasNames (TTCFile e) where
                          !(resolved gam trans)
                          !(resolved gam extra)
     where
-      resolvedPair : Context -> Maybe PairNames -> Core (Maybe PairNames)
+      resolvedPair : Context → Maybe PairNames → Core (Maybe PairNames)
       resolvedPair gam Nothing = pure Nothing
       resolvedPair gam (Just (MkPairNs t f s))
           = pure $ Just $ MkPairNs !(resolved gam t) !(resolved gam f) !(resolved gam s)
 
-      resolvedRW : Context -> Maybe RewriteNames -> Core (Maybe RewriteNames)
+      resolvedRW : Context → Maybe RewriteNames → Core (Maybe RewriteNames)
       resolvedRW gam Nothing = pure Nothing
       resolvedRW gam (Just (MkRewriteNs e r))
           = pure $ Just $ MkRewriteNs !(resolved gam e) !(resolved gam r)
 
-      resolvedPrim : Context -> PrimNames -> Core PrimNames
+      resolvedPrim : Context → PrimNames → Core PrimNames
       resolvedPrim gam (MkPrimNs mi ms mc)
           = pure $ MkPrimNs !(resolved gam mi) !(resolved gam ms) !(resolved gam mc)
 
 
-asName : List String -> Maybe (List String) -> Name -> Name
+asName : List String → Maybe (List String) → Name → Name
 asName mod (Just ns) (NS oldns n)
     = if mod == oldns
          then NS ns n -- TODO: What about if there are nested namespaces in a module?
@@ -169,9 +169,9 @@ asName _ _ n = n
 
 -- NOTE: TTC files are only compatible if the version number is the same,
 -- *and* the 'annot/extra' type are the same, or there are no holes/constraints
-writeTTCFile : (HasNames extra, TTC extra) =>
-               {auto c : Ref Ctxt Defs} ->
-               Ref Bin Binary -> TTCFile extra -> Core ()
+writeTTCFile : (HasNames extra, TTC extra) ⇒
+               {auto c : Ref Ctxt Defs} →
+               Ref Bin Binary → TTCFile extra → Core ()
 writeTTCFile b file_in
       = do file <- toFullNames file_in
            toBuf b "TTC"
@@ -194,10 +194,10 @@ writeTTCFile b file_in
            toBuf b (transforms file)
            toBuf b (extraData file)
 
-readTTCFile : TTC extra =>
-              {auto c : Ref Ctxt Defs} ->
-              List String -> Maybe (List String) ->
-              Ref Bin Binary -> Core (TTCFile extra)
+readTTCFile : TTC extra ⇒
+              {auto c : Ref Ctxt Defs} →
+              List String → Maybe (List String) →
+              Ref Bin Binary → Core (TTCFile extra)
 readTTCFile modns as b
       = do hdr <- fromBuf b
            chunk <- get Bin
@@ -229,16 +229,16 @@ readTTCFile modns as b
                            pns rws prims nds cgds trans ex)
 
 -- Pull out the list of GlobalDefs that we want to save
-getSaveDefs : List Name -> List (Name, Binary) -> Defs ->
+getSaveDefs : List Name → List (Name, Binary) → Defs →
               Core (List (Name, Binary))
 getSaveDefs [] acc _ = pure acc
 getSaveDefs (n :: ns) acc defs
     = do Just gdef <- lookupCtxtExact n (gamma defs)
-              | Nothing => getSaveDefs ns acc defs -- 'n' really should exist though!
+              | Nothing ⇒ getSaveDefs ns acc defs -- 'n' really should exist though!
          -- No need to save builtins
          case definition gdef of
-              Builtin _ => getSaveDefs ns acc defs
-              _ => do bin <- initBinaryS 16384
+              Builtin _ ⇒ getSaveDefs ns acc defs
+              _ ⇒ do bin <- initBinaryS 16384
                       toBuf bin !(full (gamma defs) gdef)
                       b <- get Bin
                       getSaveDefs ns ((fullname gdef, b) :: acc) defs
@@ -246,10 +246,10 @@ getSaveDefs (n :: ns) acc defs
 -- Write out the things in the context which have been defined in the
 -- current source file
 export
-writeToTTC : (HasNames extra, TTC extra) =>
-             {auto c : Ref Ctxt Defs} ->
-             {auto u : Ref UST UState} ->
-             extra -> (fname : String) -> Core ()
+writeToTTC : (HasNames extra, TTC extra) ⇒
+             {auto c : Ref Ctxt Defs} →
+             {auto u : Ref UST UState} →
+             extra → (fname : String) → Core ()
 writeToTTC extradata fname
     = do buf <- initBinary
          defs <- get Ctxt
@@ -274,19 +274,19 @@ writeToTTC extradata fname
                               (saveTransforms defs)
                               extradata)
          Right ok <- coreLift $ writeToFile fname !(get Bin)
-               | Left err => throw (InternalError (fname ++ ": " ++ show err))
+               | Left err ⇒ throw (InternalError (fname ++ ": " ++ show err))
          pure ()
 
-addGlobalDef : {auto c : Ref Ctxt Defs} ->
-               (modns : List String) -> (importAs : Maybe (List String)) ->
-               (Name, Binary) -> Core ()
+addGlobalDef : {auto c : Ref Ctxt Defs} →
+               (modns : List String) → (importAs : Maybe (List String)) →
+               (Name, Binary) → Core ()
 addGlobalDef modns as (n, def)
     = do defs <- get Ctxt
          codedentry <- lookupContextEntry n (gamma defs)
          -- Don't update the coded entry because some names might not be
          -- resolved yet
          entry <- maybe (pure Nothing)
-                        (\ (i, d) => do x <- decode (gamma defs) i False d
+                        (\ (i, d) ⇒ do x <- decode (gamma defs) i False d
                                         pure (Just x))
                         codedentry
          if completeDef entry
@@ -297,56 +297,56 @@ addGlobalDef modns as (n, def)
     -- If the definition already exists, don't overwrite it with an empty
     -- definition or hole. This might happen if a function is declared in one
     -- module and defined in another.
-    completeDef : Maybe GlobalDef -> Bool
+    completeDef : Maybe GlobalDef → Bool
     completeDef Nothing = False
     completeDef (Just def)
         = case definition def of
-               None => False
-               Hole _ _ => False
-               _ => True
+               None ⇒ False
+               Hole _ _ ⇒ False
+               _ ⇒ True
 
-addTypeHint : {auto c : Ref Ctxt Defs} ->
-              FC -> (Name, Name, Bool) -> Core ()
+addTypeHint : {auto c : Ref Ctxt Defs} →
+              FC → (Name, Name, Bool) → Core ()
 addTypeHint fc (tyn, hintn, d)
    = do logC 10 (pure (show !(getFullName hintn) ++ " for " ++
                        show !(getFullName tyn)))
         addHintFor fc tyn hintn d True
 
-addAutoHint : {auto c : Ref Ctxt Defs} ->
-              (Name, Bool) -> Core ()
+addAutoHint : {auto c : Ref Ctxt Defs} →
+              (Name, Bool) → Core ()
 addAutoHint (hintn, d) = addGlobalHint hintn d
 
 export
-updatePair : {auto c : Ref Ctxt Defs} ->
-             Maybe PairNames -> Core ()
+updatePair : {auto c : Ref Ctxt Defs} →
+             Maybe PairNames → Core ()
 updatePair p
     = do defs <- get Ctxt
-         put Ctxt (record { options->pairnames $= (p <+>) } defs)
+         put Ctxt (record { options→pairnames $= (p <+>) } defs)
 
 export
-updateRewrite : {auto c : Ref Ctxt Defs} ->
-                Maybe RewriteNames -> Core ()
+updateRewrite : {auto c : Ref Ctxt Defs} →
+                Maybe RewriteNames → Core ()
 updateRewrite r
     = do defs <- get Ctxt
-         put Ctxt (record { options->rewritenames $= (r <+>) } defs)
+         put Ctxt (record { options→rewritenames $= (r <+>) } defs)
 
 export
-updatePrimNames : PrimNames -> PrimNames -> PrimNames
+updatePrimNames : PrimNames → PrimNames → PrimNames
 updatePrimNames p
     = record { fromIntegerName $= ((fromIntegerName p) <+>),
                fromStringName $= ((fromStringName p) <+>),
                fromCharName $= ((fromCharName p) <+>) }
 
 export
-updatePrims : {auto c : Ref Ctxt Defs} ->
-              PrimNames -> Core ()
+updatePrims : {auto c : Ref Ctxt Defs} →
+              PrimNames → Core ()
 updatePrims p
     = do defs <- get Ctxt
-         put Ctxt (record { options->primnames $= updatePrimNames p } defs)
+         put Ctxt (record { options→primnames $= updatePrimNames p } defs)
 
 export
-updateNameDirectives : {auto c : Ref Ctxt Defs} ->
-                       List (Name, List String) -> Core ()
+updateNameDirectives : {auto c : Ref Ctxt Defs} →
+                       List (Name, List String) → Core ()
 updateNameDirectives [] = pure ()
 updateNameDirectives ((t, ns) :: nds)
     = do defs <- get Ctxt
@@ -354,32 +354,32 @@ updateNameDirectives ((t, ns) :: nds)
          updateNameDirectives nds
 
 export
-updateCGDirectives : {auto c : Ref Ctxt Defs} ->
-                     List (CG, String) -> Core ()
+updateCGDirectives : {auto c : Ref Ctxt Defs} →
+                     List (CG, String) → Core ()
 updateCGDirectives cgs
     = do defs <- get Ctxt
          let cgs' = nub (cgs ++ cgdirectives defs)
          put Ctxt (record { cgdirectives = cgs' } defs)
 
 export
-updateTransforms : {auto c : Ref Ctxt Defs} ->
-                   List (Name, Transform) -> Core ()
+updateTransforms : {auto c : Ref Ctxt Defs} →
+                   List (Name, Transform) → Core ()
 updateTransforms [] = pure ()
 updateTransforms ((n, t) :: ts)
     = do addT !(toResolvedNames n) !(toResolvedNames t)
          updateTransforms ts
   where
-    addT : Name -> Transform -> Core ()
+    addT : Name → Transform → Core ()
     addT n t
         = do defs <- get Ctxt
              case lookup n (transforms defs) of
-                  Nothing =>
+                  Nothing ⇒
                      put Ctxt (record { transforms $= insert n [t] } defs)
-                  Just ts =>
+                  Just ts ⇒
                      put Ctxt (record { transforms $= insert n (t :: ts) } defs)
 
 
-getNSas : (String, (List String, Bool, List String)) ->
+getNSas : (String, (List String, Bool, List String)) →
           (List String, List String)
 getNSas (a, (b, c, d)) = (b, d)
 
@@ -389,13 +389,13 @@ getNSas (a, (b, c, d)) = (b, d)
 -- (we need to return these, rather than do it here, because after loading
 -- the data that's when we process the extra data...)
 export
-readFromTTC : TTC extra =>
-              {auto c : Ref Ctxt Defs} ->
-              {auto u : Ref UST UState} ->
-              FC -> Bool ->
-              (fname : String) -> -- file containing the module
-              (modNS : List String) -> -- module namespace
-              (importAs : List String) -> -- namespace to import as
+readFromTTC : TTC extra ⇒
+              {auto c : Ref Ctxt Defs} →
+              {auto u : Ref UST UState} →
+              FC → Bool →
+              (fname : String) → -- file containing the module
+              (modNS : List String) → -- module namespace
+              (importAs : List String) → -- namespace to import as
               Core (Maybe (extra, Int,
                            List (List String, Bool, List String)))
 readFromTTC loc reexp fname modNS importAs
@@ -404,11 +404,11 @@ readFromTTC loc reexp fname modNS importAs
          -- don't load it again (we do need to load it again if it's visible
          -- this time, because we need to reexport the dependencies.)
          let False = (modNS, reexp, importAs) `elem` map snd (allImported defs)
-              | True => pure Nothing
+              | True ⇒ pure Nothing
          put Ctxt (record { allImported $= ((fname, (modNS, reexp, importAs)) :: ) } defs)
 
          Right buf <- coreLift $ readFromFile fname
-               | Left err => throw (InternalError (fname ++ ": " ++ show err))
+               | Left err ⇒ throw (InternalError (fname ++ ": " ++ show err))
          bin <- newRef Bin buf -- for reading the file into
          let as = if importAs == modNS
                      then Nothing
@@ -446,7 +446,7 @@ readFromTTC loc reexp fname modNS importAs
                put UST (record { nextName = nextVar ttc } ust)
                pure (Just (ex, ifaceHash ttc, imported ttc))
 
-getImportHashes : String -> Ref Bin Binary ->
+getImportHashes : String → Ref Bin Binary →
                   Core (List (List String, Int))
 getImportHashes file b
     = do hdr <- fromBuf {a = String} b
@@ -456,7 +456,7 @@ getImportHashes file b
          ifaceHash <- fromBuf {a = Int} b
          fromBuf b
 
-getHash : String -> Ref Bin Binary -> Core Int
+getHash : String → Ref Bin Binary → Core Int
 getHash file b
     = do hdr <- fromBuf {a = String} b
          when (hdr /= "TTC") $ corrupt ("TTC header in " ++ file ++ " " ++ show hdr)
@@ -465,22 +465,22 @@ getHash file b
          fromBuf b
 
 export
-readIFaceHash : (fname : String) -> -- file containing the module
+readIFaceHash : (fname : String) → -- file containing the module
                 Core Int
 readIFaceHash fname
     = do Right buf <- coreLift $ readFromFile fname
-            | Left err => pure 0
+            | Left err ⇒ pure 0
          b <- newRef Bin buf
          catch (getHash fname b)
-               (\err => pure 0)
+               (\err ⇒ pure 0)
 
 export
-readImportHashes : (fname : String) -> -- file containing the module
+readImportHashes : (fname : String) → -- file containing the module
                    Core (List (List String, Int))
 readImportHashes fname
     = do Right buf <- coreLift $ readFromFile fname
-            | Left err => pure []
+            | Left err ⇒ pure []
          b <- newRef Bin buf
          catch (getImportHashes fname b)
-               (\err => pure [])
+               (\err ⇒ pure [])
 

@@ -1,9 +1,9 @@
-data MyMaybe : (0 x : Type) -> Type where
+data MyMaybe : (0 x : Type) → Type where
   MyNothing : MyMaybe a
-  MyJust : a -> MyMaybe a
+  MyJust : a → MyMaybe a
 
 -- Should fail since type argument is deleted
-nameOf : Type -> String
+nameOf : Type → String
 nameOf (MyMaybe Bool) = "MyMaybe Bool"
 nameOf (MyMaybe Int) = "MyMaybe Int"
 nameOf _ = "Unknown"

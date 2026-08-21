@@ -14,54 +14,54 @@ import Idris.Syntax
 
 -- Output informational messages, unless quiet flag is set
 export
-iputStrLn : {auto o : Ref ROpts REPLOpts} ->
-            String -> Core ()
+iputStrLn : {auto o : Ref ROpts REPLOpts} →
+            String → Core ()
 iputStrLn msg
     = do opts <- get ROpts
          case idemode opts of
-              REPL False => coreLift $ putStrLn msg
-              REPL _ => pure ()
-              IDEMode i _ f =>
+              REPL False ⇒ coreLift $ putStrLn msg
+              REPL _ ⇒ pure ()
+              IDEMode i _ f ⇒
                 send f (SExpList [SymbolAtom "write-string",
                                  toSExp msg, toSExp i])
 
 
-printWithStatus : {auto o : Ref ROpts REPLOpts} ->
-                  String -> String -> Core ()
+printWithStatus : {auto o : Ref ROpts REPLOpts} →
+                  String → String → Core ()
 printWithStatus status msg
     = do opts <- get ROpts
          case idemode opts of
-              REPL _ => coreLift $ putStrLn msg
-              _      => pure () -- this function should never be called in IDE Mode
+              REPL _ ⇒ coreLift $ putStrLn msg
+              _      ⇒ pure () -- this function should never be called in IDE Mode
 
 export
-printResult : {auto o : Ref ROpts REPLOpts} ->
-              String -> Core ()
+printResult : {auto o : Ref ROpts REPLOpts} →
+              String → Core ()
 printResult msg = printWithStatus "ok" msg
 
 -- Return that a protocol request failed somehow
 export
-printError : {auto o : Ref ROpts REPLOpts} ->
-             String -> Core ()
+printError : {auto o : Ref ROpts REPLOpts} →
+             String → Core ()
 printError msg = printWithStatus "error" msg
 
 -- Display an error message from checking a source file
 export
-emitError : {auto c : Ref Ctxt Defs} ->
-            {auto o : Ref ROpts REPLOpts} ->
-            {auto s : Ref Syn SyntaxInfo} ->
-            Error -> Core ()
+emitError : {auto c : Ref Ctxt Defs} →
+            {auto o : Ref ROpts REPLOpts} →
+            {auto s : Ref Syn SyntaxInfo} →
+            Error → Core ()
 emitError err
     = do opts <- get ROpts
          case idemode opts of
-              REPL _ =>
+              REPL _ ⇒
                   do msg <- display err
                      coreLift $ putStrLn msg
-              IDEMode i _ f =>
+              IDEMode i _ f ⇒
                   do msg <- perror err
                      case getErrorLoc err of
-                          Nothing => iputStrLn msg
-                          Just fc =>
+                          Nothing ⇒ iputStrLn msg
+                          Just fc ⇒
                             send f (SExpList [SymbolAtom "warning",
                                    SExpList [toSExp (file fc),
                                             toSExp (addOne (startPos fc)),
@@ -71,15 +71,15 @@ emitError err
                                               SExpList []],
                                     toSExp i])
   where
-    addOne : (Int, Int) -> (Int, Int)
+    addOne : (Int, Int) → (Int, Int)
     addOne (l, c) = (l + 1, c + 1)
 
-getFCLine : FC -> Int
+getFCLine : FC → Int
 getFCLine fc = fst (startPos fc)
 
 export
-updateErrorLine : {auto o : Ref ROpts REPLOpts} ->
-                  List Error -> Core ()
+updateErrorLine : {auto o : Ref ROpts REPLOpts} →
+                  List Error → Core ()
 updateErrorLine []
     = do opts <- get ROpts
          put ROpts (record { errorLine = Nothing } opts)
@@ -88,10 +88,10 @@ updateErrorLine (e :: _)
          put ROpts (record { errorLine = map getFCLine (getErrorLoc e) } opts)
 
 export
-resetContext : {auto u : Ref Ctxt Defs} ->
-               {auto u : Ref UST UState} ->
-               {auto s : Ref Syn SyntaxInfo} ->
-               {auto m : Ref MD Metadata} ->
+resetContext : {auto u : Ref Ctxt Defs} →
+               {auto u : Ref UST UState} →
+               {auto s : Ref Syn SyntaxInfo} →
+               {auto m : Ref MD Metadata} →
                Core ()
 resetContext
     = do defs <- get Ctxt

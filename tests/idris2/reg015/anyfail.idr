@@ -12,10 +12,10 @@ record EvenMoreComplicated where
     constructor MkEvenMoreComplicated
     somethingEven : MoreComplicated 
 
-data TooComplicatedToBeTrue : (something : EvenMoreComplicated) -> Type where
+data TooComplicatedToBeTrue : (something : EvenMoreComplicated) → Type where
     SomethingVeryComplicatedIs :
         TooComplicatedToBeTrue
             (MkEvenMoreComplicated (MkMoreComplicated (MkComplicated (PtrAndSize addr len))))
 
-showing  :  (something : EvenMoreComplicated) -> (TooComplicatedToBeTrue something) -> Void
+showing  :  (something : EvenMoreComplicated) → (TooComplicatedToBeTrue something) → Void
 showing _ SomethingVeryComplicatedIs impossible

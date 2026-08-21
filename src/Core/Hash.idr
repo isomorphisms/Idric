@@ -13,8 +13,8 @@ import Data.List
 
 public export
 interface Hashable a where
-  hash : a -> Int
-  hashWithSalt : Int -> a -> Int
+  hash : a → Int
+  hashWithSalt : Int → a → Int
 
   hash = hashWithSalt 5381
   hashWithSalt h i = h * 33 + hash i
@@ -38,12 +38,12 @@ Hashable Char where
   hash = cast
 
 export
-Hashable a => Hashable (List a) where
+Hashable a ⇒ Hashable (List a) where
   hashWithSalt h [] = abs h
   hashWithSalt h (x :: xs) = hashWithSalt (h * 33 + hash x) xs
 
 export
-Hashable a => Hashable (Maybe a) where
+Hashable a ⇒ Hashable (Maybe a) where
   hashWithSalt h Nothing = abs h
   hashWithSalt h (Just x) = hashWithSalt h x
 
@@ -51,7 +51,7 @@ export
 Hashable String where
   hashWithSalt h str = hashChars h 0 (cast (length str)) str
     where
-      hashChars : Int -> Int -> Int -> String -> Int
+      hashChars : Int → Int → Int → String → Int
       hashChars h p len str
           = assert_total $
               if p == len
@@ -73,14 +73,14 @@ Hashable RigCount where
                      (const $ hashWithSalt h 2)
 
 export
-Hashable t => Hashable (PiInfo t) where
+Hashable t ⇒ Hashable (PiInfo t) where
   hashWithSalt h Implicit = hashWithSalt h 0
   hashWithSalt h Explicit = hashWithSalt h 1
   hashWithSalt h AutoImplicit = hashWithSalt h 2
   hashWithSalt h (DefImplicit t) = h `hashWithSalt` 3 `hashWithSalt` t
 
 export
-Hashable ty => Hashable (Binder ty) where
+Hashable ty ⇒ Hashable (Binder ty) where
   hashWithSalt h (Lam c p ty)
       = h `hashWithSalt` 0 `hashWithSalt` c `hashWithSalt` p `hashWithSalt` ty
   hashWithSalt h (Let c val ty)

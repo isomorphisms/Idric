@@ -10,7 +10,7 @@ module Data.So
 ||| it may be appropriate to define a type of evidence for the property that you
 ||| care about instead.
 public export
-data So : Bool -> Type where
+data So : Bool → Type where
   Oh : So True
 
 export
@@ -19,7 +19,7 @@ implementation Uninhabited (So False) where
 
 ||| Perform a case analysis on a Boolean, providing clients with a `So` proof
 export
-choose : (b : Bool) -> Either (So b) (So (not b))
+choose : (b : Bool) → Either (So b) (So (not b))
 choose True  = Left Oh
 choose False = Right Oh
 

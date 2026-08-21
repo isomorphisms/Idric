@@ -1,14 +1,14 @@
 import Stuff
 
 interface Functor f where
-    map : (a -> b) -> f a -> f b
+    map : (a → b) → f a → f b
 
 Functor List where
   map f [] = []
   map f (x :: xs) = f x :: map f xs
 
-data Test : Type -> Type -> Type -> Type where
-     MkTest : a -> b -> c -> Test a b c
+data Test : Type → Type → Type → Type where
+     MkTest : a → b → c → Test a b c
 
 Functor (Test c d) where
   map = ?foo

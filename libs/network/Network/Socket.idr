@@ -14,9 +14,9 @@ import Data.List
 ||| number. Returns either a socket or an error.
 export
 socket : (fam  : SocketFamily)
-      -> (ty   : SocketType)
-      -> (pnum : ProtocolNumber)
-      -> IO (Either SocketError Socket)
+      → (ty   : SocketType)
+      → (pnum : ProtocolNumber)
+      → IO (Either SocketError Socket)
 socket sf st pn = do
   socket_res <- cCall Int "idrnet_socket" [toCode sf, toCode st, pn]
 
@@ -26,16 +26,16 @@ socket sf st pn = do
 
 ||| Close a socket
 export
-close : Socket -> IO ()
+close : Socket → IO ()
 close sock = cCall () "close" [descriptor sock]
 
 ||| Binds a socket to the given socket address and port.
 ||| Returns 0 on success, an error code otherwise.
 export
 bind : (sock : Socket)
-    -> (addr : Maybe SocketAddress)
-    -> (port : Port)
-    -> IO Int
+    → (addr : Maybe SocketAddress)
+    → (port : Port)
+    → IO Int
 bind sock addr port = do
     bind_res <- cCall Int "idrnet_bind"
                 [ descriptor sock, toCode $ family sock
@@ -45,7 +45,7 @@ bind sock addr port = do
       then getErrno
       else pure 0
   where
-    saString : Maybe SocketAddress -> String
+    saString : Maybe SocketAddress → String
     saString (Just sa) = show sa
     saString Nothing   = ""
 
@@ -53,9 +53,9 @@ bind sock addr port = do
 ||| Returns 0 on success, and an error number on error.
 export
 connect : (sock : Socket)
-       -> (addr : SocketAddress)
-       -> (port : Port)
-       -> IO ResultCode
+       → (addr : SocketAddress)
+       → (port : Port)
+       → IO ResultCode
 connect sock addr port = do
   conn_res <- cCall Int "idrnet_connect"
               [ descriptor sock, toCode $ family sock, toCode $ socketType sock, show addr, port]
@@ -68,7 +68,7 @@ connect sock addr port = do
 |||
 ||| @sock The socket to listen on.
 export
-listen : (sock : Socket) -> IO Int
+listen : (sock : Socket) → IO Int
 listen sock = do
   listen_res <- cCall Int "listen" [ descriptor sock, BACKLOG ]
   if listen_res == (-1)
@@ -85,7 +85,7 @@ listen sock = do
 ||| @sock The socket used to establish connection.
 export
 accept : (sock : Socket)
-      -> IO (Either SocketError (Socket, SocketAddress))
+      → IO (Either SocketError (Socket, SocketAddress))
 accept sock = do
 
   -- We need a pointer to a sockaddr structure. This is then passed into
@@ -111,8 +111,8 @@ accept sock = do
 ||| @msg  The data to send.
 export
 send : (sock : Socket)
-    -> (msg  : String)
-    -> IO (Either SocketError ResultCode)
+    → (msg  : String)
+    → IO (Either SocketError ResultCode)
 send sock dat = do
   send_res <- cCall Int "idrnet_send" [ descriptor sock, dat ]
 
@@ -131,8 +131,8 @@ send sock dat = do
 ||| @len  How much of the data to receive.
 export
 recv : (sock : Socket)
-    -> (len : ByteLength)
-    -> IO (Either SocketError (String, ResultCode))
+    → (len : ByteLength)
+    → IO (Either SocketError (String, ResultCode))
 recv sock len = do
   -- Firstly make the request, get some kind of recv structure which
   -- contains the result of the recv and possibly the retrieved payload
@@ -161,16 +161,16 @@ recv sock len = do
 |||
 ||| @sock The socket on which to receive the message.
 export
-recvAll : (sock : Socket) -> IO (Either SocketError String)
+recvAll : (sock : Socket) → IO (Either SocketError String)
 recvAll sock = recvRec sock [] 64
   where
     partial
-    recvRec : Socket -> List String -> ByteLength -> IO (Either SocketError String)
+    recvRec : Socket → List String → ByteLength → IO (Either SocketError String)
     recvRec sock acc n = do res <- recv sock n
                             case res of
-                              Left 0 => pure (Right $ concat $ reverse acc)
-                              Left c => pure (Left c)
-                              Right (str, _) => let n' = min (n * 2) 65536 in
+                              Left 0 ⇒ pure (Right $ concat $ reverse acc)
+                              Left c ⇒ pure (Left c)
+                              Right (str, _) ⇒ let n' = min (n * 2) 65536 in
                                                 recvRec sock (str :: acc) n'
 
 ||| Send a message.
@@ -184,10 +184,10 @@ recvAll sock = recvRec sock [] 64
 ||| @msg  The message to send.
 export
 sendTo : (sock : Socket)
-      -> (addr : SocketAddress)
-      -> (port : Port)
-      -> (msg  : String)
-      -> IO (Either SocketError ByteLength)
+      → (addr : SocketAddress)
+      → (port : Port)
+      → (msg  : String)
+      → IO (Either SocketError ByteLength)
 sendTo sock addr p dat = do
   sendto_res <- cCall Int "idrnet_sendto"
                 [ descriptor sock, dat, show addr, p ,toCode $ family sock ]
@@ -209,8 +209,8 @@ sendTo sock addr p dat = do
 |||
 export
 recvFrom : (sock : Socket)
-        -> (len  : ByteLength)
-        -> IO (Either SocketError (UDPAddrInfo, String, ResultCode))
+        → (len  : ByteLength)
+        → IO (Either SocketError (UDPAddrInfo, String, ResultCode))
 recvFrom sock bl = do
   recv_ptr <- cCall AnyPtr "idrnet_recvfrom"
               [ descriptor sock, bl ]

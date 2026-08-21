@@ -1,6 +1,6 @@
 import System.FFI
 
-pfn : String -> String
+pfn : String → String
 pfn fn = "C:" ++ fn ++ ",libstruct"
 
 Point : Type
@@ -10,27 +10,27 @@ NamedPoint : Type
 NamedPoint = Struct "namedpoint" [("name", Ptr String), ("pt", Point)]
 
 %foreign (pfn "getString")
-getStr : Ptr String -> String
+getStr : Ptr String → String
 
 %foreign (pfn "mkPoint")
-mkPoint : Int -> Int -> Point
+mkPoint : Int → Int → Point
 
 %foreign (pfn "freePoint")
-freePoint : Point -> PrimIO ()
+freePoint : Point → PrimIO ()
 
 %foreign (pfn "mkNamedPoint")
-mkNamedPoint : String -> Point -> PrimIO NamedPoint
+mkNamedPoint : String → Point → PrimIO NamedPoint
 
 %foreign (pfn "freeNamedPoint")
-freeNamedPoint : NamedPoint -> PrimIO ()
+freeNamedPoint : NamedPoint → PrimIO ()
 
-showPoint : Point -> String
+showPoint : Point → String
 showPoint pt
     = let x : Int = getField pt "x"
           y : Int = getField pt "y" in
           show (x, y)
 
-showNamedPoint : NamedPoint -> String
+showNamedPoint : NamedPoint → String
 showNamedPoint pt
     = let x : String = getStr (getField pt "name")
           p : Point = getField pt "pt" in

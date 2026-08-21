@@ -5,12 +5,12 @@ import Core.TT
 import TTImp.BindImplicits
 import TTImp.TTImp
 
-matchFail : FC -> Core a
+matchFail : FC → Core a
 matchFail loc = throw (GenericMsg loc "With clause does not match parent")
 
 mutual
   export
-  getMatch : (lhs : Bool) -> RawImp -> RawImp ->
+  getMatch : (lhs : Bool) → RawImp → RawImp →
              Core (List (String, RawImp))
   getMatch lhs (IBindVar _ n) tm = pure [(n, tm)]
   getMatch lhs (Implicit _ _) tm = pure []
@@ -26,7 +26,7 @@ mutual
            then matchAll lhs [(arg, arg'), (ret, ret')]
            else matchFail loc
     where
-      samePiInfo : PiInfo RawImp -> PiInfo RawImp -> Bool
+      samePiInfo : PiInfo RawImp → PiInfo RawImp → Bool
       samePiInfo Explicit Explicit = True
       samePiInfo Implicit Implicit = True
       samePiInfo AutoImplicit AutoImplicit = True
@@ -71,7 +71,7 @@ mutual
     else matchFail fc
   getMatch lhs pat spec = matchFail (getFC pat)
 
-  matchAll : (lhs : Bool) -> List (RawImp, RawImp) ->
+  matchAll : (lhs : Bool) → List (RawImp, RawImp) →
              Core (List (String, RawImp))
   matchAll lhs [] = pure []
   matchAll lhs ((x, y) :: ms)
@@ -79,39 +79,39 @@ mutual
            mxy <- getMatch lhs x y
            mergeMatches lhs (mxy ++ matches)
 
-  mergeMatches : (lhs : Bool) -> List (String, RawImp) ->
+  mergeMatches : (lhs : Bool) → List (String, RawImp) →
                  Core (List (String, RawImp))
   mergeMatches lhs [] = pure []
   mergeMatches lhs ((n, tm) :: rest)
       = do rest' <- mergeMatches lhs rest
            case lookup n rest' of
-                Nothing => pure ((n, tm) :: rest')
-                Just tm' =>
+                Nothing ⇒ pure ((n, tm) :: rest')
+                Just tm' ⇒
                    do getMatch lhs tm tm' -- just need to know it succeeds
                       mergeMatches lhs rest
 
 -- Get the arguments for the rewritten pattern clause of a with by looking
 -- up how the argument names matched
-getArgMatch : FC -> Bool -> RawImp -> List (String, RawImp) ->
-              Maybe (PiInfo RawImp, Name) -> RawImp
+getArgMatch : FC → Bool → RawImp → List (String, RawImp) →
+              Maybe (PiInfo RawImp, Name) → RawImp
 getArgMatch ploc search warg ms Nothing = warg
 getArgMatch ploc True warg ms (Just (AutoImplicit, UN n))
     = case lookup n ms of
-           Nothing => ISearch ploc 500
-           Just tm => tm
+           Nothing ⇒ ISearch ploc 500
+           Just tm ⇒ tm
 getArgMatch ploc True warg ms (Just (AutoImplicit, _))
     = ISearch ploc 500
 getArgMatch ploc search warg ms (Just (_, UN n))
     = case lookup n ms of
-           Nothing => Implicit ploc True
-           Just tm => tm
+           Nothing ⇒ Implicit ploc True
+           Just tm ⇒ tm
 getArgMatch ploc search warg ms _ = Implicit ploc True
 
 export
-getNewLHS : {auto c : Ref Ctxt Defs} ->
-            FC -> (drop : Nat) -> NestedNames vars ->
-            Name -> List (Maybe (PiInfo RawImp, Name)) ->
-            RawImp -> RawImp -> Core RawImp
+getNewLHS : {auto c : Ref Ctxt Defs} →
+            FC → (drop : Nat) → NestedNames vars →
+            Name → List (Maybe (PiInfo RawImp, Name)) →
+            RawImp → RawImp → Core RawImp
 getNewLHS ploc drop nest wname wargnames lhs_raw patlhs
     = do (mlhs_raw, wrest) <- dropWithArgs drop patlhs
          autoimp <- isUnboundImplicits
@@ -121,7 +121,7 @@ getNewLHS ploc drop nest wname wargnames lhs_raw patlhs
          setUnboundImplicits autoimp
 
          let (warg :: rest) = reverse wrest
-             | _ => throw (GenericMsg ploc "Badly formed 'with' clause")
+             | _ ⇒ throw (GenericMsg ploc "Badly formed 'with' clause")
          log 5 $ show lhs ++ " against " ++ show mlhs ++
                  " dropping " ++ show (warg :: rest)
          ms <- getMatch True lhs mlhs
@@ -131,7 +131,7 @@ getNewLHS ploc drop nest wname wargnames lhs_raw patlhs
          log 5 $ "New LHS: " ++ show newlhs
          pure newlhs
   where
-    dropWithArgs : Nat -> RawImp ->
+    dropWithArgs : Nat → RawImp →
                    Core (RawImp, List RawImp)
     dropWithArgs Z tm = pure (tm, [])
     dropWithArgs (S k) (IApp _ f arg)
@@ -143,18 +143,18 @@ getNewLHS ploc drop nest wname wargnames lhs_raw patlhs
 
 -- Find a 'with' application on the RHS and update it
 export
-withRHS : {auto c : Ref Ctxt Defs} ->
-          FC -> (drop : Nat) -> Name -> List (Maybe (PiInfo RawImp, Name)) ->
-          RawImp -> RawImp ->
+withRHS : {auto c : Ref Ctxt Defs} →
+          FC → (drop : Nat) → Name → List (Maybe (PiInfo RawImp, Name)) →
+          RawImp → RawImp →
           Core RawImp
 withRHS fc drop wname wargnames tm toplhs
     = wrhs tm
   where
-    withApply : FC -> RawImp -> List RawImp -> RawImp
+    withApply : FC → RawImp → List RawImp → RawImp
     withApply fc f [] = f
     withApply fc f (a :: as) = withApply fc (IWithApp fc f a) as
 
-    updateWith : FC -> RawImp -> List RawImp -> Core RawImp
+    updateWith : FC → RawImp → List RawImp → Core RawImp
     updateWith fc (IWithApp _ f a) ws = updateWith fc f (a :: ws)
     updateWith fc tm []
         = throw (GenericMsg fc "Badly formed 'with' application")
@@ -169,7 +169,7 @@ withRHS fc drop wname wargnames tm toplhs
              pure (withApply fc newrhs args)
 
     mutual
-      wrhs : RawImp -> Core RawImp
+      wrhs : RawImp → Core RawImp
       wrhs (IPi fc c p n ty sc)
           = pure $ IPi fc c p n !(wrhs ty) !(wrhs sc)
       wrhs (ILam fc c p n ty sc)
@@ -193,6 +193,6 @@ withRHS fc drop wname wargnames tm toplhs
       wrhs (IForce fc tm) = pure $ IForce fc !(wrhs tm)
       wrhs tm = pure tm
 
-      wrhsC : ImpClause -> Core ImpClause
+      wrhsC : ImpClause → Core ImpClause
       wrhsC (PatClause fc lhs rhs) = pure $ PatClause fc lhs !(wrhs rhs)
       wrhsC c = pure c

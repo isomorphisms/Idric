@@ -19,8 +19,8 @@ import Data.IntMap
 
 -- We run the elaborator in the given environment, but need to end up with a
 -- closed term.
-mkClosedElab : FC -> Env Term vars ->
-               (Core (Term vars, Glued vars)) ->
+mkClosedElab : FC → Env Term vars →
+               (Core (Term vars, Glued vars)) →
                Core ClosedTerm
 mkClosedElab fc [] elab
     = do (tm, _) <- elab
@@ -34,7 +34,7 @@ mkClosedElab {vars = x :: vars} fc (b :: env) elab
     -- in 'abstractEnvType' we get a Pi binder (so we'll need a Lambda) for
     -- everything except 'Let', so make the appropriate corresponding binder
     -- here
-    newBinder : Binder (Term vars) -> Binder (Term vars)
+    newBinder : Binder (Term vars) → Binder (Term vars)
     newBinder (Let c val ty) = Let c val ty
     newBinder b = Lam (multiplicity b) Explicit (binderType b)
 
@@ -42,20 +42,20 @@ mkClosedElab {vars = x :: vars} fc (b :: env) elab
 -- predicate, make a hole and try it again later when more holes might
 -- have been resolved
 export
-delayOnFailure : {auto c : Ref Ctxt Defs} ->
-                 {auto m : Ref MD Metadata} ->
-                 {auto u : Ref UST UState} ->
-                 {auto e : Ref EST (EState vars)} ->
-                 FC -> RigCount -> Env Term vars ->
-                 (expected : Glued vars) ->
-                 (Error -> Bool) ->
-                 (pri : Nat) ->
-                 (Bool -> Core (Term vars, Glued vars)) ->
+delayOnFailure : {auto c : Ref Ctxt Defs} →
+                 {auto m : Ref MD Metadata} →
+                 {auto u : Ref UST UState} →
+                 {auto e : Ref EST (EState vars)} →
+                 FC → RigCount → Env Term vars →
+                 (expected : Glued vars) →
+                 (Error → Bool) →
+                 (pri : Nat) →
+                 (Bool → Core (Term vars, Glued vars)) →
                  Core (Term vars, Glued vars)
 delayOnFailure fc rig env expected pred pri elab
     = do est <- get EST
          handle (elab (not (allowDelay est)))
-          (\err =>
+          (\err ⇒
               do est <- get EST
                  if pred err && allowDelay est
                     then
@@ -73,14 +73,14 @@ delayOnFailure fc rig env expected pred pri elab
                     else throw err)
 
 export
-delayElab : {auto c : Ref Ctxt Defs} ->
-            {auto m : Ref MD Metadata} ->
-            {auto u : Ref UST UState} ->
-            {auto e : Ref EST (EState vars)} ->
-            FC -> RigCount -> Env Term vars ->
-            (expected : Maybe (Glued vars)) ->
-            (pri : Nat) ->
-            Core (Term vars, Glued vars) ->
+delayElab : {auto c : Ref Ctxt Defs} →
+            {auto m : Ref MD Metadata} →
+            {auto u : Ref UST UState} →
+            {auto e : Ref EST (EState vars)} →
+            FC → RigCount → Env Term vars →
+            (expected : Maybe (Glued vars)) →
+            (pri : Nat) →
+            Core (Term vars, Glued vars) →
             Core (Term vars, Glued vars)
 delayElab {vars} fc rig env exp pri elab
     = do est <- get EST
@@ -98,7 +98,7 @@ delayElab {vars} fc rig env exp pri elab
                              ust)
              pure (dtm, expected)
   where
-    mkExpected : Maybe (Glued vars) -> Core (Glued vars)
+    mkExpected : Maybe (Glued vars) → Core (Glued vars)
     mkExpected (Just ty) = pure ty
     mkExpected Nothing
         = do nm <- genName "delayTy"
@@ -106,7 +106,7 @@ delayElab {vars} fc rig env exp pri elab
              pure (gnf env ty)
 
 export
-ambiguous : Error -> Bool
+ambiguous : Error → Bool
 ambiguous (AmbiguousElab _ _ _) = True
 ambiguous (AmbiguousName _ _) = True
 ambiguous (AmbiguityTooDeep _ _ _) = True
@@ -129,18 +129,18 @@ Show RetryError where
 
 -- Try all the delayed elaborators. If there's a failure, we want to
 -- show the ambiguity errors first (since that's the likely cause)
-retryDelayed' : {auto c : Ref Ctxt Defs} ->
-                {auto m : Ref MD Metadata} ->
-                {auto u : Ref UST UState} ->
-                {auto e : Ref EST (EState vars)} ->
-                RetryError ->
-                List (Nat, Int, Core ClosedTerm) ->
+retryDelayed' : {auto c : Ref Ctxt Defs} →
+                {auto m : Ref MD Metadata} →
+                {auto u : Ref UST UState} →
+                {auto e : Ref EST (EState vars)} →
+                RetryError →
+                List (Nat, Int, Core ClosedTerm) →
                 Core ()
 retryDelayed' errmode [] = pure ()
 retryDelayed' errmode ((_, i, elab) :: ds)
     = do defs <- get Ctxt
          Just Delayed <- lookupDefExact (Resolved i) (gamma defs)
-              | _ => retryDelayed' errmode ds
+              | _ ⇒ retryDelayed' errmode ds
          handle
            (do log 5 ("Retrying delayed hole " ++ show !(getFullName (Resolved i)))
                -- elab itself might have delays internally, so keep track of them
@@ -156,22 +156,22 @@ retryDelayed' errmode ((_, i, elab) :: ds)
                logTermNF 5 ("Resolved delayed hole NF " ++ show i) [] tm
                removeHole i
                retryDelayed' errmode ds')
-           (\err => do log 5 $ show errmode ++ ":Error in " ++ show !(getFullName (Resolved i))
+           (\err ⇒ do log 5 $ show errmode ++ ":Error in " ++ show !(getFullName (Resolved i))
                                 ++ "\n" ++ show err
                        case errmode of
-                         NoError => retryDelayed' errmode ds
-                         AmbigError =>
+                         NoError ⇒ retryDelayed' errmode ds
+                         AmbigError ⇒
                             if ambiguous err -- give up on ambiguity
                                then throw err
                                else retryDelayed' errmode ds
-                         AllErrors => throw err)
+                         AllErrors ⇒ throw err)
 
 export
-retryDelayed : {auto c : Ref Ctxt Defs} ->
-               {auto m : Ref MD Metadata} ->
-               {auto u : Ref UST UState} ->
-               {auto e : Ref EST (EState vars)} ->
-               List (Nat, Int, Core ClosedTerm) ->
+retryDelayed : {auto c : Ref Ctxt Defs} →
+               {auto m : Ref MD Metadata} →
+               {auto u : Ref UST UState} →
+               {auto e : Ref EST (EState vars)} →
+               List (Nat, Int, Core ClosedTerm) →
                Core ()
 retryDelayed ds
     = do retryDelayed' NoError ds -- try everything again
@@ -180,11 +180,11 @@ retryDelayed ds
 
 -- Run an elaborator, then all the delayed elaborators arising from it
 export
-runDelays : {auto c : Ref Ctxt Defs} ->
-            {auto m : Ref MD Metadata} ->
-            {auto u : Ref UST UState} ->
-            {auto e : Ref EST (EState vars)} ->
-            Nat -> Core a -> Core a
+runDelays : {auto c : Ref Ctxt Defs} →
+            {auto m : Ref MD Metadata} →
+            {auto u : Ref UST UState} →
+            {auto e : Ref EST (EState vars)} →
+            Nat → Core a → Core a
 runDelays pri elab
     = do ust <- get UST
          let olddelayed = delayedElab ust
@@ -194,11 +194,11 @@ runDelays pri elab
          log 2 $ "Rerunning delayed in elaborator"
          handle (retryDelayed' AllErrors
                      (reverse (filter hasPri (delayedElab ust))))
-                (\err => do put UST (record { delayedElab = olddelayed } ust)
+                (\err ⇒ do put UST (record { delayedElab = olddelayed } ust)
                             throw err)
          ust <- get UST
          put UST (record { delayedElab $= (++ olddelayed) } ust)
          pure tm
   where
-    hasPri : (Nat, d) -> Bool
+    hasPri : (Nat, d) → Bool
     hasPri (n, _) = toIntegerNat n <= toIntegerNat pri

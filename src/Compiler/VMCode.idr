@@ -16,7 +16,7 @@ import Debug.Trace
 public export
 data Reg : Type where
      RVal : Reg
-     Loc : Int -> Reg
+     Loc : Int → Reg
      Discard : Reg
 
 -- VM instructions - first Reg is where the result goes, unless stated
@@ -27,35 +27,35 @@ data Reg : Type where
 -- translate this directly to a target language program.
 public export
 data VMInst : Type where
-     DECLARE : Reg -> VMInst
+     DECLARE : Reg → VMInst
      START : VMInst -- start of the main body of the function
-     ASSIGN : Reg -> Reg -> VMInst
-     MKCON : Reg -> (tag : Maybe Int) -> (args : List Reg) -> VMInst
-     MKCLOSURE : Reg -> Name -> (missing : Nat) -> (args : List Reg) -> VMInst
-     MKCONSTANT : Reg -> Constant -> VMInst
+     ASSIGN : Reg → Reg → VMInst
+     MKCON : Reg → (tag : Maybe Int) → (args : List Reg) → VMInst
+     MKCLOSURE : Reg → Name → (missing : Nat) → (args : List Reg) → VMInst
+     MKCONSTANT : Reg → Constant → VMInst
      
-     APPLY : Reg -> (f : Reg) -> (a : Reg) -> VMInst
-     CALL : Reg -> (tailpos : Bool) -> Name -> (args : List Reg) -> VMInst
-     OP : Reg -> PrimFn arity -> Vect arity Reg -> VMInst
-     EXTPRIM : Reg -> Name -> List Reg -> VMInst
+     APPLY : Reg → (f : Reg) → (a : Reg) → VMInst
+     CALL : Reg → (tailpos : Bool) → Name → (args : List Reg) → VMInst
+     OP : Reg → PrimFn arity → Vect arity Reg → VMInst
+     EXTPRIM : Reg → Name → List Reg → VMInst
 
-     CASE : Reg -> -- scrutinee 
-            (alts : List (Either Int Name, List VMInst)) -> -- based on constructor tag
-            (def : Maybe (List VMInst)) ->
+     CASE : Reg → -- scrutinee
+            (alts : List (Either Int Name, List VMInst)) → -- based on constructor tag
+            (def : Maybe (List VMInst)) →
             VMInst
-     CONSTCASE : Reg -> -- scrutinee 
-                 (alts : List (Constant, List VMInst)) ->
-                 (def : Maybe (List VMInst)) ->
+     CONSTCASE : Reg → -- scrutinee
+                 (alts : List (Constant, List VMInst)) →
+                 (def : Maybe (List VMInst)) →
                  VMInst
-     PROJECT : Reg -> (value : Reg) -> (pos : Int) -> VMInst
-     NULL : Reg -> VMInst
+     PROJECT : Reg → (value : Reg) → (pos : Int) → VMInst
+     NULL : Reg → VMInst
 
-     ERROR : String -> VMInst
+     ERROR : String → VMInst
 
 public export
 data VMDef : Type where
-     MkVMFun : (args : List Int) -> List VMInst -> VMDef
-     MkVMError : List VMInst -> VMDef
+     MkVMFun : (args : List Int) → List VMInst → VMDef
+     MkVMError : List VMInst → VMDef
 
 export
 Show Reg where
@@ -101,11 +101,11 @@ Show VMDef where
   show (MkVMFun args body) = show args ++ ": " ++ show body
   show (MkVMError err) = "Error: " ++ show err
 
-toReg : AVar -> Reg
+toReg : AVar → Reg
 toReg (ALocal i) = Loc i
 toReg ANull = Discard
 
-toVM : (tailpos : Bool) -> (target : Reg) -> ANF -> List VMInst
+toVM : (tailpos : Bool) → (target : Reg) → ANF → List VMInst
 toVM t Discard _ = []
 toVM t res (AV fc (ALocal i))
     = [ASSIGN res (Loc i)]
@@ -126,12 +126,12 @@ toVM t res (AExtPrim fc p args)
 toVM t res (AConCase fc (ALocal scr) alts def)
     = [CASE (Loc scr) (map toVMConAlt alts) (map (toVM t res) def)]
   where
-    projectArgs : Int -> List Int -> List VMInst
+    projectArgs : Int → List Int → List VMInst
     projectArgs i [] = []
     projectArgs i (arg :: args)
         = PROJECT (Loc arg) (Loc scr) i :: projectArgs (i + 1) args
 
-    toVMConAlt : AConAlt -> (Either Int Name, List VMInst)
+    toVMConAlt : AConAlt → (Either Int Name, List VMInst)
     toVMConAlt (MkAConAlt n (Just tag) args code)
         = (Left tag, projectArgs 0 args ++ toVM t res code)
     toVMConAlt (MkAConAlt n Nothing args code)
@@ -139,7 +139,7 @@ toVM t res (AConCase fc (ALocal scr) alts def)
 toVM t res (AConstCase fc (ALocal scr) alts def)
     = [CONSTCASE (Loc scr) (map toVMConstAlt alts) (map (toVM t res) def)]
   where
-    toVMConstAlt : AConstAlt -> (Constant, List VMInst)
+    toVMConstAlt : AConstAlt → (Constant, List VMInst)
     toVMConstAlt (MkAConstAlt c code)
         = (c, toVM t res code)
 toVM t res (APrimVal fc c)
@@ -151,7 +151,7 @@ toVM t res (ACrash fc err)
 toVM t res _
     = [NULL res]
 
-findVars : VMInst -> List Int
+findVars : VMInst → List Int
 findVars (ASSIGN (Loc r) _) = [r]
 findVars (MKCON (Loc r) _ _) = [r]
 findVars (MKCLOSURE (Loc r) _ _ _) = [r]
@@ -163,22 +163,22 @@ findVars (EXTPRIM (Loc r) _ _) = [r]
 findVars (CASE _ alts d)
     = concatMap findVarAlt alts ++ fromMaybe [] (map (concatMap findVars) d)
   where
-    findVarAlt : (Either Int Name, List VMInst) -> List Int
+    findVarAlt : (Either Int Name, List VMInst) → List Int
     findVarAlt (t, code) = concatMap findVars code
 findVars (CONSTCASE _ alts d)
     = concatMap findConstVarAlt alts ++ fromMaybe [] (map (concatMap findVars) d)
   where
-    findConstVarAlt : (Constant, List VMInst) -> List Int
+    findConstVarAlt : (Constant, List VMInst) → List Int
     findConstVarAlt (t, code) = concatMap findVars code
 findVars (PROJECT (Loc r) _ _) = [r]
 findVars _ = []
 
-declareVars : List Int -> List VMInst -> List VMInst
+declareVars : List Int → List VMInst → List VMInst
 declareVars got code
     = let vs = concatMap findVars code in
           declareAll got vs
   where
-    declareAll : List Int -> List Int -> List VMInst
+    declareAll : List Int → List Int → List VMInst
     declareAll got [] = START :: code
     declareAll got (i :: is)
         = if i `elem` got
@@ -186,7 +186,7 @@ declareVars got code
              else DECLARE (Loc i) :: declareAll (i :: got) is
 
 export
-toVMDef : ANFDef -> Maybe VMDef
+toVMDef : ANFDef → Maybe VMDef
 toVMDef (MkAFun args body)
     = Just $ MkVMFun args (declareVars args (toVM True RVal body))
 toVMDef (MkAError body)
@@ -194,5 +194,5 @@ toVMDef (MkAError body)
 toVMDef _ = Nothing
 
 export
-allDefs : List (Name, ANFDef) -> List (Name, VMDef)
-allDefs = mapMaybe (\ (n, d) => do d' <- toVMDef d; pure (n, d'))
+allDefs : List (Name, ANFDef) → List (Name, VMDef)
+allDefs = mapMaybe (\ (n, d) ⇒ do d' <- toVMDef d; pure (n, d'))

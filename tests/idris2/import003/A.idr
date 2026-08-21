@@ -1,5 +1,5 @@
 module A
 
 public export
-defA : Int -> Int
+defA : Int → Int
 

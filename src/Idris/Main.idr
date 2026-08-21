@@ -33,35 +33,35 @@ import YafflePaths
 yprefix : String
 yprefix = unsafePerformIO (foreign FFI_C "getIdris2_prefix" (IO String))
 
-findInput : List CLOpt -> Maybe String
+findInput : List CLOpt → Maybe String
 findInput [] = Nothing
 findInput (InputFile f :: fs) = Just f
 findInput (_ :: fs) = findInput fs
 
 -- Add extra library directories from the "BLODWEN_PATH"
 -- environment variable
-updatePaths : {auto c : Ref Ctxt Defs} ->
+updatePaths : {auto c : Ref Ctxt Defs} →
               Core ()
 updatePaths
     = do bprefix <- coreLift $ getEnv "IDRIS2_PREFIX"
          case bprefix of
-              Just p => setPrefix p
-              Nothing => setPrefix yprefix
+              Just p ⇒ setPrefix p
+              Nothing ⇒ setPrefix yprefix
          bpath <- coreLift $ getEnv "IDRIS2_PATH"
          case bpath of
-              Just path => do traverse addExtraDir (map trim (split (==pathSep) path))
+              Just path ⇒ do traverse addExtraDir (map trim (split (==pathSep) path))
                               pure ()
-              Nothing => pure ()
+              Nothing ⇒ pure ()
          bdata <- coreLift $ getEnv "IDRIS2_DATA"
          case bdata of
-              Just path => do traverse addDataDir (map trim (split (==pathSep) path))
+              Just path ⇒ do traverse addDataDir (map trim (split (==pathSep) path))
                               pure ()
-              Nothing => pure ()
+              Nothing ⇒ pure ()
          blibs <- coreLift $ getEnv "IDRIS2_LIBS"
          case blibs of
-              Just path => do traverse addLibDir (map trim (split (==pathSep) path))
+              Just path ⇒ do traverse addLibDir (map trim (split (==pathSep) path))
                               pure ()
-              Nothing => pure ()
+              Nothing ⇒ pure ()
          -- IDRIS2_PATH goes first so that it overrides this if there's
          -- any conflicts. In particular, that means that setting IDRIS2_PATH
          -- for the tests means they test the local version not the installed
@@ -76,19 +76,19 @@ updatePaths
          cwd <- coreLift $ currentDir
          addLibDir cwd
 
-updateREPLOpts : {auto o : Ref ROpts REPLOpts} ->
+updateREPLOpts : {auto o : Ref ROpts REPLOpts} →
                  Core ()
 updateREPLOpts
     = do opts <- get ROpts
          ed <- coreLift $ getEnv "EDITOR"
          case ed of
-              Just e => put ROpts (record { editor = e } opts)
-              Nothing => pure ()
+              Just e ⇒ put ROpts (record { editor = e } opts)
+              Nothing ⇒ pure ()
 
 showInfo : {auto c : Ref Ctxt Defs}
-        -> {auto o : Ref ROpts REPLOpts}
-        -> List CLOpt
-        -> Core Bool
+        → {auto o : Ref ROpts REPLOpts}
+        → List CLOpt
+        → Core Bool
 showInfo Nil = pure False
 showInfo (BlodwenPaths :: _)
     = do defs <- get Ctxt
@@ -96,13 +96,13 @@ showInfo (BlodwenPaths :: _)
          pure True
 showInfo (_::rest) = showInfo rest
 
-tryYaffle : List CLOpt -> Core Bool
+tryYaffle : List CLOpt → Core Bool
 tryYaffle [] = pure False
 tryYaffle (Yaffle f :: _) = do yaffleMain f []
                                pure True
 tryYaffle (c :: cs) = tryYaffle cs
 
-tryTTM : List CLOpt -> Core Bool
+tryTTM : List CLOpt → Core Bool
 tryTTM [] = pure False
 tryTTM (Metadata f :: _) = do dumpTTM f
                               pure True
@@ -119,17 +119,17 @@ banner = "     ____    __     _         ___                                     
          "[BOOTSTRAP VERSION: No longer developed, except as a bootstrapping step.]\n" ++
          "Welcome to Idris 2.  Enjoy yourself!"
 
-checkVerbose : List CLOpt -> Bool
+checkVerbose : List CLOpt → Bool
 checkVerbose [] = False
 checkVerbose (Verbose :: _) = True
 checkVerbose (_ :: xs) = checkVerbose xs
 
-stMain : List CLOpt -> Core ()
+stMain : List CLOpt → Core ()
 stMain opts
     = do False <- tryYaffle opts
-            | True => pure ()
+            | True ⇒ pure ()
          False <- tryTTM opts
-            | True => pure ()
+            | True ⇒ pure ()
          defs <- initDefs
          c <- newRef Ctxt defs
          s <- newRef Syn initSyntax
@@ -154,7 +154,7 @@ stMain opts
 
            when (not done) $
               do True <- preOptions opts
-                     | False => pure ()
+                     | False ⇒ pure ()
 
                  when (checkVerbose opts) $ -- override Quiet if implicitly set
                      setOutput (REPL False)
@@ -167,10 +167,10 @@ stMain opts
                              then findIpkg fname
                              else pure fname
                  case fname of
-                      Nothing => logTime "Loading prelude" $
+                      Nothing ⇒ logTime "Loading prelude" $
                                    when (not $ noprelude session) $
                                      readPrelude
-                      Just f => logTime "Loading main file" $
+                      Just f ⇒ logTime "Loading main file" $
                                    (loadMainFile f >>= displayErrors)
 
                  doRepl <- postOptions opts
@@ -186,10 +186,10 @@ stMain opts
                        let (host, port) = ideSocketModeHostPort opts
                        f <- coreLift $ initIDESocketFile host port
                        case f of
-                         Left err => do
+                         Left err ⇒ do
                            coreLift $ putStrLn err
                            coreLift $ exit 1
-                         Right file => do
+                         Right file ⇒ do
                            setOutput (IDEMode 0 file file)
                            replIDE {c} {u} {m}
                    else do
@@ -201,12 +201,12 @@ stMain opts
                     do ropts <- get ROpts
                        showTimeRecord
                        case errorLine ropts of
-                         Nothing => pure ()
-                         Just _ => coreLift $ exit 1
+                         Nothing ⇒ pure ()
+                         Just _ ⇒ coreLift $ exit 1
 
 -- Run any options (such as --version or --help) which imply printing a
 -- message then exiting. Returns wheter the program should continue
-quitOpts : List CLOpt -> IO Bool
+quitOpts : List CLOpt → IO Bool
 quitOpts [] = pure True
 quitOpts (Version :: _)
     = do putStrLn versionMsg
@@ -221,15 +221,15 @@ quitOpts (_ :: opts) = quitOpts opts
 
 main : IO ()
 main = do Right opts <- getCmdOpts
-             | Left err =>
+             | Left err ⇒
                     do putStrLn err
                        putStrLn usage
           continue <- quitOpts opts
           if continue
              then
                 coreRun (stMain opts)
-                     (\err : Error =>
+                     (\err : Error ⇒
                              do putStrLn ("Uncaught error: " ++ show err)
                                 exit 1)
-                     (\res => pure ())
+                     (\res ⇒ pure ())
              else pure ()

@@ -8,30 +8,30 @@ data PINCheck = CorrectPIN | IncorrectPIN
 PIN : Type
 PIN = Vect 4 Char
 
-data HasCard : ATMState -> Type where
+data HasCard : ATMState → Type where
   HasCI : HasCard CardInserted
   HasSession : HasCard Session
 
-data ATMCmd : (ty : Type) -> ATMState -> (ty -> ATMState) -> Type where
+data ATMCmd : (ty : Type) → ATMState → (ty → ATMState) → Type where
   InsertCard : ATMCmd ()  Ready        (const CardInserted)
-  EjectCard :  {auto prf : HasCard state} ->
+  EjectCard :  {auto prf : HasCard state} →
                ATMCmd ()  state        (const Ready)
   GetPIN :     ATMCmd PIN CardInserted (const CardInserted)
 
-  CheckPIN : PIN -> ATMCmd PINCheck CardInserted (\check => case check of
-                                                                 CorrectPIN => Session
-                                                                 IncorrectPIN => CardInserted)
+  CheckPIN : PIN → ATMCmd PINCheck CardInserted (\check ⇒ case check of
+                                                                 CorrectPIN ⇒ Session
+                                                                 IncorrectPIN ⇒ CardInserted)
 
   GetAmount :                   ATMCmd Nat state   (const state)
-  Dispense :  (amount : Nat) -> ATMCmd ()  Session (const Session)
+  Dispense :  (amount : Nat) → ATMCmd ()  Session (const Session)
 
-  Message :  String -> ATMCmd () state          (const state)
-  Pure : (res : ty) -> ATMCmd ty (state_fn res) state_fn
-  (>>=) : ATMCmd a state1 state2_fn ->
-          ((res : a) -> ATMCmd b (state2_fn res) state3_fn) ->
+  Message :  String → ATMCmd () state          (const state)
+  Pure : (res : ty) → ATMCmd ty (state_fn res) state_fn
+  (>>=) : ATMCmd a state1 state2_fn →
+          ((res : a) → ATMCmd b (state2_fn res) state3_fn) →
           ATMCmd b state1 state3_fn
 
-readVect : (n : Nat) -> IO (Vect n Char)
+readVect : (n : Nat) → IO (Vect n Char)
 readVect Z = do discard <- getLine  -- rest of input up to enter
                 pure []
 readVect (S k) = do ch <- getChar
@@ -48,7 +48,7 @@ insertEject = do InsertCard
 -- badATM : ATMCmd () Ready (const Ready)
 -- badATM = EjectCard
 
-runATM : ATMCmd res inState outState_fn -> IO res
+runATM : ATMCmd res inState outState_fn → IO res
 runATM InsertCard = do putStrLn "Please insert your card (press enter)"
                        x <- getLine
                        pure ()
@@ -72,10 +72,10 @@ atm = do InsertCard
          pin <- GetPIN
          pinOK <- CheckPIN pin
          case pinOK of
-              CorrectPIN => do cash <- GetAmount
+              CorrectPIN ⇒ do cash <- GetAmount
                                Dispense cash
                                EjectCard
-              IncorrectPIN => EjectCard
+              IncorrectPIN ⇒ EjectCard
 
 atm_alt : ATMCmd () Ready (const Ready)
 atm_alt = do InsertCard
@@ -84,8 +84,8 @@ atm_alt = do InsertCard
              pinOK <- CheckPIN pin
              Message "Checking Card"
              case pinOK of
-                  CorrectPIN => do Dispense cash
+                  CorrectPIN ⇒ do Dispense cash
                                    EjectCard
                                    Message "Please remove your card and cash"
-                  IncorrectPIN => do Message "Incorrect PIN"
+                  IncorrectPIN ⇒ do Message "Incorrect PIN"
                                      EjectCard

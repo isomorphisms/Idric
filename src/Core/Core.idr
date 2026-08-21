@@ -132,8 +132,8 @@ Show Error where
   show (ValidCase fc _ prob)
       = show fc ++ ":" ++
            case prob of
-             Left tm => assert_total (show tm) ++ " is not a valid impossible pattern because it typechecks"
-             Right err => "Not a valid impossible pattern:\n\t" ++ assert_total (show err)
+             Left tm ⇒ assert_total (show tm) ++ " is not a valid impossible pattern because it typechecks"
+             Right err ⇒ "Not a valid impossible pattern:\n\t" ++ assert_total (show err)
   show (UndefinedName fc x) = show fc ++ ":Undefined name " ++ show x
   show (InvisibleName fc x (Just ns))
        = show fc ++ ":Name " ++ show x ++ " is inaccessible since " ++
@@ -146,13 +146,13 @@ Show Error where
   show (NotCovering fc n cov)
        = show fc ++ ":" ++ show n ++ " is not covering:\n\t" ++
             case cov of
-                 IsCovering => "Oh yes it is (Internal error!)"
-                 MissingCases cs => "Missing cases:\n\t" ++
+                 IsCovering ⇒ "Oh yes it is (Internal error!)"
+                 MissingCases cs ⇒ "Missing cases:\n\t" ++
                                            showSep "\n\t" (map show cs)
-                 NonCoveringCall ns => "Calls non covering function"
+                 NonCoveringCall ns ⇒ "Calls non covering function"
                                            ++ (case ns of
-                                                   [fn] => " " ++ show fn
-                                                   _ => "s: " ++ showSep ", " (map show ns))
+                                                   [fn] ⇒ " " ++ show fn
+                                                   _ ⇒ "s: " ++ showSep ", " (map show ns))
 
   show (NotTotal fc n r)
        = show fc ++ ":" ++ show n ++ " is not total"
@@ -162,13 +162,13 @@ Show Error where
       = show fc ++ ":Trying to use " ++ showRig exp ++ " name " ++ show n ++
                    " in " ++ showRel ctx ++ " context"
      where
-       showRig : RigCount -> String
+       showRig : RigCount → String
        showRig = elimSemi
          "linear"
          "irrelevant"
          (const "unrestricted")
 
-       showRel : RigCount -> String
+       showRel : RigCount → String
        showRel = elimSemi
          "relevant"
          "irrelevant"
@@ -199,7 +199,7 @@ Show Error where
      = show fc ++ ":" ++ show ns ++ " are not valid implicit arguments in " ++ show tm
   show (TryWithImplicits fc env imps)
      = show fc ++ ":Need to bind implicits "
-          ++ showSep "," (map (\x => show (fst x) ++ " : " ++ show (snd x)) imps)
+          ++ showSep "," (map (\x ⇒ show (fst x) ++ " : " ++ show (snd x)) imps)
           ++ "\n(The front end should probably have done this for you. Please report!)"
   show (BadUnboundImplicit fc env n ty)
       = show fc ++ ":Can't bind name " ++ nameRoot n ++
@@ -254,7 +254,7 @@ Show Error where
   show (CyclicImports ns)
       = "Module imports form a cycle: " ++ showSep " -> " (map showMod ns)
     where
-      showMod : List String -> String
+      showMod : List String → String
       showMod ns = showSep "." (reverse ns)
   show ForceNeeded = "Internal error when resolving implicit laziness"
   show (InternalError str) = "INTERNAL ERROR: " ++ str
@@ -273,7 +273,7 @@ Show Error where
          show err
 
 export
-getErrorLoc : Error -> Maybe FC
+getErrorLoc : Error → Maybe FC
 getErrorLoc (Fatal err) = getErrorLoc err
 getErrorLoc (CantConvert loc _ _ _) = Just loc
 getErrorLoc (CantSolveEq loc _ _ _) = Just loc
@@ -343,27 +343,27 @@ record Core t where
   runCore : IO (Either Error t)
 
 export
-coreRun : Core a ->
-          (Error -> IO b) -> (a -> IO b) -> IO b
+coreRun : Core a →
+          (Error → IO b) → (a → IO b) → IO b
 coreRun (MkCore act) err ok
     = either err ok !act
 
 export
-coreFail : Error -> Core a
+coreFail : Error → Core a
 coreFail e = MkCore (pure (Left e))
 
 export
-wrapError : (Error -> Error) -> Core a -> Core a
+wrapError : (Error → Error) → Core a → Core a
 wrapError fe (MkCore prog)
     = MkCore (prog >>=
-                 (\x => case x of
-                             Left err => pure (Left (fe err))
-                             Right val => pure (Right val)))
+                 (\x ⇒ case x of
+                             Left err ⇒ pure (Left (fe err))
+                             Right val ⇒ pure (Right val)))
 
 -- This would be better if we restrict it to a limited set of IO operations
 export
 %inline
-coreLift : IO a -> Core a
+coreLift : IO a → Core a
 coreLift op = MkCore (do op' <- op
                          pure (Right op'))
 
@@ -378,33 +378,33 @@ in the next version (i.e., in this project...)! -}
 
 -- Functor (specialised)
 export %inline
-map : (a -> b) -> Core a -> Core b
+map : (a → b) → Core a → Core b
 map f (MkCore a) = MkCore (map (map f) a)
 
 export %inline
-(<$>) : (a -> b) -> Core a -> Core b
+(<$>) : (a → b) → Core a → Core b
 (<$>) f (MkCore a) = MkCore (map (map f) a)
 
 -- Monad (specialised)
 export %inline
-(>>=) : Core a -> (a -> Core b) -> Core b
+(>>=) : Core a → (a → Core b) → Core b
 (>>=) (MkCore act) f
     = MkCore (act >>=
-                   (\x => case x of
-                               Left err => pure (Left err)
-                               Right val => runCore (f val)))
+                   (\x ⇒ case x of
+                               Left err ⇒ pure (Left err)
+                               Right val ⇒ runCore (f val)))
 
 -- Applicative (specialised)
 export %inline
-pure : a -> Core a
+pure : a → Core a
 pure x = MkCore (pure (pure x))
 
 export
-(<*>) : Core (a -> b) -> Core a -> Core b
+(<*>) : Core (a → b) → Core a → Core b
 (<*>) (MkCore f) (MkCore a) = MkCore [| f <*> a |]
 
 export %inline
-when : Bool -> Lazy (Core ()) -> Core ()
+when : Bool → Lazy (Core ()) → Core ()
 when True f = f
 when False f = pure ()
 
@@ -413,32 +413,32 @@ Catchable Core Error where
   catch (MkCore prog) h
       = MkCore ( do p' <- prog
                     case p' of
-                         Left e => let MkCore he = h e in he
-                         Right val => pure (Right val))
+                         Left e ⇒ let MkCore he = h e in he
+                         Right val ⇒ pure (Right val))
   throw = coreFail
 
 -- Traversable (specialised)
-traverse' : (a -> Core b) -> List a -> List b -> Core (List b)
+traverse' : (a → Core b) → List a → List b → Core (List b)
 traverse' f [] acc = pure (reverse acc)
 traverse' f (x :: xs) acc
     = traverse' f xs (!(f x) :: acc)
 
 export
-traverse : (a -> Core b) -> List a -> Core (List b)
+traverse : (a → Core b) → List a → Core (List b)
 traverse f xs = traverse' f xs []
 
 export
-traverseVect : (a -> Core b) -> Vect n a -> Core (Vect n b)
+traverseVect : (a → Core b) → Vect n a → Core (Vect n b)
 traverseVect f [] = pure []
 traverseVect f (x :: xs) = [| f x :: traverseVect f xs |]
 
 export
-traverseOpt : (a -> Core b) -> Maybe a -> Core (Maybe b)
+traverseOpt : (a → Core b) → Maybe a → Core (Maybe b)
 traverseOpt f Nothing = pure Nothing
 traverseOpt f (Just x) = map Just (f x)
 
 export
-traverse_ : (a -> Core b) -> List a -> Core ()
+traverse_ : (a → Core b) → List a → Core ()
 traverse_ f [] = pure ()
 traverse_ f (x :: xs)
     = do f x
@@ -446,7 +446,7 @@ traverse_ f (x :: xs)
 
 namespace PiInfo
   export
-  traverse : (a -> Core b) -> PiInfo a -> Core (PiInfo b)
+  traverse : (a → Core b) → PiInfo a → Core (PiInfo b)
   traverse f Explicit = pure Explicit
   traverse f Implicit = pure Implicit
   traverse f AutoImplicit = pure AutoImplicit
@@ -454,7 +454,7 @@ namespace PiInfo
 
 namespace Binder
   export
-  traverse : (a -> Core b) -> Binder a -> Core (Binder b)
+  traverse : (a → Core b) → Binder a → Core (Binder b)
   traverse f (Lam c p ty) = pure $ Lam c !(traverse f p) !(f ty)
   traverse f (Let c val ty) = pure $ Let c !(f val) !(f ty)
   traverse f (Pi c p ty) = pure $ Pi c !(traverse f p) !(f ty)
@@ -463,7 +463,7 @@ namespace Binder
   traverse f (PVTy c ty) = pure $ PVTy c !(f ty)
 
 export
-anyM : (a -> Core Bool) -> List a -> Core Bool
+anyM : (a → Core Bool) → List a → Core Bool
 anyM f [] = pure False
 anyM f (x :: xs)
     = if !(f x)
@@ -471,7 +471,7 @@ anyM f (x :: xs)
          else anyM f xs
 
 export
-allM : (a -> Core Bool) -> List a -> Core Bool
+allM : (a → Core Bool) → List a → Core Bool
 allM f [] = pure True
 allM f (x :: xs)
     = if !(f x)
@@ -479,7 +479,7 @@ allM f (x :: xs)
          else pure False
 
 export
-filterM : (a -> Core Bool) -> List a -> Core (List a)
+filterM : (a → Core Bool) → List a → Core (List a)
 filterM p [] = pure []
 filterM p (x :: xs)
     = if !(p x)
@@ -488,30 +488,30 @@ filterM p (x :: xs)
          else filterM p xs
 
 export
-data Ref : label -> Type -> Type where
-	   MkRef : IORef a -> Ref x a
+data Ref : label → Type → Type where
+	   MkRef : IORef a → Ref x a
 
 export
-newRef : (x : label) -> t -> Core (Ref x t)
+newRef : (x : label) → t → Core (Ref x t)
 newRef x val
     = do ref <- coreLift (newIORef val)
          pure (MkRef ref)
 
 export %inline
-get : (x : label) -> {auto ref : Ref x a} -> Core a
+get : (x : label) → {auto ref : Ref x a} → Core a
 get x {ref = MkRef io} = coreLift (readIORef io)
 
 export %inline
-put : (x : label) -> {auto ref : Ref x a} -> a -> Core ()
+put : (x : label) → {auto ref : Ref x a} → a → Core ()
 put x {ref = MkRef io} val = coreLift (writeIORef io val)
 
 export
-cond : List (Lazy Bool, Lazy a) -> a -> a
+cond : List (Lazy Bool, Lazy a) → a → a
 cond [] def = def
 cond ((x, y) :: xs) def = if x then y else cond xs def
 
 export
-condC : List (Core Bool, Core a) -> Core a -> Core a
+condC : List (Core Bool, Core a) → Core a → Core a
 condC [] def = def
 condC ((x, y) :: xs) def
     = if !x then y else condC xs def

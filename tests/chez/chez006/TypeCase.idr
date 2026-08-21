@@ -1,7 +1,7 @@
 data Bar = MkBar
 data Baz = MkBaz
 
-foo : (x : Type) -> String
+foo : (x : Type) → String
 foo Nat = "Nat"
 foo Bool = "Bool"
 foo (List x) = "List of " ++ foo x
@@ -9,11 +9,11 @@ foo Int = "Int"
 foo Type = "Type"
 foo _ = "Something else"
 
-strangeId : {a : Type} -> a -> a
+strangeId : {a : Type} → a → a
 strangeId {a=Integer} x = x+1
 strangeId x = x
 
-strangeId' : {a : Type} -> a -> a
+strangeId' : {a : Type} → a → a
 strangeId' {a=Integer} x = x+1
 
 main : IO ()

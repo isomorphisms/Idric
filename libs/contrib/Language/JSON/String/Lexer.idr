@@ -10,7 +10,7 @@ quo : Lexer
 quo = is '"'
 
 export
-esc : Lexer -> Lexer
+esc : Lexer → Lexer
 esc = escape '\\'
 
 private
@@ -35,7 +35,7 @@ jsonStringTokenMap = toTokenMap $
   ]
 
 export
-lexString : String -> Maybe (List JSONStringToken)
+lexString : String → Maybe (List JSONStringToken)
 lexString x = case lex jsonStringTokenMap x of
-                   (toks, _, _, "") => Just $ map TokenData.tok toks
-                   _ => Nothing
+                   (toks, _, _, "") ⇒ Just $ map TokenData.tok toks
+                   _ ⇒ Nothing

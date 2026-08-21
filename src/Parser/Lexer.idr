@@ -43,7 +43,7 @@ Show Token where
   show (NSIdent [x]) = "identifier " ++ x
   show (NSIdent xs) = "namespaced identifier " ++ dotSep (reverse xs)
     where
-      dotSep : List String -> String
+      dotSep : List String → String
       dotSep [] = ""
       dotSep [x] = x
       dotSep (x :: xs) = x ++ concat ["." ++ y | y <- xs]
@@ -65,10 +65,10 @@ mutual
   ||| the input until we detect a special character (a dash, an
   ||| opening brace, or a double quote) and then switch to the
   ||| appropriate state.
-  toEndComment : (k : Nat) -> Recognise (k /= 0)
+  toEndComment : (k : Nat) → Recognise (k /= 0)
   toEndComment Z = empty
   toEndComment (S k)
-               = some (pred (\c => c /= '-' && c /= '{' && c /= '"'))
+               = some (pred (\c ⇒ c /= '-' && c /= '{' && c /= '"'))
                         <+> toEndComment (S k)
              <|> is '{' <+> singleBrace k
              <|> is '-' <+> singleDash k
@@ -77,7 +77,7 @@ mutual
   ||| After reading a single brace, we may either finish reading an
   ||| opening delimiter or ignore it (e.g. it could be an implicit
   ||| binder).
-  singleBrace : (k : Nat) -> Lexer
+  singleBrace : (k : Nat) → Lexer
   singleBrace k
      =  is '-' <+> many (is '-')    -- opening delimiter
                <+> singleDash (S k) -- handles the {----} special case
@@ -86,7 +86,7 @@ mutual
   ||| After reading a single dash, we may either find another one,
   ||| meaning we may have started reading a line comment, or find
   ||| a closing brace meaning we have found a closing delimiter.
-  singleDash : (k : Nat) -> Lexer
+  singleDash : (k : Nat) → Lexer
   singleDash k
      =  is '-' <+> doubleDash k    -- comment or closing delimiter
     <|> is '}' <+> toEndComment k  -- closing delimiter
@@ -95,7 +95,7 @@ mutual
   ||| After reading a double dash, we are potentially reading a line
   ||| comment unless the series of uninterrupted dashes is ended with
   ||| a closing brace in which case it is a closing delimiter.
-  doubleDash : (k : Nat) -> Lexer
+  doubleDash : (k : Nat) → Lexer
   doubleDash k = many (is '-') <+> choice      -- absorb all dashes
     [ is '}' <+> toEndComment k                -- closing delimiter
     , many (isNot '\n') <+> toEndComment (S k) -- line comment
@@ -112,32 +112,32 @@ docComment = is '|' <+> is '|' <+> is '|' <+> many (isNot '\n')
 
 data Flavour = Capitalised | AllowDashes | Normal
 
-isIdentStart : Flavour -> Char -> Bool
+isIdentStart : Flavour → Char → Bool
 isIdentStart _           '_' = True
 isIdentStart Capitalised  x  = isUpper x || x > chr 160
 isIdentStart _            x  = isAlpha x || x > chr 160
 
-isIdentTrailing : Flavour -> Char -> Bool
+isIdentTrailing : Flavour → Char → Bool
 isIdentTrailing AllowDashes '-'  = True
 isIdentTrailing _           '\'' = True
 isIdentTrailing _           '_'  = True
 isIdentTrailing _            x   = isAlphaNum x || x > chr 160
 
 %inline
-isIdent : Flavour -> String -> Bool
+isIdent : Flavour → String → Bool
 isIdent flavour string =
   case unpack string of
-    []      => False
-    (x::xs) => isIdentStart flavour x && all (isIdentTrailing flavour) xs
+    []      ⇒ False
+    (x::xs) ⇒ isIdentStart flavour x && all (isIdentTrailing flavour) xs
 
 %inline
-ident : Flavour -> Lexer
+ident : Flavour → Lexer
 ident flavour =
   (pred $ isIdentStart flavour) <+>
     (many . pred $ isIdentTrailing flavour)
 
 export
-isIdentNormal : String -> Bool
+isIdentNormal : String → Bool
 isIdentNormal = isIdent Normal
 
 export
@@ -176,7 +176,7 @@ cgDirective
            is '}')
          <|> many (isNot '\n'))
 
-mkDirective : String -> Token
+mkDirective : String → Token
 mkDirective str = CGDirective (trim (substr 3 (length str) str))
 
 -- Reserved words
@@ -207,8 +207,8 @@ symbols
 
 
 export
-isOpChar : Char -> Bool
-isOpChar c = c `elem` (unpack ":!#$%&*+./<=>?@\\^|-~")
+isOpChar : Char → Bool
+isOpChar c = c `elem` (unpack ":!#$%&*+./<=>?@\\^|-~→⇒")
 
 validSymbol : Lexer
 validSymbol = some (pred isOpChar)
@@ -218,26 +218,26 @@ export
 reservedSymbols : List String
 reservedSymbols
     = symbols ++
-      ["%", "\\", ":", "=", "|", "|||", "<-", "->", "=>", "?", "!",
+      ["%", "\\", ":", "=", "|", "|||", "<-", "->", "→", "=>", "⇒", "?", "!",
        "&", "**", ".."]
 
-fromHexLit : String -> Integer
+fromHexLit : String → Integer
 fromHexLit str
   = if length str <= 2
        then 0
        else let num = assert_total (strTail (strTail str)) in
              case fromHex (reverse num) of
-                  Nothing => 0 -- can't happen if the literal lexed correctly
-                  Just n => cast n
+                  Nothing ⇒ 0 -- can't happen if the literal lexed correctly
+                  Just n ⇒ cast n
 
-fromOctLit : String -> Integer
+fromOctLit : String → Integer
 fromOctLit str
   = if length str <= 2
        then 0
        else let num = assert_total (strTail (strTail str)) in
              case fromOct (reverse num) of
-                  Nothing => 0 -- can't happen if the literal lexed correctly
-                  Just n => cast n
+                  Nothing ⇒ 0 -- can't happen if the literal lexed correctly
+                  Just n ⇒ cast n
 
 rawTokens : TokenMap Token
 rawTokens =
@@ -245,48 +245,48 @@ rawTokens =
      (blockComment, Comment),
      (docComment, DocComment),
      (cgDirective, mkDirective),
-     (holeIdent, \x => HoleIdent (assert_total (strTail x)))] ++
-    map (\x => (exact x, Symbol)) symbols ++
-    [(doubleLit, \x => DoubleLit (cast x)),
-     (hexLit, \x => Literal (fromHexLit x)),
-     (octLit, \x => Literal (fromOctLit x)),
-     (digits, \x => Literal (cast x)),
-     (stringLit, \x => StrLit (stripQuotes x)),
-     (charLit, \x => CharLit (stripQuotes x)),
-     (recField, \x => RecordField (assert_total $ strTail x)),
+     (holeIdent, \x ⇒ HoleIdent (assert_total (strTail x)))] ++
+    map (\x ⇒ (exact x, Symbol)) symbols ++
+    [(doubleLit, \x ⇒ DoubleLit (cast x)),
+     (hexLit, \x ⇒ Literal (fromHexLit x)),
+     (octLit, \x ⇒ Literal (fromOctLit x)),
+     (digits, \x ⇒ Literal (cast x)),
+     (stringLit, \x ⇒ StrLit (stripQuotes x)),
+     (charLit, \x ⇒ CharLit (stripQuotes x)),
+     (recField, \x ⇒ RecordField (assert_total $ strTail x)),
      (nsIdent, parseNSIdent),
      (ident Normal, parseIdent),
-     (pragma, \x => Pragma (assert_total $ strTail x)),
+     (pragma, \x ⇒ Pragma (assert_total $ strTail x)),
      (space, Comment),
      (validSymbol, Symbol),
      (symbol, Unrecognised)]
   where
-    parseNSIdent : String -> Token
+    parseNSIdent : String → Token
     parseNSIdent = NSIdent . reverse . split (== '.')
 
-    parseIdent : String -> Token
+    parseIdent : String → Token
     parseIdent x =
       if x `elem` keywords
         then Keyword x
         else NSIdent [x]
 
 export
-lexTo : (TokenData Token -> Bool) ->
-        String -> Either (Int, Int, String) (List (TokenData Token))
+lexTo : (TokenData Token → Bool) →
+        String → Either (Int, Int, String) (List (TokenData Token))
 lexTo pred str
     = case lexTo pred rawTokens str of
            -- Add the EndInput token so that we'll have a line and column
            -- number to read when storing spans in the file
-           (tok, (l, c, "")) => Right (filter notComment tok ++
+           (tok, (l, c, "")) ⇒ Right (filter notComment tok ++
                                       [MkToken l c EndInput])
-           (_, fail) => Left fail
+           (_, fail) ⇒ Left fail
     where
-      notComment : TokenData Token -> Bool
+      notComment : TokenData Token → Bool
       notComment t = case tok t of
-                          Comment _ => False
-                          DocComment _ => False -- TODO!
-                          _ => True
+                          Comment _ ⇒ False
+                          DocComment _ ⇒ False -- TODO!
+                          _ ⇒ True
 
 export
-lex : String -> Either (Int, Int, String) (List (TokenData Token))
+lex : String → Either (Int, Int, String) (List (TokenData Token))
 lex = lexTo (const False)

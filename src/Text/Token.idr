@@ -20,11 +20,11 @@ module Text.Token
 public export
 interface TokenKind (k : Type) where
   ||| The type that a token of this kind converts to.
-  TokType : k -> Type
+  TokType : k → Type
 
   ||| Convert a recognised string into a value. The type is determined
   ||| by the kind of token.
-  tokValue : (kind : k) -> String -> TokType kind
+  tokValue : (kind : k) → String → TokType kind
 
 ||| A token of a particular kind and the text that was recognised.
 public export
@@ -36,5 +36,5 @@ record Token k where
 ||| Get the value of a `Token k`. The resulting type depends upon
 ||| the kind of token.
 public export
-value : TokenKind k => (t : Token k) -> TokType (kind t)
+value : TokenKind k ⇒ (t : Token k) → TokType (kind t)
 value (Tok k x) = tokValue k x

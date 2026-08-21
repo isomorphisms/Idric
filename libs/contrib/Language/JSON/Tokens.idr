@@ -76,6 +76,6 @@ TokenKind JSONTokenKind where
   tokValue JTIgnore _ = ()
 
 export
-ignored : JSONToken -> Bool
+ignored : JSONToken → Bool
 ignored (Tok JTIgnore _) = True
 ignored _ = False

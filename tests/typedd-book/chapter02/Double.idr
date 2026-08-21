@@ -1,2 +1,2 @@
-double : Int -> Int
+double : Int → Int
 double x = x + x

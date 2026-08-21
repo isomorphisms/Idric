@@ -17,23 +17,23 @@ import System
 
 -- TODO: Version numbers on dependencies
 export
-addPkgDir : {auto c : Ref Ctxt Defs} ->
-            String -> Core ()
+addPkgDir : {auto c : Ref Ctxt Defs} →
+            String → Core ()
 addPkgDir p
     = do defs <- get Ctxt
          addExtraDir (dir_prefix (dirs (options defs)) ++ dirSep ++
                              "idris2-" ++ showVersion False version ++ dirSep ++ p)
 
-dirOption : Dirs -> DirCommand -> Core ()
+dirOption : Dirs → DirCommand → Core ()
 dirOption dirs LibDir
     = coreLift $ putStrLn
          (dir_prefix dirs ++ dirSep ++ "idris2-" ++ showVersion False version ++ dirSep)
 
 -- Options to be processed before type checking. Return whether to continue.
 export
-preOptions : {auto c : Ref Ctxt Defs} ->
-             {auto o : Ref ROpts REPLOpts} ->
-             List CLOpt -> Core Bool
+preOptions : {auto c : Ref Ctxt Defs} →
+             {auto o : Ref ROpts REPLOpts} →
+             List CLOpt → Core Bool
 preOptions [] = pure True
 preOptions (NoBanner :: opts)
     = do setSession (record { nobanner = True } !getSession)
@@ -59,9 +59,9 @@ preOptions (NoPrelude :: opts)
          preOptions opts
 preOptions (SetCG e :: opts)
     = case getCG e of
-           Just cg => do setCG cg
+           Just cg ⇒ do setCG cg
                          preOptions opts
-           Nothing =>
+           Nothing ⇒
               do coreLift $ putStrLn "No such code generator"
                  coreLift $ putStrLn $ "Code generators available: " ++
                                  showSep ", " (map fst availableCGs)
@@ -103,12 +103,12 @@ preOptions (_ :: opts) = preOptions opts
 -- Options to be processed after type checking. Returns whether execution
 -- should continue (i.e., whether to start a REPL)
 export
-postOptions : {auto c : Ref Ctxt Defs} ->
-              {auto u : Ref UST UState} ->
-              {auto s : Ref Syn SyntaxInfo} ->
-              {auto m : Ref MD Metadata} ->
-              {auto o : Ref ROpts REPLOpts} ->
-              List CLOpt -> Core Bool
+postOptions : {auto c : Ref Ctxt Defs} →
+              {auto u : Ref UST UState} →
+              {auto s : Ref Syn SyntaxInfo} →
+              {auto m : Ref MD Metadata} →
+              {auto o : Ref ROpts REPLOpts} →
+              List CLOpt → Core Bool
 postOptions [] = pure True
 postOptions (OutputFile outfile :: rest)
     = do compileExp (PRef (MkFC "(script)" (0, 0) (0, 0)) (UN "main")) outfile
@@ -127,13 +127,13 @@ postOptions (RunREPL str :: rest)
 postOptions (_ :: rest) = postOptions rest
 
 export
-ideMode : List CLOpt -> Bool
+ideMode : List CLOpt → Bool
 ideMode [] = False
 ideMode (IdeMode :: _) = True
 ideMode (_ :: xs) = ideMode xs
 
 export
-ideModeSocket : List CLOpt -> Bool
+ideModeSocket : List CLOpt → Bool
 ideModeSocket [] = False
 ideModeSocket (IdeModeSocket _ :: _) = True
 ideModeSocket (_ :: xs) = ideModeSocket xs

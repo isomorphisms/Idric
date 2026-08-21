@@ -29,10 +29,10 @@ Eq Album where
 Ord Album where
     compare (MkAlbum artist title year) (MkAlbum artist' title' year')
        = case compare artist artist' of
-              EQ => case compare year year' of
-                         EQ => compare title title'
-                         diff_year => diff_year
-              diff_artist => diff_artist
+              EQ ⇒ case compare year year' of
+                         EQ ⇒ compare title title'
+                         diff_year ⇒ diff_year
+              diff_artist ⇒ diff_artist
 
 Show Album where
     show (MkAlbum artist title year)

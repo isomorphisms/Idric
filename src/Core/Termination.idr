@@ -17,28 +17,28 @@ import Debug.Trace
 %default covering
 
 -- Check that the names a function refers to are terminating
-totRefs : {auto c : Ref Ctxt Defs} ->
-          Defs -> List Name -> Core Terminating
+totRefs : {auto c : Ref Ctxt Defs} →
+          Defs → List Name → Core Terminating
 totRefs defs [] = pure IsTerminating
 totRefs defs (n :: ns)
     = do rest <- totRefs defs ns
          Just d <- lookupCtxtExact n (gamma defs)
-              | Nothing => pure rest
+              | Nothing ⇒ pure rest
          case isTerminating (totality d) of
-              IsTerminating => pure rest
-              Unchecked => pure rest
-              bad => case rest of
+              IsTerminating ⇒ pure rest
+              Unchecked ⇒ pure rest
+              bad ⇒ case rest of
                           NotTerminating (BadCall ns)
-                             => toFullNames $ NotTerminating (BadCall (n :: ns))
-                          _ => toFullNames $ NotTerminating (BadCall [n])
+                             ⇒ toFullNames $ NotTerminating (BadCall (n :: ns))
+                          _ ⇒ toFullNames $ NotTerminating (BadCall [n])
 
-totRefsIn : {auto c : Ref Ctxt Defs} ->
-            Defs -> Term vars -> Core Terminating
+totRefsIn : {auto c : Ref Ctxt Defs} →
+            Defs → Term vars → Core Terminating
 totRefsIn defs ty = totRefs defs (keys (getRefs (Resolved (-1)) ty))
 
 -- Equal for the purposes of size change means, ignoring as patterns, all
 -- non-metavariable positions are equal
-scEq : Term vars -> Term vars -> Bool
+scEq : Term vars → Term vars → Bool
 scEq (Local _ _ idx _) (Local _ _ idx' _) = idx == idx'
 scEq (Ref _ _ n) (Ref _ _ n') = n == n'
 scEq (Meta _ _ i args) _ = True
@@ -64,17 +64,17 @@ Show Guardedness where
   show InDelay = "InDelay"
 
 mutual
-  findSC : {auto c : Ref Ctxt Defs} ->
-           Defs -> Env Term vars -> Guardedness ->
-           List (Nat, Term vars) -> -- LHS args and their position
-           Term vars -> -- Right hand side
+  findSC : {auto c : Ref Ctxt Defs} →
+           Defs → Env Term vars → Guardedness →
+           List (Nat, Term vars) → -- LHS args and their position
+           Term vars → -- Right hand side
            Core (List SCCall)
   findSC {vars} defs env g pats (Bind fc n b sc)
        = pure $
             !(findSCbinder b) ++
-            !(findSC defs (b :: env) g (map (\ (p, tm) => (p, weaken tm)) pats) sc)
+            !(findSC defs (b :: env) g (map (\ (p, tm) ⇒ (p, weaken tm)) pats) sc)
     where
-      findSCbinder : Binder (Term vars) -> Core (List SCCall)
+      findSCbinder : Binder (Term vars) → Core (List SCCall)
       findSCbinder (Let c val ty) = findSC defs env g pats val
       findSCbinder b = pure [] -- only types, no need to look
   -- If we're Guarded and find a Delay, continue with the argument as InDelay
@@ -84,24 +84,24 @@ mutual
       = case (g, getFnArgs tm) of
     -- If we're InDelay and find a constructor (or a function call which is
     -- guaranteed to return a constructor; AllGuarded set), continue as InDelay
-             (InDelay, Ref fc (DataCon _ _) cn, args) =>
+             (InDelay, Ref fc (DataCon _ _) cn, args) ⇒
                  do scs <- traverse (findSC defs env InDelay pats) args
                     pure (concat scs)
              -- If we're InDelay otherwise, just check the arguments, the
              -- function call is okay
-             (InDelay, _, args) =>
+             (InDelay, _, args) ⇒
                  do scs <- traverse (findSC defs env Unguarded pats) args
                     pure (concat scs)
-             (Toplevel, Ref fc (DataCon _ _) cn, args) =>
+             (Toplevel, Ref fc (DataCon _ _) cn, args) ⇒
                  do scs <- traverse (findSC defs env Guarded pats) args
                     pure (concat scs)
-             (_, Ref fc Func fn, args) =>
+             (_, Ref fc Func fn, args) ⇒
                  do Just ty <- lookupTyExact fn (gamma defs)
-                         | Nothing =>
+                         | Nothing ⇒
                               findSCcall defs env Unguarded pats fc fn 0 args
                     arity <- getArity defs [] ty
                     findSCcall defs env Unguarded pats fc fn arity args
-             (_, f, args) =>
+             (_, f, args) ⇒
                  do scs <- traverse (findSC defs env Unguarded pats) args
                     pure (concat scs)
 
@@ -109,18 +109,18 @@ mutual
   -- arity (i.e. the arity of the function we're calling) to ensure that
   -- it's noted that we don't know the size change relationship with the
   -- extra arguments.
-  expandToArity : Nat -> List (Maybe (Nat, SizeChange)) ->
+  expandToArity : Nat → List (Maybe (Nat, SizeChange)) →
                   List (Maybe (Nat, SizeChange))
   expandToArity Z xs = xs
   expandToArity (S k) (x :: xs) = x :: expandToArity k xs
   expandToArity (S k) [] = Nothing :: expandToArity k []
 
   -- Return whether first argument is structurally smaller than the second.
-  smaller : Bool -> -- Have we gone under a constructor yet?
-            Defs ->
-            Maybe (Term vars) -> -- Asserted bigger thing
-            Term vars -> -- Term we're checking
-            Term vars -> -- Argument it might be smaller than
+  smaller : Bool → -- Have we gone under a constructor yet?
+            Defs →
+            Maybe (Term vars) → -- Asserted bigger thing
+            Term vars → -- Term we're checking
+            Term vars → -- Argument it might be smaller than
             Bool
   smaller inc defs big _ (Erased _ _) = False -- Never smaller than an erased thing!
   -- for an as pattern, it's smaller if it's smaller than either part
@@ -132,12 +132,12 @@ mutual
            else smallerArg True defs big s t
   smaller inc defs big s t = smallerArg inc defs big s t
 
-  assertedSmaller : Maybe (Term vars) -> Term vars -> Bool
+  assertedSmaller : Maybe (Term vars) → Term vars → Bool
   assertedSmaller (Just b) a = scEq b a
   assertedSmaller _ _ = False
 
-  smallerArg : Bool -> Defs ->
-               Maybe (Term vars) -> Term vars -> Term vars -> Bool
+  smallerArg : Bool → Defs →
+               Maybe (Term vars) → Term vars → Term vars → Bool
   smallerArg inc defs big s tm
         -- If we hit a pattern that is equal to a thing we've asserted_smaller,
         -- the argument must be smaller
@@ -145,29 +145,29 @@ mutual
            then True
            else case getFnArgs tm of
                      (Ref _ (DataCon t a) cn, args)
-                         => any (smaller True defs big s) args
-                     _ => case s of
-                               App _ f _ => smaller inc defs big f tm
+                         ⇒ any (smaller True defs big s) args
+                     _ ⇒ case s of
+                               App _ f _ ⇒ smaller inc defs big f tm
                                             -- Higher order recursive argument
-                               _ => False
+                               _ ⇒ False
 
   -- if the argument is an 'assert_smaller', return the thing it's smaller than
-  asserted : Name -> Term vars -> Maybe (Term vars)
+  asserted : Name → Term vars → Maybe (Term vars)
   asserted aSmaller tm
        = case getFnArgs tm of
               (Ref _ nt fn, [_, _, b, _])
-                   => if fn == aSmaller
+                   ⇒ if fn == aSmaller
                          then Just b
                          else Nothing
-              _ => Nothing
+              _ ⇒ Nothing
 
   -- Calculate the size change for the given argument.
   -- i.e., return the size relationship of the given argument with an entry
   -- in 'pats'; the position in 'pats' and the size change.
   -- Nothing if there is no relation with any of them.
-  mkChange : Defs -> Name ->
-             (pats : List (Nat, Term vars)) ->
-             (arg : Term vars) ->
+  mkChange : Defs → Name →
+             (pats : List (Nat, Term vars)) →
+             (arg : Term vars) →
              Maybe (Nat, SizeChange)
   mkChange defs aSmaller [] arg = Nothing
   mkChange defs aSmaller ((i, As _ _ p parg) :: pats) arg
@@ -182,17 +182,17 @@ mutual
   -- of the case block function and return the corresponding RHS.
   -- This way, we can build case blocks directly into the size change graph
   -- rather than treating the definitions separately.
-  getCasePats : Defs -> Name -> List (Nat, Term vars) ->
-                List (Term vars) ->
+  getCasePats : Defs → Name → List (Nat, Term vars) →
+                List (Term vars) →
                 Core (Maybe (List (vs ** (Env Term vs,
                                          List (Nat, Term vs), Term vs))))
   getCasePats {vars} defs n pats args
       = case !(lookupDefExact n (gamma defs)) of
              Just (PMDef _ _ _ _ pdefs)
-                => pure $ Just (map matchArgs pdefs)
-             _ => pure Nothing
+                ⇒ pure $ Just (map matchArgs pdefs)
+             _ ⇒ pure Nothing
     where
-      lookupTm : Term vs -> List (Term vs, Term vs') -> Maybe (Term vs')
+      lookupTm : Term vs → List (Term vs, Term vs') → Maybe (Term vs')
       lookupTm tm [] = Nothing
       lookupTm tm ((As _ _ p tm', v) :: tms)
           = if tm == p
@@ -203,13 +203,13 @@ mutual
                then Just v
                else lookupTm tm tms
 
-      updateRHS : List (Term vs, Term vs') -> Term vs -> Term vs'
+      updateRHS : List (Term vs, Term vs') → Term vs → Term vs'
       updateRHS {vs} {vs'} ms tm
           = case lookupTm tm ms of
-                 Nothing => urhs tm
-                 Just t => t
+                 Nothing ⇒ urhs tm
+                 Just t ⇒ t
         where
-          urhs : Term vs -> Term vs'
+          urhs : Term vs → Term vs'
           urhs (Local fc _ _ _) = Erased fc False
           urhs (Ref fc nt n) = Ref fc nt n
           urhs (Meta fc m i margs) = Meta fc m i (map (updateRHS ms) margs)
@@ -221,36 +221,36 @@ mutual
           urhs (TForce fc r tm) = TForce fc r (updateRHS ms tm)
           urhs (Bind fc x b sc)
               = Bind fc x (map (updateRHS ms) b)
-                  (updateRHS (map (\vt => (weaken (fst vt), weaken (snd vt))) ms) sc)
+                  (updateRHS (map (\vt ⇒ (weaken (fst vt), weaken (snd vt))) ms) sc)
           urhs (PrimVal fc c) = PrimVal fc c
           urhs (Erased fc i) = Erased fc i
           urhs (TType fc) = TType fc
 
-      updatePat : List (Term vs, Term vs') -> (Nat, Term vs) -> (Nat, Term vs')
+      updatePat : List (Term vs, Term vs') → (Nat, Term vs) → (Nat, Term vs')
       updatePat ms (n, tm) = (n, updateRHS ms tm)
 
-      matchArgs : (vs ** (Env Term vs, Term vs, Term vs)) ->
+      matchArgs : (vs ** (Env Term vs, Term vs, Term vs)) →
                   (vs ** (Env Term vs, List (Nat, Term vs), Term vs))
       matchArgs (_ ** (env', lhs, rhs))
          = let patMatch = reverse (zip args (getArgs lhs)) in
                (_ ** (env', map (updatePat patMatch) pats, rhs))
 
-  caseFn : Name -> Bool
+  caseFn : Name → Bool
   caseFn (CaseBlock _ _) = True
   caseFn (DN _ n) = caseFn n
   caseFn (NS _ n) = caseFn n
   caseFn _ = False
 
-  findSCcall : {auto c : Ref Ctxt Defs} ->
-               Defs -> Env Term vars -> Guardedness ->
-               List (Nat, Term vars) ->
-               FC -> Name -> Nat -> List (Term vars) ->
+  findSCcall : {auto c : Ref Ctxt Defs} →
+               Defs → Env Term vars → Guardedness →
+               List (Nat, Term vars) →
+               FC → Name → Nat → List (Term vars) →
                Core (List SCCall)
   findSCcall defs env g pats fc fn_in arity args
         -- Under 'assert_total' we assume that all calls are fine, so leave
         -- the size change list empty
       = do Just gdef <- lookupCtxtExact fn_in (gamma defs)
-                | Nothing => throw (UndefinedName fc fn_in)
+                | Nothing ⇒ throw (UndefinedName fc fn_in)
            let fn = fullname gdef
            log 10 $ "Looking under " ++ show fn
            aSmaller <- resolved (gamma defs) (NS ["Builtin"] (UN "assert_smaller"))
@@ -258,8 +258,8 @@ mutual
               (caseFn fn,
                   do mps <- getCasePats defs fn pats args
                      case mps of
-                          Nothing => pure []
-                          Just ps => do scs <- traverse (findInCase defs g) ps
+                          Nothing ⇒ pure []
+                          Just ps ⇒ do scs <- traverse (findInCase defs g) ps
                                         pure (concat scs))]
               (do scs <- traverse (findSC defs env g pats) args
                   pure ([MkSCCall fn
@@ -267,9 +267,9 @@ mutual
                                 (map (mkChange defs aSmaller pats) args))]
                            ++ concat scs))
 
-  findInCase : {auto c : Ref Ctxt Defs} ->
-               Defs -> Guardedness ->
-               (vs ** (Env Term vs, List (Nat, Term vs), Term vs)) ->
+  findInCase : {auto c : Ref Ctxt Defs} →
+               Defs → Guardedness →
+               (vs ** (Env Term vs, List (Nat, Term vs), Term vs)) →
                Core (List SCCall)
   findInCase defs g (_ ** (env, pats, tm))
      = do logC 10 (do ps <- traverse toFullNames (map snd pats)
@@ -280,22 +280,22 @@ mutual
 
 -- Remove all force and delay annotations which are nothing to do with
 -- coinduction meaning that all Delays left guard coinductive calls.
-delazy : Defs -> Term vars -> Term vars
+delazy : Defs → Term vars → Term vars
 delazy defs (TDelayed fc r tm)
     = let tm' = delazy defs tm in
           case r of
-               LInf => TDelayed fc r tm'
-               _ => tm'
+               LInf ⇒ TDelayed fc r tm'
+               _ ⇒ tm'
 delazy defs (TDelay fc r ty tm)
     = let ty' = delazy defs ty
           tm' = delazy defs tm in
           case r of
-               LInf => TDelay fc r ty' tm'
-               _ => tm'
+               LInf ⇒ TDelay fc r ty' tm'
+               _ ⇒ tm'
 delazy defs (TForce fc r t)
     = case r of
-           LInf => TForce fc r (delazy defs t)
-           _ => delazy defs t
+           LInf ⇒ TForce fc r (delazy defs t)
+           _ ⇒ delazy defs t
 delazy defs (Meta fc n i args) = Meta fc n i (map (delazy defs) args)
 delazy defs (Bind fc x b sc)
     = Bind fc x (map (delazy defs) b) (delazy defs sc)
@@ -303,8 +303,8 @@ delazy defs (App fc f a) = App fc (delazy defs f) (delazy defs a)
 delazy defs (As fc s a p) = As fc s (delazy defs a) (delazy defs p)
 delazy defs tm = tm
 
-findCalls : {auto c : Ref Ctxt Defs} ->
-            Defs -> (vars ** (Env Term vars, Term vars, Term vars)) ->
+findCalls : {auto c : Ref Ctxt Defs} →
+            Defs → (vars ** (Env Term vars, Term vars, Term vars)) →
             Core (List SCCall)
 findCalls defs (_ ** (env, lhs, rhs_in))
    = do let pargs = getArgs (delazy defs lhs)
@@ -312,20 +312,20 @@ findCalls defs (_ ** (env, lhs, rhs_in))
         findSC defs env Toplevel
                (zip (take (length pargs) [0..]) pargs) (delazy defs rhs)
 
-getSC : {auto c : Ref Ctxt Defs} ->
-        Defs -> Def -> Core (List SCCall)
+getSC : {auto c : Ref Ctxt Defs} →
+        Defs → Def → Core (List SCCall)
 getSC defs (PMDef _ args _ _ pats)
    = do sc <- traverse (findCalls defs) pats
         pure (concat sc)
 getSC defs _ = pure []
 
 export
-calculateSizeChange : {auto c : Ref Ctxt Defs} ->
-                      FC -> Name -> Core (List SCCall)
+calculateSizeChange : {auto c : Ref Ctxt Defs} →
+                      FC → Name → Core (List SCCall)
 calculateSizeChange loc n
     = do defs <- get Ctxt
          Just def <- lookupCtxtExact n (gamma defs)
-              | Nothing => throw (UndefinedName loc n)
+              | Nothing ⇒ throw (UndefinedName loc n)
          getSC defs (definition def)
 
 Arg : Type
@@ -336,11 +336,11 @@ data APos : Type where
 firstArg : Arg
 firstArg = 0
 
-nextArg : Arg -> Arg
+nextArg : Arg → Arg
 nextArg x = x + 1
 
-initArgs : {auto a : Ref APos Arg} ->
-           Nat -> Core (List (Maybe (Arg, SizeChange)))
+initArgs : {auto a : Ref APos Arg} →
+           Nat → Core (List (Maybe (Arg, SizeChange)))
 initArgs Z = pure []
 initArgs (S k)
     = do arg <- get APos
@@ -353,119 +353,119 @@ initArgs (S k)
 -- potentially non-terminating
 -- TODO: If we encounter a name where we already know its termination status,
 -- use that rather than continuing to traverse the graph!
-checkSC : {auto a : Ref APos Arg} ->
-          {auto c : Ref Ctxt Defs} ->
-          Defs ->
-          Name -> -- function we're checking
-          List (Maybe (Arg, SizeChange)) -> -- functions arguments and change
-          List (Name, List (Maybe Arg)) -> -- calls we've seen so far
+checkSC : {auto a : Ref APos Arg} →
+          {auto c : Ref Ctxt Defs} →
+          Defs →
+          Name → -- function we're checking
+          List (Maybe (Arg, SizeChange)) → -- functions arguments and change
+          List (Name, List (Maybe Arg)) → -- calls we've seen so far
           Core Terminating
 checkSC defs f args path
    = let pos = (f, map (map fst) args) in
          if pos `elem` path
             then toFullNames $ checkDesc (mapMaybe (map snd) args) path
             else case !(lookupCtxtExact f (gamma defs)) of
-                      Nothing => pure IsTerminating
-                      Just def => continue (sizeChange def) (pos :: path)
+                      Nothing ⇒ pure IsTerminating
+                      Just def ⇒ continue (sizeChange def) (pos :: path)
   where
     -- Look for something descending in the list of size changes
-    checkDesc : List SizeChange -> List (Name, List (Maybe Arg)) -> Terminating
+    checkDesc : List SizeChange → List (Name, List (Maybe Arg)) → Terminating
     checkDesc [] path = NotTerminating (RecPath (reverse (map fst path)))
     checkDesc (Smaller :: _) _ = IsTerminating
     checkDesc (_ :: xs) path = checkDesc xs path
 
-    getPos : List a -> Nat -> Maybe a
+    getPos : List a → Nat → Maybe a
     getPos [] _ = Nothing
     getPos (x :: xs) Z = Just x
     getPos (x :: xs) (S k) = getPos xs k
 
-    updateArg : SizeChange -> Maybe (Arg, SizeChange) -> Maybe (Arg, SizeChange)
+    updateArg : SizeChange → Maybe (Arg, SizeChange) → Maybe (Arg, SizeChange)
     updateArg c Nothing = Nothing
     updateArg c arg@(Just (i, Unknown)) = arg
     updateArg Unknown (Just (i, _)) = Just (i, Unknown)
     updateArg c (Just (i, Same)) = Just (i, c)
     updateArg c arg = arg
 
-    mkArgs : List (Maybe (Nat, SizeChange)) -> List (Maybe (Arg, SizeChange))
+    mkArgs : List (Maybe (Nat, SizeChange)) → List (Maybe (Arg, SizeChange))
     mkArgs [] = []
     mkArgs (Nothing :: xs) = Nothing :: mkArgs xs
     mkArgs (Just (pos, c) :: xs)
         = case getPos args pos of
-               Nothing => Nothing :: mkArgs xs
-               Just arg => updateArg c arg :: mkArgs xs
+               Nothing ⇒ Nothing :: mkArgs xs
+               Just arg ⇒ updateArg c arg :: mkArgs xs
 
-    checkCall : List (Name, List (Maybe Arg)) -> SCCall -> Core Terminating
+    checkCall : List (Name, List (Maybe Arg)) → SCCall → Core Terminating
     checkCall path sc
         = do let inpath = fnCall sc `elem` map fst path
              term <- checkSC defs (fnCall sc) (mkArgs (fnArgs sc)) path
              if not inpath
                 then case term of
-                       NotTerminating (RecPath _) =>
+                       NotTerminating (RecPath _) ⇒
                           -- might have lost information while assuming this
                           -- was mutually recursive, so start again with new
                           -- arguments (that is, where we'd start if the
                           -- function was the top level thing we were checking)
                           do args' <- initArgs (length (fnArgs sc))
                              checkSC defs (fnCall sc) args' path
-                       t => pure t
+                       t ⇒ pure t
                 else pure term
 
-    getWorst : Terminating -> List Terminating -> Terminating
+    getWorst : Terminating → List Terminating → Terminating
     getWorst term [] = term
     getWorst term (IsTerminating :: xs) = getWorst term xs
     getWorst term (Unchecked :: xs) = getWorst Unchecked xs
     getWorst term (bad :: xs) = bad
 
-    continue : List SCCall -> List (Name, List (Maybe Arg)) -> Core Terminating
+    continue : List SCCall → List (Name, List (Maybe Arg)) → Core Terminating
     continue scs path
         = do allTerm <- traverse (checkCall path) scs
              pure (getWorst IsTerminating allTerm)
 
-calcTerminating : {auto c : Ref Ctxt Defs} ->
-                  FC -> Name -> Core Terminating
+calcTerminating : {auto c : Ref Ctxt Defs} →
+                  FC → Name → Core Terminating
 calcTerminating loc n
     = do defs <- get Ctxt
          case !(lookupCtxtExact n (gamma defs)) of
-              Nothing => throw (UndefinedName loc n)
-              Just def =>
+              Nothing ⇒ throw (UndefinedName loc n)
+              Just def ⇒
                 case !(totRefs defs (nub !(addCases defs (keys (refersTo def))))) of
-                     IsTerminating =>
+                     IsTerminating ⇒
                         do let ty = type def
                            a <- newRef APos firstArg
                            args <- initArgs !(getArity defs [] ty)
                            checkSC defs n args []
-                     bad => pure bad
+                     bad ⇒ pure bad
   where
-    addCases' : Defs -> NameMap () -> List Name -> Core (List Name)
+    addCases' : Defs → NameMap () → List Name → Core (List Name)
     addCases' defs all [] = pure (keys all)
     addCases' defs all (n :: ns)
         = case lookup n all of
-             Just _ => addCases' defs all ns
-             Nothing =>
+             Just _ ⇒ addCases' defs all ns
+             Nothing ⇒
                if caseFn !(getFullName n)
                   then case !(lookupCtxtExact n (gamma defs)) of
-                            Just def => addCases' defs (insert n () all)
+                            Just def ⇒ addCases' defs (insert n () all)
                                                   (keys (refersTo def) ++ ns)
-                            Nothing => addCases' defs (insert n () all) ns
+                            Nothing ⇒ addCases' defs (insert n () all) ns
                   else addCases' defs (insert n () all) ns
 
-    addCases : Defs -> List Name -> Core (List Name)
+    addCases : Defs → List Name → Core (List Name)
     addCases defs ns = addCases' defs empty ns
 
 -- Check whether a function is terminating, and record in the context
 export
-checkTerminating : {auto c : Ref Ctxt Defs} ->
-                   FC -> Name -> Core Terminating
+checkTerminating : {auto c : Ref Ctxt Defs} →
+                   FC → Name → Core Terminating
 checkTerminating loc n
     = do tot <- getTotality loc n
          case isTerminating tot of
-              Unchecked =>
+              Unchecked ⇒
                  do tot' <- calcTerminating loc n
                     setTerminating loc n tot'
                     pure tot'
-              t => pure t
+              t ⇒ pure t
 
-nameIn : Defs -> List Name -> NF [] -> Core Bool
+nameIn : Defs → List Name → NF [] → Core Bool
 nameIn defs tyns (NBind fc x b sc)
     = if !(nameIn defs tyns (binderType b))
          then pure True
@@ -486,21 +486,21 @@ nameIn defs tyns _ = pure False
 
 -- Check an argument type doesn't contain a negative occurrence of any of
 -- the given type names
-posArg : Defs -> List Name -> NF [] -> Core Terminating
+posArg : Defs → List Name → NF [] → Core Terminating
 -- a tyn can only appear in the parameter positions of
 -- tc; report positivity failure if it appears anywhere else
 posArg defs tyns (NTCon _ tc _ _ args)
     = let testargs : List (Closure [])
              = case !(lookupDefExact tc (gamma defs)) of
-                    Just (TCon _ _ params _ _ _ _ _) =>
+                    Just (TCon _ _ params _ _ _ _ _) ⇒
                          dropParams 0 params args
-                    _ => args in
+                    _ ⇒ args in
           if !(anyM (nameIn defs tyns)
                   !(traverse (evalClosure defs) testargs))
              then pure (NotTerminating NotStrictlyPositive)
              else pure IsTerminating
   where
-    dropParams : Nat -> List Nat -> List (Closure []) -> List (Closure [])
+    dropParams : Nat → List Nat → List (Closure []) → List (Closure [])
     dropParams i ps [] = []
     dropParams i ps (x :: xs)
         = if i `elem` ps
@@ -514,81 +514,81 @@ posArg defs tyns (NBind fc x (Pi c e ty) sc)
                  posArg defs tyns sc'
 posArg defs tyn _ = pure IsTerminating
 
-checkPosArgs : Defs -> List Name -> NF [] -> Core Terminating
+checkPosArgs : Defs → List Name → NF [] → Core Terminating
 checkPosArgs defs tyns (NBind fc x (Pi c e ty) sc)
     = case !(posArg defs tyns ty) of
-           IsTerminating =>
+           IsTerminating ⇒
                 checkPosArgs defs tyns
                        !(sc defs (toClosure defaultOpts [] (Erased fc False)))
-           bad => pure bad
+           bad ⇒ pure bad
 checkPosArgs defs tyns _ = pure IsTerminating
 
-checkCon : {auto c : Ref Ctxt Defs} ->
-           Defs -> List Name -> Name -> Core Terminating
+checkCon : {auto c : Ref Ctxt Defs} →
+           Defs → List Name → Name → Core Terminating
 checkCon defs tyns cn
     = case !(lookupTyExact cn (gamma defs)) of
-           Nothing => pure Unchecked
-           Just ty =>
+           Nothing ⇒ pure Unchecked
+           Just ty ⇒
                 case !(totRefsIn defs ty) of
-                     IsTerminating => checkPosArgs defs tyns !(nf defs [] ty)
-                     bad => pure bad
+                     IsTerminating ⇒ checkPosArgs defs tyns !(nf defs [] ty)
+                     bad ⇒ pure bad
 
-checkData : {auto c : Ref Ctxt Defs} ->
-            Defs -> List Name -> List Name -> Core Terminating
+checkData : {auto c : Ref Ctxt Defs} →
+            Defs → List Name → List Name → Core Terminating
 checkData defs tyns [] = pure IsTerminating
 checkData defs tyns (c :: cs)
     = case !(checkCon defs tyns c) of
-           IsTerminating => checkData defs tyns cs
-           bad => pure bad
+           IsTerminating ⇒ checkData defs tyns cs
+           bad ⇒ pure bad
 
 -- Calculate whether a type satisfies the strict positivity condition, and
 -- return whether it's terminating, along with its data constructors
-calcPositive : {auto c : Ref Ctxt Defs} ->
-               FC -> Name -> Core (Terminating, List Name)
+calcPositive : {auto c : Ref Ctxt Defs} →
+               FC → Name → Core (Terminating, List Name)
 calcPositive loc n
     = do defs <- get Ctxt
          case !(lookupDefTyExact n (gamma defs)) of
-              Just (TCon _ _ _ _ _ tns dcons _, ty) =>
+              Just (TCon _ _ _ _ _ tns dcons _, ty) ⇒
                   case !(totRefsIn defs ty) of
-                       IsTerminating =>
+                       IsTerminating ⇒
                             do t <- checkData defs (n :: tns) dcons
                                pure (t , dcons)
-                       bad => pure (bad, dcons)
-              Just _ => throw (GenericMsg loc (show n ++ " not a data type"))
-              Nothing => throw (UndefinedName loc n)
+                       bad ⇒ pure (bad, dcons)
+              Just _ ⇒ throw (GenericMsg loc (show n ++ " not a data type"))
+              Nothing ⇒ throw (UndefinedName loc n)
 
 -- Check whether a data type satisfies the strict positivity condition, and
 -- record in the context
 export
-checkPositive : {auto c : Ref Ctxt Defs} ->
-                FC -> Name -> Core Terminating
+checkPositive : {auto c : Ref Ctxt Defs} →
+                FC → Name → Core Terminating
 checkPositive loc n_in
     = do n <- toResolvedNames n_in
          tot <- getTotality loc n
          case isTerminating tot of
-              Unchecked =>
+              Unchecked ⇒
                   do (tot', cons) <- calcPositive loc n
                      setTerminating loc n tot'
-                     traverse (\c => setTerminating loc c tot') cons
+                     traverse (\c ⇒ setTerminating loc c tot') cons
                      pure tot'
-              t => pure t
+              t ⇒ pure t
 
 -- Check and record totality of the given name; positivity if it's a data
 -- type, termination if it's a function
 export
-checkTotal : {auto c : Ref Ctxt Defs} ->
-             FC -> Name -> Core Terminating
+checkTotal : {auto c : Ref Ctxt Defs} →
+             FC → Name → Core Terminating
 checkTotal loc n_in
     = do defs <- get Ctxt
          let Just nidx = getNameID n_in (gamma defs)
-             | Nothing => throw (UndefinedName loc n_in)
+             | Nothing ⇒ throw (UndefinedName loc n_in)
          let n = Resolved nidx
          tot <- getTotality loc n
          defs <- get Ctxt
          case isTerminating tot of
-              Unchecked =>
+              Unchecked ⇒
                   case !(lookupDefExact n (gamma defs)) of
                        Just (TCon _ _ _ _ _ _ _ _)
-                           => checkPositive loc n
-                       _ => checkTerminating loc n
-              t => pure t
+                           ⇒ checkPositive loc n
+                       _ ⇒ checkTerminating loc n
+              t ⇒ pure t

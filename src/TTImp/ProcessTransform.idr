@@ -13,11 +13,11 @@ import TTImp.ProcessDef -- for checking LHS
 import TTImp.TTImp
 
 export
-processTransform : {auto c : Ref Ctxt Defs} ->
-                   {auto m : Ref MD Metadata} ->
-                   {auto u : Ref UST UState} ->
-                   List ElabOpt -> NestedNames vars -> Env Term vars -> FC ->
-                   Name -> RawImp -> RawImp -> Core ()
+processTransform : {auto c : Ref Ctxt Defs} →
+                   {auto m : Ref MD Metadata} →
+                   {auto u : Ref UST UState} →
+                   List ElabOpt → NestedNames vars → Env Term vars → FC →
+                   Name → RawImp → RawImp → Core ()
 processTransform eopts nest env fc tn_in lhs rhs
     = do tn <- inCurrentNS tn_in
          tidx <- resolveName tn

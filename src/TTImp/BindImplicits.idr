@@ -13,9 +13,9 @@ import Control.Monad.State
 -- Rename the IBindVars in a term. Anything which appears in the list 'renames'
 -- should be renamed, to something which is *not* in the list 'used'
 export
-renameIBinds : (renames : List String) ->
-               (used : List String) ->
-               RawImp -> State (List (String, String)) RawImp
+renameIBinds : (renames : List String) →
+               (used : List String) →
+               RawImp → State (List (String, String)) RawImp
 renameIBinds rs us (IPi fc c p (Just (UN n)) ty sc)
     = if n `elem` rs
          then let n' = getUnique (rs ++ us) n
@@ -53,7 +53,7 @@ renameIBinds rs us (IAlternative fc u alts)
     = pure $ IAlternative fc !(renameAlt u)
                              !(traverse (renameIBinds rs us) alts)
   where
-    renameAlt : AltType -> State (List (String, String)) AltType
+    renameAlt : AltType → State (List (String, String)) AltType
     renameAlt (UniqueDefault t) = pure $ UniqueDefault !(renameIBinds rs us t)
     renameAlt u = pure u
 renameIBinds rs us (IBindVar fc n)
@@ -66,21 +66,21 @@ renameIBinds rs us (IBindVar fc n)
 renameIBinds rs us tm = pure $ tm
 
 export
-doBind : List (String, String) -> RawImp -> RawImp
+doBind : List (String, String) → RawImp → RawImp
 doBind [] tm = tm
 doBind ns (IVar fc (UN n))
     = maybe (IVar fc (UN n))
-            (\n' => IBindVar fc n')
+            (\n' ⇒ IBindVar fc n')
             (lookup n ns)
 doBind ns (IPi fc rig p mn aty retty)
     = let ns' = case mn of
-                     Just (UN n) => filter (\x => fst x /= n) ns
-                     _ => ns in
+                     Just (UN n) ⇒ filter (\x ⇒ fst x /= n) ns
+                     _ ⇒ ns in
           IPi fc rig p mn (doBind ns' aty) (doBind ns' retty)
 doBind ns (ILam fc rig p mn aty sc)
     = let ns' = case mn of
-                     Just (UN n) => filter (\x => fst x /= n) ns
-                     _ => ns in
+                     Just (UN n) ⇒ filter (\x ⇒ fst x /= n) ns
+                     _ ⇒ ns in
           ILam fc rig p mn (doBind ns' aty) (doBind ns' sc)
 doBind ns (IApp fc fn av)
     = IApp fc (doBind ns fn) (doBind ns av)
@@ -101,14 +101,14 @@ doBind ns (IForce fc tm)
 doBind ns (IAlternative fc u alts)
     = IAlternative fc (doBindAlt u) (map (doBind ns) alts)
   where
-    doBindAlt : AltType -> AltType
+    doBindAlt : AltType → AltType
     doBindAlt (UniqueDefault t) = UniqueDefault (doBind ns t)
     doBindAlt u = u
 doBind ns tm = tm
 
 export
-bindNames : {auto c : Ref Ctxt Defs} ->
-            (arg : Bool) -> RawImp -> Core (List Name, RawImp)
+bindNames : {auto c : Ref Ctxt Defs} →
+            (arg : Bool) → RawImp → Core (List Name, RawImp)
 bindNames arg tm
     = if !isUnboundImplicits
          then do let ns = nub (findBindableNames arg [] [] tm)
@@ -118,7 +118,7 @@ bindNames arg tm
 -- if the name is part of the using decls, add the relevant binder for it:
 -- either an implicit pi binding, if there's a name, or an autoimplicit type
 -- binding if the name just appears as part of the type
-getUsing : Name -> List (Int, Maybe Name, RawImp) ->
+getUsing : Name → List (Int, Maybe Name, RawImp) →
            List (Int, (RigCount, PiInfo RawImp, Maybe Name, RawImp))
 getUsing n [] = []
 getUsing n ((t, Just n', ty) :: us) -- implicit binder
@@ -132,32 +132,32 @@ getUsing n ((t, Nothing, ty) :: us) -- autoimplicit binder
                       getUsing n us
              else getUsing n us
 
-getUsings : List Name -> List (Int, Maybe Name, RawImp) ->
+getUsings : List Name → List (Int, Maybe Name, RawImp) →
             List (Int, (RigCount, PiInfo RawImp, Maybe Name, RawImp))
 getUsings [] u = []
 getUsings (n :: ns) u = getUsing n u ++ getUsings ns u
 
-bindUsings : List (RigCount, PiInfo RawImp, Maybe Name, RawImp) -> RawImp -> RawImp
+bindUsings : List (RigCount, PiInfo RawImp, Maybe Name, RawImp) → RawImp → RawImp
 bindUsings [] tm = tm
 bindUsings ((rig, p, mn, ty) :: us) tm
     = IPi (getFC ty) rig p mn ty (bindUsings us tm)
 
-addUsing : List (Maybe Name, RawImp) ->
-           RawImp -> RawImp
+addUsing : List (Maybe Name, RawImp) →
+           RawImp → RawImp
 addUsing uimpls tm
     = let ns = nub (findIBindVars tm)
-          bs = nubBy (\x, y => fst x == fst y)
+          bs = nubBy (\x, y ⇒ fst x == fst y)
                      (getUsings ns (tag 0 uimpls)) in
           bindUsings (map snd bs) tm
   where
-    tag : Int -> List a -> List (Int, a) -- to check uniqueness of resulting uimps
+    tag : Int → List a → List (Int, a) -- to check uniqueness of resulting uimps
     tag t [] = []
     tag t (x :: xs) = (t, x) :: tag (t + 1) xs
 
 export
-bindTypeNames : {auto c : Ref Ctxt Defs} ->
-                List (Maybe Name, RawImp) ->
-                List Name -> RawImp-> Core RawImp
+bindTypeNames : {auto c : Ref Ctxt Defs} →
+                List (Maybe Name, RawImp) →
+                List Name → RawImp→ Core RawImp
 bindTypeNames uimpls env tm
     = if !isUnboundImplicits
              then let ns = nub (findBindableNames True env [] tm)
@@ -166,8 +166,8 @@ bindTypeNames uimpls env tm
              else pure tm
 
 export
-bindTypeNamesUsed : {auto c : Ref Ctxt Defs} ->
-                    List String -> List Name -> RawImp -> Core RawImp
+bindTypeNamesUsed : {auto c : Ref Ctxt Defs} →
+                    List String → List Name → RawImp → Core RawImp
 bindTypeNamesUsed used env tm
     = if !isUnboundImplicits
          then do let ns = nub (findBindableNames True env used tm)
@@ -175,12 +175,12 @@ bindTypeNamesUsed used env tm
          else pure tm
 
 export
-piBindNames : FC -> List Name -> RawImp -> RawImp
+piBindNames : FC → List Name → RawImp → RawImp
 piBindNames loc env tm
     = let ns = nub (findBindableNames True env [] tm) in
           piBind (map fst ns) tm
   where
-    piBind : List String -> RawImp -> RawImp
+    piBind : List String → RawImp → RawImp
     piBind [] ty = ty
     piBind (n :: ns) ty
        = IPi loc erased Implicit (Just (UN n)) (Implicit loc False) (piBind ns ty)

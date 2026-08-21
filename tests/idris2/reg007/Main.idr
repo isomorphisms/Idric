@@ -1,15 +1,15 @@
 data Name : Type where
-  MN : Int -> Name
+  MN : Int → Name
 
-data IsVar : Name -> List Name -> Type where
+data IsVar : Name → List Name → Type where
   First : IsVar n (n :: ns)
-  Later : IsVar n ns -> IsVar n (m :: ns)
+  Later : IsVar n ns → IsVar n (m :: ns)
 
-data Expr : List Name -> Type where
-  CLocal : (prf : IsVar x vars) -> Expr vars
+data Expr : List Name → Type where
+  CLocal : (prf : IsVar x vars) → Expr vars
 
 data FunDecl : Type where
-  MkFunDecl : (vars : List Name) -> Expr vars -> FunDecl
+  MkFunDecl : (vars : List Name) → Expr vars → FunDecl
 
 funDeclWorks : List FunDecl
 funDeclWorks = [MkFunDecl [MN 0] (CLocal First)]

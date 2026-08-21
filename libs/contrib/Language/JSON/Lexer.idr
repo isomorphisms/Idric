@@ -34,8 +34,8 @@ jsonTokenMap = toTokenMap $
   ]
 
 export
-lexJSON : String -> Maybe (List JSONToken)
+lexJSON : String → Maybe (List JSONToken)
 lexJSON str
   = case lex jsonTokenMap str of
-         (tokens, _, _, "") => Just $ map TokenData.tok tokens
-         _ => Nothing
+         (tokens, _, _, "") ⇒ Just $ map TokenData.tok tokens
+         _ ⇒ Nothing

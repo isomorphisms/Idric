@@ -1,10 +1,10 @@
-data Fin : Nat -> Type where
+data Fin : Nat → Type where
      FZ : Fin (S k)
-     FS : Fin k -> Fin (S k)
+     FS : Fin k → Fin (S k)
 
 interface Finite t where
   0 card   : Nat
-  to     : t -> Fin card
+  to     : t → Fin card
 
 implementation Finite (Fin k) where
   card = k
@@ -12,7 +12,7 @@ implementation Finite (Fin k) where
 
 interface BadFinite t where
   badcard   : Nat
-  badto     : t -> Fin card
+  badto     : t → Fin card
 
 implementation BadFinite (Fin k) where
   badcard = k

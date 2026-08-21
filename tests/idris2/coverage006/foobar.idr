@@ -1,4 +1,4 @@
-foo : (pf : Nat -> Either (S Z = Z) (Z = S Z)) -> Z = S Z
+foo : (pf : Nat → Either (S Z = Z) (Z = S Z)) → Z = S Z
 foo  pf = 
  let baz : Z = S Z
      baz  with (pf 0)

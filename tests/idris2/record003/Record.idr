@@ -1,6 +1,6 @@
 ||| Test extended record syntax
-data NotZero : Nat -> Type where
-  Is : {n : Nat} -> NotZero (S n)
+data NotZero : Nat → Type where
+  Is : {n : Nat} → NotZero (S n)
 
 record Positive (n : Nat) {auto 0 pos : NotZero n} where
   constructor Check
@@ -17,7 +17,7 @@ c : Positive 0
 
 data KindOfString = ASCII | UTF
 
-UTForASCII : KindOfString -> Type
+UTForASCII : KindOfString → Type
 UTForASCII UTF = String
 UTForASCII ASCII = List Char   --- Just to demonstrate
 

@@ -31,7 +31,7 @@ pathLookup
 
 findChez : IO String
 findChez
-    = do Just chez <- getEnv "CHEZ" | Nothing => pathLookup
+    = do Just chez <- getEnv "CHEZ" | Nothing ⇒ pathLookup
          pure chez
 
 -- Given the chez compiler directives, return a list of pairs of:
@@ -40,26 +40,26 @@ findChez
 --     of the library paths managed by Idris
 -- If it can't be found, we'll assume it's a system library and that chez
 -- will thus be able to find it.
-findLibs : {auto c : Ref Ctxt Defs} ->
-           List String -> Core (List (String, String))
+findLibs : {auto c : Ref Ctxt Defs} →
+           List String → Core (List (String, String))
 findLibs ds
     = do let libs = mapMaybe (isLib . trim) ds
          traverse locate (nub libs)
   where
-    isLib : String -> Maybe String
+    isLib : String → Maybe String
     isLib d
         = if isPrefixOf "lib" d
              then Just (trim (substr 3 (length d) d))
              else Nothing
 
-escapeQuotes : String -> String
+escapeQuotes : String → String
 escapeQuotes s = pack $ foldr escape [] $ unpack s
   where
-    escape : Char -> List Char -> List Char
+    escape : Char → List Char → List Char
     escape '"' cs = '\\' :: '\"' :: cs
     escape c   cs = c :: cs
 
-schHeader : String -> List String -> String
+schHeader : String → List String → String
 schHeader chez libs
   = (if os /= "windows" then "#!" ++ chez ++ " --script\n\n" else "") ++
     "(import (chezscheme))\n" ++
@@ -68,29 +68,29 @@ schHeader chez libs
     "  [(i3osx ti3osx a6osx ta6osx) (load-shared-object \"libc.dylib\")]\n" ++
     "  [(i3nt ti3nt a6nt ta6nt) (load-shared-object \"msvcrt.dll\")]\n" ++
     "  [else (load-shared-object \"libc.so\")])\n\n" ++
-    showSep "\n" (map (\x => "(load-shared-object \"" ++ escapeQuotes x ++ "\")") libs) ++ "\n\n" ++
+    showSep "\n" (map (\x ⇒ "(load-shared-object \"" ++ escapeQuotes x ++ "\")") libs) ++ "\n\n" ++
     "(let ()\n"
 
 schFooter : String
 schFooter = ")"
 
-showChezChar : Char -> String -> String
+showChezChar : Char → String → String
 showChezChar '\\' = ("\\\\" ++)
 showChezChar c
    = if c < chr 32 || c > chr 126
         then (("\\x" ++ asHex (cast c) ++ ";") ++)
         else strCons c
 
-showChezString : List Char -> String -> String
+showChezString : List Char → String → String
 showChezString [] = id
 showChezString ('"'::cs) = ("\\\"" ++) . showChezString cs
 showChezString (c ::cs) = (showChezChar c) . showChezString cs
 
-chezString : String -> String
+chezString : String → String
 chezString cs = strCons '"' (showChezString (unpack cs) "\"")
 
 mutual
-  tySpec : NamedCExp -> Core String
+  tySpec : NamedCExp → Core String
   -- Primitive types have been converted to names for the purpose of matching
   -- on types
   tySpec (NmCon fc (UN "Int") _ []) = pure "int"
@@ -106,16 +106,16 @@ mutual
           (throw (GenericMsg fc ("Can't pass argument of type " ++ show n ++ " to foreign function")))
   tySpec ty = throw (GenericMsg (getFC ty) ("Can't pass argument of type " ++ show ty ++ " to foreign function"))
 
-  handleRet : String -> String -> String
+  handleRet : String → String → String
   handleRet "void" op = op ++ " " ++ mkWorld (schConstructor chezString (UN "") (Just 0) [])
   handleRet _ op = mkWorld op
 
-  getFArgs : NamedCExp -> Core (List (NamedCExp, NamedCExp))
+  getFArgs : NamedCExp → Core (List (NamedCExp, NamedCExp))
   getFArgs (NmCon fc _ (Just 0) _) = pure []
   getFArgs (NmCon fc _ (Just 1) [ty, val, rest]) = pure $ (ty, val) :: !(getFArgs rest)
   getFArgs arg = throw (GenericMsg (getFC arg) ("Badly formed c call argument list " ++ show arg))
 
-  chezExtPrim : Int -> ExtPrim -> List NamedCExp -> Core String
+  chezExtPrim : Int → ExtPrim → List NamedCExp → Core String
   chezExtPrim i CCall [ret, NmPrimVal fc (Str fn), fargs, world]
       = do args <- getFArgs fargs
            argTypes <- traverse tySpec (map fst args)
@@ -153,7 +153,7 @@ data Loaded : Type where
 -- Label for noting which struct types are declared
 data Structs : Type where
 
-cftySpec : FC -> CFType -> Core String
+cftySpec : FC → CFType → Core String
 cftySpec fc CFUnit = pure "void"
 cftySpec fc CFInt = pure "int"
 cftySpec fc CFString = pure "string"
@@ -166,10 +166,10 @@ cftySpec fc (CFStruct n t) = pure $ "(* " ++ n ++ ")"
 cftySpec fc t = throw (GenericMsg fc ("Can't pass argument of type " ++ show t ++
                          " to foreign function"))
 
-cCall : {auto c : Ref Ctxt Defs} ->
-        {auto l : Ref Loaded (List String)} ->
-        String -> FC -> (cfn : String) -> (clib : String) ->
-        List (Name, CFType) -> CFType -> Core (String, String)
+cCall : {auto c : Ref Ctxt Defs} →
+        {auto l : Ref Loaded (List String)} →
+        String → FC → (cfn : String) → (clib : String) →
+        List (Name, CFType) → CFType → Core (String, String)
 cCall appdir fc cfn clib args ret
     = do loaded <- get Loaded
          lib <- if clib `elem` loaded
@@ -180,40 +180,40 @@ cCall appdir fc cfn clib args ret
                            pure $ "(load-shared-object \""
                                     ++ escapeQuotes fname
                                     ++ "\")\n"
-         argTypes <- traverse (\a => cftySpec fc (snd a)) args
+         argTypes <- traverse (\a ⇒ cftySpec fc (snd a)) args
          retType <- cftySpec fc ret
          let call = "((foreign-procedure #f " ++ show cfn ++ " ("
                       ++ showSep " " argTypes ++ ") " ++ retType ++ ") "
                       ++ showSep " " !(traverse buildArg args) ++ ")"
 
          pure (lib, case ret of
-                         CFIORes _ => handleRet retType call
-                         _ => call)
+                         CFIORes _ ⇒ handleRet retType call
+                         _ ⇒ call)
   where
-    mkNs : Int -> List CFType -> List (Maybe String)
+    mkNs : Int → List CFType → List (Maybe String)
     mkNs i [] = []
     mkNs i (CFWorld :: xs) = Nothing :: mkNs i xs
     mkNs i (x :: xs) = Just ("cb" ++ show i) :: mkNs (i + 1) xs
 
-    applyLams : String -> List (Maybe String) -> String
+    applyLams : String → List (Maybe String) → String
     applyLams n [] = n
     applyLams n (Nothing :: as) = applyLams ("(" ++ n ++ " #f)") as
     applyLams n (Just a :: as) = applyLams ("(" ++ n ++ " " ++ a ++ ")") as
 
-    getVal : String -> String
+    getVal : String → String
     getVal str = "(vector-ref " ++ str ++ "1)"
 
-    mkFun : List CFType -> CFType -> String -> String
+    mkFun : List CFType → CFType → String → String
     mkFun args ret n
         = let argns = mkNs 0 args in
               "(lambda (" ++ showSep " " (mapMaybe id argns) ++ ") " ++
               (applyLams n argns ++ ")")
 
-    notWorld : CFType -> Bool
+    notWorld : CFType → Bool
     notWorld CFWorld = False
     notWorld _ = True
 
-    callback : String -> List CFType -> CFType -> Core String
+    callback : String → List CFType → CFType → Core String
     callback n args (CFFun s t) = callback n (s :: args) t
     callback n args_rev retty
         = do let args = reverse args_rev
@@ -225,45 +225,45 @@ cCall appdir fc cfn clib args ret
                        " (" ++ showSep " " argTypes ++ ") " ++ retType ++ ")])" ++
                        " (lock-object c-code) (foreign-callable-entry-point c-code))"
 
-    buildArg : (Name, CFType) -> Core String
+    buildArg : (Name, CFType) → Core String
     buildArg (n, CFFun s t) = callback (schName n) [s] t
     buildArg (n, _) = pure $ schName n
 
-schemeCall : FC -> (sfn : String) ->
-             List Name -> CFType -> Core String
+schemeCall : FC → (sfn : String) →
+             List Name → CFType → Core String
 schemeCall fc sfn argns ret
     = let call = "(" ++ sfn ++ " " ++ showSep " " (map schName argns) ++ ")" in
           case ret of
-               CFIORes _ => pure $ mkWorld call
-               _ => pure call
+               CFIORes _ ⇒ pure $ mkWorld call
+               _ ⇒ pure call
 
 -- Use a calling convention to compile a foreign def.
 -- Returns any preamble needed for loading libraries, and the body of the
 -- function call.
-useCC : {auto c : Ref Ctxt Defs} ->
-        {auto l : Ref Loaded (List String)} ->
-        String -> FC -> List String -> List (Name, CFType) -> CFType -> Core (String, String)
+useCC : {auto c : Ref Ctxt Defs} →
+        {auto l : Ref Loaded (List String)} →
+        String → FC → List String → List (Name, CFType) → CFType → Core (String, String)
 useCC appdir fc [] args ret
     = throw (GenericMsg fc "No recognised foreign calling convention")
 useCC appdir fc (cc :: ccs) args ret
     = case parseCC cc of
-           Nothing => useCC appdir fc ccs args ret
-           Just ("scheme", [sfn]) =>
+           Nothing ⇒ useCC appdir fc ccs args ret
+           Just ("scheme", [sfn]) ⇒
                do body <- schemeCall fc sfn (map fst args) ret
                   pure ("", body)
-           Just ("C", [cfn, clib]) => cCall appdir fc cfn clib args ret
-           Just ("C", [cfn, clib, chdr]) => cCall appdir fc cfn clib args ret
-           _ => useCC appdir fc ccs args ret
+           Just ("C", [cfn, clib]) ⇒ cCall appdir fc cfn clib args ret
+           Just ("C", [cfn, clib, chdr]) ⇒ cCall appdir fc cfn clib args ret
+           _ ⇒ useCC appdir fc ccs args ret
 
 -- For every foreign arg type, return a name, and whether to pass it to the
 -- foreign call (we don't pass '%World')
-mkArgs : Int -> List CFType -> List (Name, Bool)
+mkArgs : Int → List CFType → List (Name, Bool)
 mkArgs i [] = []
 mkArgs i (CFWorld :: cs) = (MN "farg" i, False) :: mkArgs i cs
 mkArgs i (c :: cs) = (MN "farg" i, True) :: mkArgs (i + 1) cs
 
-mkStruct : {auto s : Ref Structs (List String)} ->
-           CFType -> Core String
+mkStruct : {auto s : Ref Structs (List String)} →
+           CFType → Core String
 mkStruct (CFStruct n flds)
     = do defs <- traverse mkStruct (map snd flds)
          strs <- get Structs
@@ -273,16 +273,16 @@ mkStruct (CFStruct n flds)
                     pure $ concat defs ++ "(define-ftype " ++ n ++ " (struct\n\t"
                            ++ showSep "\n\t" !(traverse showFld flds) ++ "))\n"
   where
-    showFld : (String, CFType) -> Core String
+    showFld : (String, CFType) → Core String
     showFld (n, ty) = pure $ "[" ++ n ++ " " ++ !(cftySpec emptyFC ty) ++ "]"
 mkStruct (CFIORes t) = mkStruct t
 mkStruct (CFFun a b) = do mkStruct a; mkStruct b
 mkStruct _ = pure ""
 
-schFgnDef : {auto c : Ref Ctxt Defs} ->
-            {auto l : Ref Loaded (List String)} ->
-            {auto s : Ref Structs (List String)} ->
-            String -> FC -> Name -> NamedDef -> Core (String, String)
+schFgnDef : {auto c : Ref Ctxt Defs} →
+            {auto l : Ref Loaded (List String)} →
+            {auto s : Ref Structs (List String)} →
+            String → FC → Name → NamedDef → Core (String, String)
 schFgnDef appdir fc n (MkNmForeign cs args ret)
     = do let argns = mkArgs 0 args
          let allargns = map fst argns
@@ -298,13 +298,13 @@ schFgnDef appdir fc n (MkNmForeign cs args ret)
                 body ++ "))\n")
 schFgnDef _ _ _ _ = pure ("", "")
 
-getFgnCall : {auto c : Ref Ctxt Defs} ->
-             {auto l : Ref Loaded (List String)} ->
-             {auto s : Ref Structs (List String)} ->
-             String -> (Name, FC, NamedDef) -> Core (String, String)
+getFgnCall : {auto c : Ref Ctxt Defs} →
+             {auto l : Ref Loaded (List String)} →
+             {auto s : Ref Structs (List String)} →
+             String → (Name, FC, NamedDef) → Core (String, String)
 getFgnCall appdir (n, fc, d) = schFgnDef appdir fc n d
 
-startChez : String -> String -> String
+startChez : String → String → String
 startChez appdir target = unlines
     [ "#!/bin/sh"
     , ""
@@ -314,8 +314,8 @@ startChez appdir target = unlines
     ]
 
 ||| Compile a TT expression to Chez Scheme
-compileToSS : Ref Ctxt Defs ->
-              String -> ClosedTerm -> (outfile : String) -> Core ()
+compileToSS : Ref Ctxt Defs →
+              String → ClosedTerm → (outfile : String) → Core ()
 compileToSS c appdir tm outfile
     = do ds <- getDirectives Chez
          libs <- findLibs ds
@@ -338,13 +338,13 @@ compileToSS c appdir tm outfile
                    concat (map fst fgndefs) ++
                    main ++ schFooter
          Right () <- coreLift $ writeFile outfile scm
-            | Left err => throw (FileErr outfile err)
+            | Left err ⇒ throw (FileErr outfile err)
          coreLift $ chmod outfile 0o755
          pure ()
 
 ||| Compile a Chez Scheme source file to an executable, daringly with runtime checks off.
-compileToSO : {auto c : Ref Ctxt Defs} ->
-              (appDirRel : String) -> (outSsAbs : String) -> Core ()
+compileToSO : {auto c : Ref Ctxt Defs} →
+              (appDirRel : String) → (outSsAbs : String) → Core ()
 compileToSO appDirRel outSsAbs
     = do tmpFileAbs <- coreLift tmpName
          chez <- coreLift $ findChez
@@ -352,20 +352,20 @@ compileToSO appDirRel outSsAbs
                     "(parameterize ([optimize-level 3]) (compile-program \"" ++
                     outSsAbs ++ "\"))"
          Right () <- coreLift $ writeFile tmpFileAbs build
-            | Left err => throw (FileErr tmpFileAbs err)
+            | Left err ⇒ throw (FileErr tmpFileAbs err)
          coreLift $ chmod tmpFileAbs 0o755
          coreLift $ system tmpFileAbs
          pure ()
 
-makeSh : String -> String -> String -> Core ()
+makeSh : String → String → String → Core ()
 makeSh outShRel appdir outAbs
     = do Right () <- coreLift $ writeFile outShRel (startChez appdir outAbs)
-            | Left err => throw (FileErr outShRel err)
+            | Left err ⇒ throw (FileErr outShRel err)
          pure ()
 
 ||| Chez Scheme implementation of the `compileExpr` interface.
-compileExpr : Bool -> Ref Ctxt Defs -> (execDir : String) ->
-              ClosedTerm -> (outfile : String) -> Core (Maybe String)
+compileExpr : Bool → Ref Ctxt Defs → (execDir : String) →
+              ClosedTerm → (outfile : String) → Core (Maybe String)
 compileExpr makeitso c execDir tm outfile
     = do let appDirRel = outfile ++ "_app" -- relative to build dir
          let appDirGen = execDir ++ dirSep ++ appDirRel -- relative to here
@@ -386,10 +386,10 @@ compileExpr makeitso c execDir tm outfile
 
 ||| Chez Scheme implementation of the `executeExpr` interface.
 ||| This implementation simply runs the usual compiler, saving it to a temp file, then interpreting it.
-executeExpr : Ref Ctxt Defs -> (execDir : String) -> ClosedTerm -> Core ()
+executeExpr : Ref Ctxt Defs → (execDir : String) → ClosedTerm → Core ()
 executeExpr c execDir tm
     = do Just sh <- compileExpr False c execDir tm "_tmpchez"
-            | Nothing => throw (InternalError "compileExpr returned Nothing")
+            | Nothing ⇒ throw (InternalError "compileExpr returned Nothing")
          coreLift $ system sh
          pure ()
 

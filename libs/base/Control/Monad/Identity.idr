@@ -19,27 +19,27 @@ Monad Identity where
     (Id x) >>= k = k x
 
 public export
-Show a => Show (Identity a) where
+Show a ⇒ Show (Identity a) where
   showPrec d (Id x) = showCon d "Id" $ showArg x
 
 public export
-Eq a => Eq (Identity a) where
+Eq a ⇒ Eq (Identity a) where
   (Id x) == (Id y) = x == y
 
 public export
-Ord a => Ord (Identity a) where
+Ord a ⇒ Ord (Identity a) where
   compare (Id x) (Id y) = compare x y
 
 -- public export
--- Enum a => Enum (Identity a) where
+-- Enum a ⇒ Enum (Identity a) where
 --   toNat (Id x) = toNat x
 --   fromNat n = Id $ fromNat n
 --   pred (Id n) = Id $ pred n
 
 public export
-(Semigroup a) => Semigroup (Identity a) where
+(Semigroup a) ⇒ Semigroup (Identity a) where
   (<+>) x y = Id (runIdentity x <+> runIdentity y)
 
 public export
-(Monoid a) => Monoid (Identity a) where
+(Monoid a) ⇒ Monoid (Identity a) where
   neutral = Id (neutral)

@@ -11,11 +11,11 @@ import Data.List.Views
 %default total
 
 public export
-Rule : Type -> Type
+Rule : Type → Type
 Rule ty = Grammar (TokenData Token) True ty
 
 public export
-EmptyRule : Type -> Type
+EmptyRule : Type → Type
 EmptyRule ty = Grammar (TokenData Token) False ty
 
 public export
@@ -42,37 +42,37 @@ eoi
     = do nextIs "Expected end of input" (isEOI . tok)
          pure ()
   where
-    isEOI : Token -> Bool
+    isEOI : Token → Bool
     isEOI EndInput = True
     isEOI _ = False
 
 export
-runParserTo : Maybe LiterateStyle -> (TokenData Token -> Bool) ->
-              String -> Grammar (TokenData Token) e ty -> Either ParseError ty
+runParserTo : Maybe LiterateStyle → (TokenData Token → Bool) →
+              String → Grammar (TokenData Token) e ty → Either ParseError ty
 runParserTo lit pred str p
     = case unlit lit str of
-           Left l => Left $ LitFail l
-           Right str =>
+           Left l ⇒ Left $ LitFail l
+           Right str ⇒
              case lexTo pred str of
-               Left err => Left $ LexFail err
-               Right toks =>
+               Left err ⇒ Left $ LexFail err
+               Right toks ⇒
                   case parse p toks of
-                       Left (Error err []) =>
+                       Left (Error err []) ⇒
                               Left $ ParseFail err Nothing []
-                       Left (Error err (t :: ts)) =>
+                       Left (Error err (t :: ts)) ⇒
                               Left $ ParseFail err (Just (line t, col t))
                                                    (map tok (t :: ts))
-                       Right (val, _) => Right val
+                       Right (val, _) ⇒ Right val
 
 export
-runParser : Maybe LiterateStyle -> String -> Grammar (TokenData Token) e ty -> Either ParseError ty
+runParser : Maybe LiterateStyle → String → Grammar (TokenData Token) e ty → Either ParseError ty
 runParser lit = runParserTo lit (const False)
 
 export
-parseFile : (fn : String) -> Rule ty -> IO (Either ParseError ty)
+parseFile : (fn : String) → Rule ty → IO (Either ParseError ty)
 parseFile fn p
     = do Right str <- readFile fn
-             | Left err => pure (Left (FileFail err))
+             | Left err ⇒ pure (Left (FileFail err))
          pure (runParser (isLitFile fn) str p)
 
 
@@ -90,7 +90,7 @@ column
     = do (line, col) <- location
          pure col
 
-hex : Char -> Maybe Int
+hex : Char → Maybe Int
 hex '0' = Just 0
 hex '1' = Just 1
 hex '2' = Just 2
@@ -109,7 +109,7 @@ hex 'e' = Just 14
 hex 'f' = Just 15
 hex _ = Nothing
 
-dec : Char -> Maybe Int
+dec : Char → Maybe Int
 dec '0' = Just 0
 dec '1' = Just 1
 dec '2' = Just 2
@@ -122,7 +122,7 @@ dec '8' = Just 8
 dec '9' = Just 9
 dec _ = Nothing
 
-oct : Char -> Maybe Int
+oct : Char → Maybe Int
 oct '0' = Just 0
 oct '1' = Just 1
 oct '2' = Just 2
@@ -133,7 +133,7 @@ oct '6' = Just 6
 oct '7' = Just 7
 oct _ = Nothing
 
-getEsc : String -> Maybe Char
+getEsc : String → Maybe Char
 getEsc "NUL" = Just '\NUL'
 getEsc "SOH" = Just '\SOH'
 getEsc "STX" = Just '\STX'
@@ -170,7 +170,7 @@ getEsc "SP" = Just '\SP'
 getEsc "DEL" = Just '\DEL'
 getEsc str = Nothing
 
-escape' : List Char -> Maybe (List Char)
+escape' : List Char → Maybe (List Char)
 escape' [] = pure []
 escape' ('\\' :: '\\' :: xs) = pure $ '\\' :: !(escape' xs)
 escape' ('\\' :: '&' :: xs) = pure !(escape' xs)
@@ -185,45 +185,45 @@ escape' ('\\' :: '\'' :: xs) = pure $ '\'' :: !(escape' xs)
 escape' ('\\' :: '\"' :: xs) = pure $ '\"' :: !(escape' xs)
 escape' ('\\' :: 'x' :: xs)
     = case span isHexDigit xs of
-           ([], rest) => assert_total (escape' rest)
-           (ds, rest) => pure $ cast !(toHex 1 (reverse ds)) ::
+           ([], rest) ⇒ assert_total (escape' rest)
+           (ds, rest) ⇒ pure $ cast !(toHex 1 (reverse ds)) ::
                                  !(assert_total (escape' rest))
   where
-    toHex : Int -> List Char -> Maybe Int
+    toHex : Int → List Char → Maybe Int
     toHex _ [] = Just 0
     toHex m (d :: ds)
         = pure $ !(hex (toLower d)) * m + !(toHex (m*16) ds)
 escape' ('\\' :: 'o' :: xs)
     = case span isOctDigit xs of
-           ([], rest) => assert_total (escape' rest)
-           (ds, rest) => pure $ cast !(toOct 1 (reverse ds)) ::
+           ([], rest) ⇒ assert_total (escape' rest)
+           (ds, rest) ⇒ pure $ cast !(toOct 1 (reverse ds)) ::
                                  !(assert_total (escape' rest))
   where
-    toOct : Int -> List Char -> Maybe Int
+    toOct : Int → List Char → Maybe Int
     toOct _ [] = Just 0
     toOct m (d :: ds)
         = pure $ !(oct (toLower d)) * m + !(toOct (m*8) ds)
 escape' ('\\' :: xs)
     = case span isDigit xs of
-           ([], (a :: b :: c :: rest)) =>
+           ([], (a :: b :: c :: rest)) ⇒
                case getEsc (pack (the (List _) [a, b, c])) of
-                   Just v => Just (v :: !(assert_total (escape' rest)))
-                   Nothing => case getEsc (pack (the (List _) [a, b])) of
-                                   Just v => Just (v :: !(assert_total (escape' (c :: rest))))
-                                   Nothing => escape' xs
-           ([], (a :: b :: [])) =>
+                   Just v ⇒ Just (v :: !(assert_total (escape' rest)))
+                   Nothing ⇒ case getEsc (pack (the (List _) [a, b])) of
+                                   Just v ⇒ Just (v :: !(assert_total (escape' (c :: rest))))
+                                   Nothing ⇒ escape' xs
+           ([], (a :: b :: [])) ⇒
                case getEsc (pack (the (List _) [a, b])) of
-                   Just v => Just (v :: [])
-                   Nothing => escape' xs
-           ([], rest) => assert_total (escape' rest)
-           (ds, rest) => Just $ cast (cast {to=Int} (pack ds)) ::
+                   Just v ⇒ Just (v :: [])
+                   Nothing ⇒ escape' xs
+           ([], rest) ⇒ assert_total (escape' rest)
+           (ds, rest) ⇒ Just $ cast (cast {to=Int} (pack ds)) ::
                                  !(assert_total (escape' rest))
 escape' (x :: xs) = Just $ x :: !(escape' xs)
 
-escape : String -> Maybe String
+escape : String → Maybe String
 escape x = pure $ pack !(escape' (unpack x))
 
-getCharLit : String -> Maybe Char
+getCharLit : String → Maybe Char
 getCharLit str
    = do e <- escape str
         if length e == 1
@@ -236,109 +236,117 @@ export
 constant : Rule Constant
 constant
     = terminal "Expected constant"
-               (\x => case tok x of
-                           Literal i => Just (BI i)
-                           StrLit s => case escape s of
-                                            Nothing => Nothing
-                                            Just s' => Just (Str s')
-                           CharLit c => case getCharLit c of
-                                             Nothing => Nothing
-                                             Just c' => Just (Ch c')
-                           DoubleLit d => Just (Db d)
-                           NSIdent ["Int"] => Just IntType
-                           NSIdent ["Integer"] => Just IntegerType
-                           NSIdent ["String"] => Just StringType
-                           NSIdent ["Char"] => Just CharType
-                           NSIdent ["Double"] => Just DoubleType
-                           _ => Nothing)
+               (\x ⇒ case tok x of
+                           Literal i ⇒ Just (BI i)
+                           StrLit s ⇒ case escape s of
+                                            Nothing ⇒ Nothing
+                                            Just s' ⇒ Just (Str s')
+                           CharLit c ⇒ case getCharLit c of
+                                             Nothing ⇒ Nothing
+                                             Just c' ⇒ Just (Ch c')
+                           DoubleLit d ⇒ Just (Db d)
+                           NSIdent ["Int"] ⇒ Just IntType
+                           NSIdent ["Integer"] ⇒ Just IntegerType
+                           NSIdent ["String"] ⇒ Just StringType
+                           NSIdent ["Char"] ⇒ Just CharType
+                           NSIdent ["Double"] ⇒ Just DoubleType
+                           _ ⇒ Nothing)
 
 export
 intLit : Rule Integer
 intLit
     = terminal "Expected integer literal"
-               (\x => case tok x of
-                           Literal i => Just i
-                           _ => Nothing)
+               (\x ⇒ case tok x of
+                           Literal i ⇒ Just i
+                           _ ⇒ Nothing)
 
 export
 strLit : Rule String
 strLit
     = terminal "Expected string literal"
-               (\x => case tok x of
-                           StrLit s => Just s
-                           _ => Nothing)
+               (\x ⇒ case tok x of
+                           StrLit s ⇒ Just s
+                           _ ⇒ Nothing)
 
 export
 recField : Rule Name
 recField
     = terminal "Expected record field"
-               (\x => case tok x of
-                           RecordField s => Just (RF s)
-                           _ => Nothing)
+               (\x ⇒ case tok x of
+                           RecordField s ⇒ Just (RF s)
+                           _ ⇒ Nothing)
 
 export
-symbol : String -> Rule ()
+symbol : String → Rule ()
 symbol req
     = terminal ("Expected '" ++ req ++ "'")
-               (\x => case tok x of
-                           Symbol s => if s == req then Just ()
-                                                   else Nothing
-                           _ => Nothing)
+               (\x ⇒ case tok x of
+                           Symbol s ⇒ if equivalentSymbol req s
+                                          then Just ()
+                                          else Nothing
+                           _ ⇒ Nothing)
+  where
+    equivalentSymbol : String → String → Bool
+    equivalentSymbol "->" "→" = True
+    equivalentSymbol "→" "->" = True
+    equivalentSymbol "=>" "⇒" = True
+    equivalentSymbol "⇒" "=>" = True
+    equivalentSymbol expected actual = expected == actual
 
 export
-keyword : String -> Rule ()
+keyword : String → Rule ()
 keyword req
     = terminal ("Expected '" ++ req ++ "'")
-               (\x => case tok x of
-                           Keyword s => if s == req then Just ()
+               (\x ⇒ case tok x of
+                           Keyword s ⇒ if s == req then Just ()
                                                     else Nothing
-                           _ => Nothing)
+                           _ ⇒ Nothing)
 
 export
-exactIdent : String -> Rule ()
+exactIdent : String → Rule ()
 exactIdent req
     = terminal ("Expected " ++ req)
-               (\x => case tok x of
-                           NSIdent [s] => if s == req then Just ()
+               (\x ⇒ case tok x of
+                           NSIdent [s] ⇒ if s == req then Just ()
                                                       else Nothing
-                           _ => Nothing)
+                           _ ⇒ Nothing)
 
 export
-pragma : String -> Rule ()
+pragma : String → Rule ()
 pragma n =
   terminal ("Expected pragma " ++ n)
-    (\x => case tok x of
-      Pragma s =>
+    (\x ⇒ case tok x of
+      Pragma s ⇒
         if s == n
           then Just ()
           else Nothing
-      _ => Nothing)
+      _ ⇒ Nothing)
 
 export
 operator : Rule Name
 operator
     = terminal "Expected operator"
-               (\x => case tok x of
-                           Symbol s =>
+               (\x ⇒ case tok x of
+                           Symbol s ⇒
                                 if s `elem` reservedSymbols
                                    then Nothing
                                    else Just (UN s)
-                           _ => Nothing)
+                           _ ⇒ Nothing)
 
 identPart : Rule String
 identPart
     = terminal "Expected name"
-               (\x => case tok x of
-                           NSIdent [str] => Just str
-                           _ => Nothing)
+               (\x ⇒ case tok x of
+                           NSIdent [str] ⇒ Just str
+                           _ ⇒ Nothing)
 
 export
 nsIdent : Rule (List String)
 nsIdent
     = terminal "Expected namespaced name"
-        (\x => case tok x of
-            NSIdent ns => Just ns
-            _ => Nothing)
+        (\x ⇒ case tok x of
+            NSIdent ns ⇒ Just ns
+            _ ⇒ Nothing)
 
 export
 unqualifiedName : Rule String
@@ -348,9 +356,9 @@ export
 holeName : Rule String
 holeName
     = terminal "Expected hole name"
-               (\x => case tok x of
-                           HoleIdent str => Just str
-                           _ => Nothing)
+               (\x ⇒ case tok x of
+                           HoleIdent str ⇒ Just str
+                           _ ⇒ Nothing)
 
 reservedNames : List String
 reservedNames
@@ -363,10 +371,10 @@ name = opNonNS <|> do
   ns <- nsIdent
   opNS ns <|> nameNS ns
  where
-  reserved : String -> Bool
+  reserved : String → Bool
   reserved n = n `elem` reservedNames
 
-  nameNS : List String -> Grammar (TokenData Token) False Name
+  nameNS : List String → Grammar (TokenData Token) False Name
   nameNS [] = pure $ UN "IMPOSSIBLE"
   nameNS [x] = 
     if reserved x
@@ -380,7 +388,7 @@ name = opNonNS <|> do
   opNonNS : Rule Name
   opNonNS = symbol "(" *> (operator <|> recField) <* symbol ")"
 
-  opNS : List String -> Rule Name
+  opNS : List String → Rule Name
   opNS ns = do
     symbol ".("
     n <- (operator <|> recField)
@@ -395,7 +403,7 @@ export
 init : IndentInfo
 init = 0
 
-continueF : EmptyRule () -> (indent : IndentInfo) -> EmptyRule ()
+continueF : EmptyRule () → (indent : IndentInfo) → EmptyRule ()
 continueF err indent
     = do eoi; err
   <|> do keyword "where"; err
@@ -406,12 +414,12 @@ continueF err indent
 
 ||| Fail if this is the end of a block entry or end of file
 export
-continue : (indent : IndentInfo) -> EmptyRule ()
+continue : (indent : IndentInfo) → EmptyRule ()
 continue = continueF (fail "Unexpected end of expression")
 
 ||| As 'continue' but failing is fatal (i.e. entire parse fails)
 export
-mustContinue : (indent : IndentInfo) -> Maybe String -> EmptyRule ()
+mustContinue : (indent : IndentInfo) → Maybe String → EmptyRule ()
 mustContinue indent Nothing
    = continueF (fatalError "Unexpected end of expression") indent
 mustContinue indent (Just req)
@@ -433,7 +441,7 @@ Show ValidIndent where
   show (AfterPos i) = "[after " ++ show i ++ "]"
   show EndOfBlock = "[EOB]"
 
-checkValid : ValidIndent -> Int -> EmptyRule ()
+checkValid : ValidIndent → Int → EmptyRule ()
 checkValid AnyIndent c = pure ()
 checkValid (AtPos x) c = if c == x
                             then pure ()
@@ -444,7 +452,7 @@ checkValid (AfterPos x) c = if c >= x
 checkValid EndOfBlock c = fail "End of block"
 
 ||| Any token which indicates the end of a statement/block
-isTerminator : Token -> Bool
+isTerminator : Token → Bool
 isTerminator (Symbol ",") = True
 isTerminator (Symbol "]") = True
 isTerminator (Symbol ";") = True
@@ -463,7 +471,7 @@ isTerminator _ = False
 ||| It's the end if we have a terminating token, or the next token starts
 ||| in or before indent. Works by looking ahead but not consuming.
 export
-atEnd : (indent : IndentInfo) -> EmptyRule ()
+atEnd : (indent : IndentInfo) → EmptyRule ()
 atEnd indent
     = eoi
   <|> do nextIs "Expected end of block" (isTerminator . tok)
@@ -475,7 +483,7 @@ atEnd indent
 
 -- Check we're at the end, but only by looking at indentation
 export
-atEndIndent : (indent : IndentInfo) -> EmptyRule ()
+atEndIndent : (indent : IndentInfo) → EmptyRule ()
 atEndIndent indent
     = eoi
   <|> do col <- column
@@ -486,7 +494,7 @@ atEndIndent indent
 
 -- Parse a terminator, return where the next block entry
 -- must start, given where the current block entry started
-terminator : ValidIndent -> Int -> EmptyRule ValidIndent
+terminator : ValidIndent → Int → EmptyRule ValidIndent
 terminator valid laststart
     = do eoi
          pure EndOfBlock
@@ -499,7 +507,7 @@ terminator valid laststart
    -- Expected indentation for the next token can either be anything (if
    -- we're inside a brace delimited block) or anywhere after the initial
    -- column (if we're inside an indentation delimited block)
-   afterSemi : ValidIndent -> ValidIndent
+   afterSemi : ValidIndent → ValidIndent
    afterSemi AnyIndent = AnyIndent -- in braces, anything goes
    afterSemi (AtPos c) = AfterPos c -- not in braces, after the last start position
    afterSemi (AfterPos c) = AfterPos c
@@ -508,7 +516,7 @@ terminator valid laststart
    -- Expected indentation for the next token can either be anything (if
    -- we're inside a brace delimited block) or in exactly the initial column
    -- (if we're inside an indentation delimited block)
-   afterDedent : ValidIndent -> Int -> EmptyRule ValidIndent
+   afterDedent : ValidIndent → Int → EmptyRule ValidIndent
    afterDedent AnyIndent col
        = if col <= laststart
             then pure AnyIndent
@@ -524,7 +532,7 @@ terminator valid laststart
    afterDedent EndOfBlock col = pure EndOfBlock
 
 -- Parse an entry in a block
-blockEntry : ValidIndent -> (IndentInfo -> Rule ty) ->
+blockEntry : ValidIndent → (IndentInfo → Rule ty) →
              Rule (ty, ValidIndent)
 blockEntry valid rule
     = do col <- column
@@ -533,7 +541,7 @@ blockEntry valid rule
          valid' <- terminator valid col
          pure (p, valid')
 
-blockEntries : ValidIndent -> (IndentInfo -> Rule ty) ->
+blockEntries : ValidIndent → (IndentInfo → Rule ty) →
                EmptyRule (List ty)
 blockEntries valid rule
      = do eoi; pure []
@@ -543,7 +551,7 @@ blockEntries valid rule
    <|> pure []
 
 export
-block : (IndentInfo -> Rule ty) -> EmptyRule (List ty)
+block : (IndentInfo → Rule ty) → EmptyRule (List ty)
 block item
     = do symbol "{"
          commit
@@ -559,7 +567,7 @@ block item
 ||| by curly braces). `rule` is a function of the actual indentation
 ||| level.
 export
-blockAfter : Int -> (IndentInfo -> Rule ty) -> EmptyRule (List ty)
+blockAfter : Int → (IndentInfo → Rule ty) → EmptyRule (List ty)
 blockAfter mincol item
     = do symbol "{"
          commit
@@ -572,7 +580,7 @@ blockAfter mincol item
             else blockEntries (AtPos col) item
 
 export
-blockWithOptHeaderAfter : Int -> (IndentInfo -> Rule hd) -> (IndentInfo -> Rule ty) -> EmptyRule (Maybe hd, List ty)
+blockWithOptHeaderAfter : Int → (IndentInfo → Rule hd) → (IndentInfo → Rule ty) → EmptyRule (Maybe hd, List ty)
 blockWithOptHeaderAfter {ty} mincol header item
     = do symbol "{"
          commit
@@ -585,7 +593,7 @@ blockWithOptHeaderAfter {ty} mincol header item
                    ps <- blockEntries (AtPos col) item
                    pure (map fst hidt, ps)
   where
-  restOfBlock : Maybe (hd, ValidIndent) -> Rule (Maybe hd, List ty)
+  restOfBlock : Maybe (hd, ValidIndent) → Rule (Maybe hd, List ty)
   restOfBlock (Just (h, idt)) = do ps <- blockEntries idt item
                                    symbol "}"
                                    pure (Just h, ps)
@@ -594,7 +602,7 @@ blockWithOptHeaderAfter {ty} mincol header item
                            pure (Nothing, ps)
 
 export
-nonEmptyBlock : (IndentInfo -> Rule ty) -> Rule (List ty)
+nonEmptyBlock : (IndentInfo → Rule ty) → Rule (List ty)
 nonEmptyBlock item
     = do symbol "{"
          commit

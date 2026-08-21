@@ -18,25 +18,25 @@ symbols = ["(", ":", ")"]
 
 ideTokens : TokenMap Token
 ideTokens =
-    map (\x => (exact x, Symbol)) symbols ++
-    [(digits, \x => Literal (cast x)),
-     (stringLit, \x => StrLit (stripQuotes x)),
-     (identAllowDashes, \x => NSIdent [x]),
+    map (\x ⇒ (exact x, Symbol)) symbols ++
+    [(digits, \x ⇒ Literal (cast x)),
+     (stringLit, \x ⇒ StrLit (stripQuotes x)),
+     (identAllowDashes, \x ⇒ NSIdent [x]),
      (space, Comment)]
 
-idelex : String -> Either (Int, Int, String) (List (TokenData Token))
+idelex : String → Either (Int, Int, String) (List (TokenData Token))
 idelex str
     = case lex ideTokens str of
            -- Add the EndInput token so that we'll have a line and column
            -- number to read when storing spans in the file
-           (tok, (l, c, "")) => Right (filter notComment tok ++
+           (tok, (l, c, "")) ⇒ Right (filter notComment tok ++
                                       [MkToken l c EndInput])
-           (_, fail) => Left fail
+           (_, fail) ⇒ Left fail
     where
-      notComment : TokenData Token -> Bool
+      notComment : TokenData Token → Bool
       notComment t = case tok t of
-                          Comment _ => False
-                          _ => True
+                          Comment _ ⇒ False
+                          _ ⇒ True
 
 sexp : Rule SExp
 sexp
@@ -55,20 +55,20 @@ sexp
          symbol ")"
          pure (SExpList xs)
 
-ideParser : String -> Grammar (TokenData Token) e ty -> Either ParseError ty
+ideParser : String → Grammar (TokenData Token) e ty → Either ParseError ty
 ideParser str p
     = case idelex str of
-           Left err => Left $ LexFail err
-           Right toks =>
+           Left err ⇒ Left $ LexFail err
+           Right toks ⇒
               case parse p toks of
-                   Left (Error err []) =>
+                   Left (Error err []) ⇒
                           Left $ ParseFail err Nothing []
-                   Left (Error err (t :: ts)) =>
+                   Left (Error err (t :: ts)) ⇒
                           Left $ ParseFail err (Just (line t, col t))
                                                (map tok (t :: ts))
-                   Right (val, _) => Right val
+                   Right (val, _) ⇒ Right val
 
 export
-parseSExp : String -> Either ParseError SExp
+parseSExp : String → Either ParseError SExp
 parseSExp inp
     = ideParser inp (do c <- sexp; eoi; pure c)

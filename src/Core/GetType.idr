@@ -17,19 +17,19 @@ import Core.Value
 -- eye on it...
 
 mutual
-  chk : {auto c : Ref Ctxt Defs} ->
-        Env Term vars -> Term vars -> Core (Glued vars)
+  chk : {auto c : Ref Ctxt Defs} →
+        Env Term vars → Term vars → Core (Glued vars)
   chk env (Local fc r idx p)
       = pure $ gnf env (binderType (getBinder p env))
   chk env (Ref fc nt n)
       = do defs <- get Ctxt
            Just ty <- lookupTyExact n (gamma defs)
-               | Nothing => throw (UndefinedName fc n)
+               | Nothing ⇒ throw (UndefinedName fc n)
            pure $ gnf env (embed ty)
   chk env (Meta fc n i args)
       = do defs <- get Ctxt
            Just mty <- lookupTyExact (Resolved i) (gamma defs)
-               | Nothing => throw (UndefinedName fc n)
+               | Nothing ⇒ throw (UndefinedName fc n)
            chkMeta fc env !(nf defs env (embed mty)) args
   chk env (Bind fc nm b sc)
       = do bt <- chkBinder env b
@@ -38,12 +38,12 @@ mutual
   chk env (App fc f a)
       = do fty <- chk env f
            case !(getNF fty) of
-                NBind _ _ (Pi _ _ ty) scdone =>
+                NBind _ _ (Pi _ _ ty) scdone ⇒
                       do defs <- get Ctxt
                          aty <- chk env a
                          sc' <- scdone defs (toClosure defaultOpts env a)
                          pure $ glueBack defs env sc'
-                _ => do fty' <- getTerm fty
+                _ ⇒ do fty' <- getTerm fty
                         throw (NotFunctionType fc env fty')
   chk env (As fc s n p) = chk env p
   chk env (TDelayed fc r tm) = pure (gType fc)
@@ -55,15 +55,15 @@ mutual
   chk env (TForce fc r tm)
       = do tm' <- chk env tm
            case !(getNF tm') of
-                NDelayed fc _ fty =>
+                NDelayed fc _ fty ⇒
                     do defs <- get Ctxt
                        pure $ glueBack defs env fty
   chk env (PrimVal fc x) = pure $ gnf env (chkConstant fc x)
   chk env (TType fc) = pure (gType fc)
   chk env (Erased fc _) = pure (gErased fc)
 
-  chkMeta : {auto c : Ref Ctxt Defs} ->
-            FC -> Env Term vars -> NF vars -> List (Term vars) ->
+  chkMeta : {auto c : Ref Ctxt Defs} →
+            FC → Env Term vars → NF vars → List (Term vars) →
             Core (Glued vars)
   chkMeta fc env ty []
       = do defs <- get Ctxt
@@ -78,12 +78,12 @@ mutual
            throw (NotFunctionType fc env !(quote defs env ty))
 
 
-  chkBinder : {auto c : Ref Ctxt Defs} ->
-              Env Term vars -> Binder (Term vars) -> Core (Glued vars)
+  chkBinder : {auto c : Ref Ctxt Defs} →
+              Env Term vars → Binder (Term vars) → Core (Glued vars)
   chkBinder env b = chk env (binderType b)
 
-  discharge : FC -> (nm : Name) -> Binder (Term vars) ->
-              Term vars -> Term (nm :: vars) -> (Term vars)
+  discharge : FC → (nm : Name) → Binder (Term vars) →
+              Term vars → Term (nm :: vars) → (Term vars)
   discharge fc n (Lam c x ty) bindty scopety
       = Bind fc n (Pi c x ty) scopety
   discharge fc n (Let c val ty) bindty scopety
@@ -97,7 +97,7 @@ mutual
   discharge fc n (PVTy c ty) bindty scopety
       = bindty
 
-  chkConstant : FC -> Constant -> Term vars
+  chkConstant : FC → Constant → Term vars
   chkConstant fc (I x) = PrimVal fc IntType
   chkConstant fc (BI x) = PrimVal fc IntegerType
   chkConstant fc (Str x) = PrimVal fc StringType
@@ -107,7 +107,7 @@ mutual
   chkConstant fc _ = TType fc
 
 export
-getType : {auto c : Ref Ctxt Defs} ->
-          Env Term vars -> (term : Term vars) -> Core (Glued vars)
+getType : {auto c : Ref Ctxt Defs} →
+          Env Term vars → (term : Term vars) → Core (Glued vars)
 getType env term = chk env term
 

@@ -14,44 +14,44 @@ import Core.TT
 
 -- List of variable usages - we'll count the contents of specific variables
 -- when discharging binders, to ensure that linear names are only used once
-data Usage : List Name -> Type where
+data Usage : List Name → Type where
      Nil : Usage vars
-     (::) : Var vars -> Usage vars -> Usage vars
+     (::) : Var vars → Usage vars → Usage vars
 
 Show (Usage vars) where
   show xs = "[" ++ showAll xs ++ "]"
     where
-      showAll : Usage vs -> String
+      showAll : Usage vs → String
       showAll [] = ""
       showAll [el] = show el
       showAll (x :: xs) = show x ++ ", " ++ show xs
 
-doneScope : Usage (n :: vars) -> Usage vars
+doneScope : Usage (n :: vars) → Usage vars
 doneScope [] = []
 doneScope (MkVar First :: xs) = doneScope xs
 doneScope (MkVar (Later p) :: xs) = MkVar p :: doneScope xs
 
-(++) : Usage ns -> Usage ns -> Usage ns
+(++) : Usage ns → Usage ns → Usage ns
 (++) [] ys = ys
 (++) (x :: xs) ys = x :: xs ++ ys
 
-count : Nat -> Usage ns -> Nat
+count : Nat → Usage ns → Nat
 count p [] = 0
 count p (v :: xs)
     = if p == varIdx v then 1 + count p xs else count p xs
 
-localPrf : {later : _} -> Var (later ++ n :: vars)
+localPrf : {later : _} → Var (later ++ n :: vars)
 localPrf {later = []} = MkVar First
 localPrf {n} {vars} {later = (x :: xs)}
     = let MkVar p = localPrf {n} {vars} {later = xs} in
           MkVar (Later p)
 
 mutual
-  updateHoleUsageArgs : {auto c : Ref Ctxt Defs} ->
-                        {auto u : Ref UST UState} ->
-                        (useInHole : Bool) ->
-                        Var vars -> List (Var vars) ->
-                        List (Term vars) -> Core Bool
+  updateHoleUsageArgs : {auto c : Ref Ctxt Defs} →
+                        {auto u : Ref UST UState} →
+                        (useInHole : Bool) →
+                        Var vars → List (Var vars) →
+                        List (Term vars) → Core Bool
   updateHoleUsageArgs useInHole var zs [] = pure False
   updateHoleUsageArgs useInHole var zs (a :: as)
       = do h <- updateHoleUsage useInHole var zs a
@@ -61,11 +61,11 @@ mutual
   -- The assumption here is that hole types are abstracted over the entire
   -- environment, so that they have the appropriate number of function
   -- arguments and there are no lets
-  updateHoleType : {auto c : Ref Ctxt Defs} ->
-                   {auto u : Ref UST UState} ->
-                   (useInHole : Bool) ->
-                   Var vars -> List (Var vars) ->
-                   Term vs -> List (Term vars) ->
+  updateHoleType : {auto c : Ref Ctxt Defs} →
+                   {auto u : Ref UST UState} →
+                   (useInHole : Bool) →
+                   Var vars → List (Var vars) →
+                   Term vs → List (Term vars) →
                    Core (Term vs)
   updateHoleType useInHole var zs (Bind bfc nm (Pi c e ty) sc) (Local _ r v _ :: as)
       -- if the argument to the hole type is the variable of interest,
@@ -88,11 +88,11 @@ mutual
       = do updateHoleUsageArgs False var zs as
            pure ty
 
-  updateHoleUsagePats : {auto c : Ref Ctxt Defs} ->
-                        {auto u : Ref UST UState} ->
-                        (useInHole : Bool) ->
-                        Var vars -> List (Term vars) ->
-                        (vs ** (Env Term vs, Term vs, Term vs)) ->
+  updateHoleUsagePats : {auto c : Ref Ctxt Defs} →
+                        {auto u : Ref UST UState} →
+                        (useInHole : Bool) →
+                        Var vars → List (Term vars) →
+                        (vs ** (Env Term vs, Term vs, Term vs)) →
                         Core Bool
   updateHoleUsagePats {vars} useInHole var args (vs ** (env, lhs, rhs))
       = do -- Find the argument which corresponds to var
@@ -100,11 +100,11 @@ mutual
            log 10 $ "At positions " ++ show argpos
            -- Find what it's position is in env by looking at the lhs args
            let vars = mapMaybe (findLocal (getArgs lhs)) argpos
-           hs <- traverse (\vsel => updateHoleUsage useInHole vsel [] rhs)
+           hs <- traverse (\vsel ⇒ updateHoleUsage useInHole vsel [] rhs)
                           vars
            pure (or (map Delay hs))
     where
-      findArg : Nat -> List (Term vars) -> List Nat
+      findArg : Nat → List (Term vars) → List Nat
       findArg i [] = []
       findArg i (Local _ _ idx vel :: els)
           = if idx == varIdx var
@@ -112,18 +112,18 @@ mutual
                else findArg (1 + i) els
       findArg i (_ :: els) = findArg (1 + i) els
 
-      findLocal : List (Term vs) -> Nat -> Maybe (Var vs)
+      findLocal : List (Term vs) → Nat → Maybe (Var vs)
       findLocal (Local _ _ _ p :: _) Z = Just (MkVar p)
       findLocal (As _ _ (Local _ _ _ p) _ :: _) Z = Just (MkVar p)
       findLocal (As _ _ _ (Local _ _ _ p) :: _) Z = Just (MkVar p)
       findLocal (_ :: els) (S k) = findLocal els k
       findLocal _ _ = Nothing
 
-  updateHoleUsage : {auto c : Ref Ctxt Defs} ->
-                    {auto u : Ref UST UState} ->
-                    (useInHole : Bool) ->
-                    Var vars -> List (Var vars) ->
-                    Term vars -> Core Bool
+  updateHoleUsage : {auto c : Ref Ctxt Defs} →
+                    {auto u : Ref UST UState} →
+                    (useInHole : Bool) →
+                    Var vars → List (Var vars) →
+                    Term vars → Core Bool
   updateHoleUsage useInHole (MkVar var) zs (Bind _ n (Let c val ty) sc)
       = do h <- updateHoleUsage useInHole (MkVar var) zs val
            h' <- updateHoleUsage useInHole (MkVar (Later var)) (map weaken zs) sc
@@ -133,10 +133,10 @@ mutual
   updateHoleUsage useInHole var zs (Meta fc n i args)
       = do defs <- get Ctxt
            Just gdef <- lookupCtxtExact (Resolved i) (gamma defs)
-                | Nothing => updateHoleUsageArgs useInHole var zs args
+                | Nothing ⇒ updateHoleUsageArgs useInHole var zs args
            -- only update for holes with no definition yet
            case definition gdef of
-                Hole _ _ =>
+                Hole _ _ ⇒
                    do let ty = type gdef
                       ty' <- updateHoleType useInHole var zs ty args
                       updateTy i ty'
@@ -145,7 +145,7 @@ mutual
                       logTerm 5 ("Updated from " ++
                                  show (fullname gdef)) (type gdef)
                       pure True
-                _ => updateHoleUsageArgs useInHole var zs args
+                _ ⇒ updateHoleUsageArgs useInHole var zs args
   updateHoleUsage useInHole var zs (As _ _ a p)
       = do h <- updateHoleUsage useInHole var zs a
            h' <- updateHoleUsage useInHole var zs a
@@ -158,22 +158,22 @@ mutual
       = updateHoleUsage useInHole var zs t
   updateHoleUsage useInHole var zs tm
       = case getFnArgs tm of
-             (Ref _ _ fn, args) =>
+             (Ref _ _ fn, args) ⇒
                   -- no need to look inside 'fn' for holes since we did that
                   -- when working through lcheckDef recursively
                   updateHoleUsageArgs useInHole var zs args
-             (f, []) => pure False
-             (f, args) => updateHoleUsageArgs useInHole var zs (f :: args)
+             (f, []) ⇒ pure False
+             (f, args) ⇒ updateHoleUsageArgs useInHole var zs (f :: args)
 
 -- Linearity checking of an already checked term. This serves two purposes:
 --  + Checking correct usage of linear bindings
 --  + updating hole types to reflect usage counts correctly
 -- Returns term, normalised type, and a list of used variables
 mutual
-  lcheck : {vars : _} ->
-           {auto c : Ref Ctxt Defs} ->
-           {auto u : Ref UST UState } ->
-           RigCount -> (erase : Bool) -> Env Term vars -> Term vars ->
+  lcheck : {vars : _} →
+           {auto c : Ref Ctxt Defs} →
+           {auto u : Ref UST UState } →
+           RigCount → (erase : Bool) → Env Term vars → Term vars →
            Core (Term vars, Glued vars, Usage vars)
   lcheck {vars} rig erase env (Local {name} fc x idx prf)
       = let b = getBinder prf env
@@ -182,17 +182,17 @@ mutual
             do when (not erase) $ rigSafe rigb rig
                pure (Local fc x idx prf, gnf env ty, used rig)
     where
-      getName : {idx : _} -> (vs : List Name) -> .(IsVar n idx vs) -> Name
+      getName : {idx : _} → (vs : List Name) → .(IsVar n idx vs) → Name
       getName (x :: _) First = x
       getName (x :: xs) (Later p) = getName xs p
 
-      rigSafe : RigCount -> RigCount -> Core ()
+      rigSafe : RigCount → RigCount → Core ()
       rigSafe l r = when (l < r)
                          (throw (LinearMisuse fc (getName vars prf) l r))
 
       -- count the usage if we're in a linear context. If not, the usage doesn't
       -- matter
-      used : RigCount -> Usage vars
+      used : RigCount → Usage vars
       used r = if isLinear r then [MkVar prf] else []
 
   lcheck rig erase env (Ref fc nt fn)
@@ -207,30 +207,30 @@ mutual
   lcheck {vars} rig erase env (Meta fc n idx args)
       = do defs <- get Ctxt
            Just gdef <- lookupCtxtExact (Resolved idx) (gamma defs)
-                | _ => throw (UndefinedName fc n)
+                | _ ⇒ throw (UndefinedName fc n)
            let expand = branchZero
                           False
                           (case definition gdef of
-                                (PMDef _ _ _ _ _) => True
-                                _ => False)
+                                (PMDef _ _ _ _ _) ⇒ True
+                                _ ⇒ False)
                           rig
            logC 10 $ do
              def <- the (Core String) $ case definition gdef of
-                         PMDef _ _ (STerm tm) _ _ => do tm' <- toFullNames tm
+                         PMDef _ _ (STerm tm) _ _ ⇒ do tm' <- toFullNames tm
                                                         pure (show tm')
-                         _ => pure ""
+                         _ ⇒ pure ""
              pure (show rig ++ ": " ++ show n ++ " " ++ show fc ++ "\n"
                      ++ show def)
            if expand
               then expandMeta rig erase env n idx (definition gdef) args
               else do let ty : ClosedTerm
                              = case definition gdef of
-                                    Hole _ _ => unusedHoleArgs args (type gdef)
-                                    _ => type gdef
+                                    Hole _ _ ⇒ unusedHoleArgs args (type gdef)
+                                    _ ⇒ type gdef
                       nty <- nf defs env (embed ty)
                       lcheckMeta rig erase env fc n idx args [] nty
     where
-      unusedHoleArgs : List a -> Term vs -> Term vs
+      unusedHoleArgs : List a → Term vs → Term vs
       unusedHoleArgs (_ :: args) (Bind bfc n (Pi _ e ty) sc)
           = Bind bfc n (Pi erased e ty) (unusedHoleArgs args sc)
       unusedHoleArgs args (Bind bfc n (Let c e ty) sc)
@@ -243,8 +243,8 @@ mutual
            -- checking in general context
            let env' = if rig_in == top
                          then case b of
-                              (Lam _ _ _) => eraseLinear env
-                              _ => env
+                              (Lam _ _ _) ⇒ eraseLinear env
+                              _ ⇒ env
                          else env
            (sc', sct, usedsc) <- lcheck rig erase (b' :: env') sc
            defs <- get Ctxt
@@ -271,26 +271,26 @@ mutual
     where
       rig : RigCount
       rig = case b of
-                 Pi _ _ _ => erased
-                 _ => if isErased rig_in
+                 Pi _ _ _ ⇒ erased
+                 _ ⇒ if isErased rig_in
                          then erased
                          else linear
 
-      getZeroes : Env Term vs -> List (Var vs)
+      getZeroes : Env Term vs → List (Var vs)
       getZeroes [] = []
       getZeroes (b :: bs)
           = if isErased (multiplicity b)
                then MkVar First :: map weaken (getZeroes bs)
                else map weaken (getZeroes bs)
 
-      eraseLinear : Env Term vs -> Env Term vs
+      eraseLinear : Env Term vs → Env Term vs
       eraseLinear [] = []
       eraseLinear (b :: bs)
           = if isLinear (multiplicity b)
                then setMultiplicity b erased :: eraseLinear bs
                else b :: eraseLinear bs
 
-      checkUsageOK : Nat -> RigCount -> Core ()
+      checkUsageOK : Nat → RigCount → Core ()
       checkUsageOK used r = when (isLinear r && used /= 1)
                                  (throw (LinearUsed fc used nm))
 
@@ -299,7 +299,7 @@ mutual
            defs <- get Ctxt
            fty <- getNF gfty
            case fty of
-                NBind _ _ (Pi rigf _ ty) scdone =>
+                NBind _ _ (Pi rigf _ ty) scdone ⇒
                      -- if the argument is borrowed, it's okay to use it in
                      -- unrestricted context, because we'll be out of the
                      -- application without spending it
@@ -323,7 +323,7 @@ mutual
                       pure (App fc f' aerased,
                             glueBack defs env sc',
                             fused ++ aused)
-                _ => do tfty <- getTerm gfty
+                _ ⇒ do tfty <- getTerm gfty
                         throw (GenericMsg fc ("Linearity checking failed on " ++ show f' ++
                               " (" ++ show tfty ++ " not a function type)"))
 
@@ -344,9 +344,9 @@ mutual
            tynf <- getNF gty
            case tynf of
                 NDelayed _ r narg
-                    => do defs <- get Ctxt
+                    ⇒ do defs <- get Ctxt
                           pure (TForce fc r val', glueBack defs env narg, u)
-                _ => throw (GenericMsg fc "Not a delayed tyoe")
+                _ ⇒ throw (GenericMsg fc "Not a delayed tyoe")
   lcheck rig erase env (PrimVal fc c)
       = pure (PrimVal fc c, gErased fc, [])
   lcheck rig erase env (Erased fc i)
@@ -354,10 +354,10 @@ mutual
   lcheck rig erase env (TType fc)
       = pure (TType fc, gType fc, [])
 
-  lcheckBinder : {auto c : Ref Ctxt Defs} ->
-                 {auto u : Ref UST UState} ->
-                 RigCount -> (erase : Bool) -> Env Term vars ->
-                 Binder (Term vars) ->
+  lcheckBinder : {auto c : Ref Ctxt Defs} →
+                 {auto u : Ref UST UState} →
+                 RigCount → (erase : Bool) → Env Term vars →
+                 Binder (Term vars) →
                  Core (Binder (Term vars), Glued vars, Usage vars)
   lcheckBinder rig erase env (Lam c x ty)
       = do (tyv, tyt, _) <- lcheck erased erase env ty
@@ -380,9 +380,9 @@ mutual
       = do (tyv, tyt, _) <- lcheck erased erase env ty
            pure (PVTy c tyv, tyt, [])
 
-  discharge : Defs -> Env Term vars ->
-              FC -> (nm : Name) -> Binder (Term vars) -> Glued vars ->
-              Term (nm :: vars) -> Glued (nm :: vars) -> Usage vars ->
+  discharge : Defs → Env Term vars →
+              FC → (nm : Name) → Binder (Term vars) → Glued vars →
+              Term (nm :: vars) → Glued (nm :: vars) → Usage vars →
               Core (Term vars, Glued vars, Usage vars)
   discharge defs env fc nm (Lam c x ty) gbindty scope gscopety used
        = do scty <- getTerm gscopety
@@ -422,24 +422,24 @@ mutual
   -- Check argument usage in case blocks. Returns a list of how each argument
   -- in the case block is used, to build the appropriate type for the outer
   -- block.
-  getArgUsage : {auto c : Ref Ctxt Defs} ->
-                {auto e : Ref UST UState} ->
-                FC -> RigCount -> ClosedTerm ->
-                List (vs ** (Env Term vs, Term vs, Term vs)) ->
+  getArgUsage : {auto c : Ref Ctxt Defs} →
+                {auto e : Ref UST UState} →
+                FC → RigCount → ClosedTerm →
+                List (vs ** (Env Term vs, Term vs, Term vs)) →
                 Core (List ArgUsage)
   getArgUsage topfc rig ty pats
       = do us <- traverse (getPUsage ty) pats
            pure (map snd !(combine us))
     where
-      getCaseUsage : Term ns -> Env Term vs -> List (Term vs) ->
-                     Usage vs -> Term vs ->
+      getCaseUsage : Term ns → Env Term vs → List (Term vs) →
+                     Usage vs → Term vs →
                      Core (List (Name, ArgUsage))
       getCaseUsage ty env (As _ _ _ p :: args) used rhs
           = getCaseUsage ty env (p :: args) used rhs
       getCaseUsage (Bind _ n (Pi rig e ty) sc) env (arg :: args) used rhs
           = if isLinear rig
                then case arg of
-                         (Local _ _ idx p) =>
+                         (Local _ _ idx p) ⇒
                            do rest <- getCaseUsage sc env args used rhs
                               let used_in = count idx used
                               holeFound <- updateHoleUsage (used_in == 0) (MkVar p) [] rhs
@@ -450,7 +450,7 @@ mutual
                                                     then Use0
                                                     else Use1
                               pure ((n, ause) :: rest)
-                         _ => do elseCase
+                         _ ⇒ do elseCase
                else elseCase
           where
             elseCase : Core (List (Name, ArgUsage))
@@ -460,14 +460,14 @@ mutual
                              else ((n, UseKeep) :: rest)
       getCaseUsage tm env args used rhs = pure []
 
-      checkUsageOK : FC -> Nat -> Name -> Bool -> RigCount -> Core ()
+      checkUsageOK : FC → Nat → Name → Bool → RigCount → Core ()
       checkUsageOK fc used nm isloc rig
           = when (isLinear rig && ((isloc && used > 1) || (not isloc && used /= 1)))
                  (throw (LinearUsed fc used nm))
 
       -- Is the variable one of the lhs arguments; i.e. do we treat it as
       -- affine rather than linear
-      isLocArg : Var vars -> List (Term vars) -> Bool
+      isLocArg : Var vars → List (Term vars) → Bool
       isLocArg p [] = False
       isLocArg p (Local _ _ idx _ :: args)
           = if idx == varIdx p
@@ -480,10 +480,10 @@ mutual
       -- As checkEnvUsage in general, but it's okay for local variables to
       -- remain unused (since in that case, they must be used outside the
       -- case block)
-      checkEnvUsage : RigCount ->
-                      Env Term vars -> Usage (done ++ vars) ->
-                      List (Term (done ++ vars)) ->
-                      Term (done ++ vars) -> Core ()
+      checkEnvUsage : RigCount →
+                      Env Term vars → Usage (done ++ vars) →
+                      List (Term (done ++ vars)) →
+                      Term (done ++ vars) → Core ()
       checkEnvUsage rig [] usage args tm = pure ()
       checkEnvUsage rig {done} {vars = nm :: xs} (b :: env) usage args tm
           = do let pos = localPrf {later = done}
@@ -504,7 +504,7 @@ mutual
                      (rewrite sym (appendAssociative done [nm] xs) in args)
                      (rewrite sym (appendAssociative done [nm] xs) in tm)
 
-      getPUsage : ClosedTerm -> (vs ** (Env Term vs, Term vs, Term vs)) ->
+      getPUsage : ClosedTerm → (vs ** (Env Term vs, Term vs, Term vs)) →
                   Core (List (Name, ArgUsage))
       getPUsage ty (_ ** (penv, lhs, rhs))
           = do logEnv 10 "Env" penv
@@ -518,7 +518,7 @@ mutual
                log 10 $ "Arg usage: " ++ show ause
                pure ause
 
-      combineUsage : (Name, ArgUsage) -> (Name, ArgUsage) ->
+      combineUsage : (Name, ArgUsage) → (Name, ArgUsage) →
                      Core (Name, ArgUsage)
       combineUsage (n, Use0) (_, Use1)
           = throw (GenericMsg topfc ("Inconsistent usage of " ++ show n ++ " in case branches"))
@@ -532,7 +532,7 @@ mutual
       combineUsage _ (n, UseUnknown) = pure (n, UseUnknown)
       combineUsage x y = pure x
 
-      combineUsages : List (Name, ArgUsage) -> List (Name, ArgUsage) ->
+      combineUsages : List (Name, ArgUsage) → List (Name, ArgUsage) →
                       Core (List (Name, ArgUsage))
       combineUsages [] [] = pure []
       combineUsages (u :: us) (v :: vs)
@@ -541,7 +541,7 @@ mutual
                pure (u' :: us')
       combineUsages _ _ = throw (InternalError "Argument usage lists inconsistent")
 
-      combine : List (List (Name, ArgUsage)) ->
+      combine : List (List (Name, ArgUsage)) →
                 Core (List (Name, ArgUsage))
       combine [] = pure []
       combine [x] = pure x
@@ -549,26 +549,26 @@ mutual
           = do xs' <- combine xs
                combineUsages x xs'
 
-  lcheckDef : {auto c : Ref Ctxt Defs} ->
-              {auto u : Ref UST UState} ->
-              FC -> RigCount -> (erase : Bool) -> Env Term vars -> Name ->
+  lcheckDef : {auto c : Ref Ctxt Defs} →
+              {auto u : Ref UST UState} →
+              FC → RigCount → (erase : Bool) → Env Term vars → Name →
               Core ClosedTerm
   lcheckDef fc rig True env n
       = do defs <- get Ctxt
            Just def <- lookupCtxtExact n (gamma defs)
-                | Nothing => throw (InternalError ("Linearity checking failed on " ++ show n))
+                | Nothing ⇒ throw (InternalError ("Linearity checking failed on " ++ show n))
            pure (type def)
   lcheckDef fc rig False env n
       = do defs <- get Ctxt
            let Just idx = getNameID n (gamma defs)
-                | Nothing => throw (InternalError ("Linearity checking failed on " ++ show n))
+                | Nothing ⇒ throw (InternalError ("Linearity checking failed on " ++ show n))
            Just def <- lookupCtxtExact (Resolved idx) (gamma defs)
-                | Nothing => throw (InternalError ("Linearity checking failed on " ++ show n))
+                | Nothing ⇒ throw (InternalError ("Linearity checking failed on " ++ show n))
            rigSafe (multiplicity def) rig
            if linearChecked def
               then pure (type def)
               else case definition def of
-                        PMDef _ _ _ _ pats =>
+                        PMDef _ _ _ _ pats ⇒
                             do u <- getArgUsage (getLoc (type def))
                                                 rig (type def) pats
                                log 5 $ "Overall arg usage " ++ show u
@@ -580,34 +580,34 @@ mutual
                                logTerm 5 ("Updated from " ++
                                           show (fullname def)) (type def)
                                pure ty'
-                        _ => pure (type def)
+                        _ ⇒ pure (type def)
     where
-      updateUsage : List ArgUsage -> Term ns -> Term ns
+      updateUsage : List ArgUsage → Term ns → Term ns
       updateUsage (u :: us) (Bind bfc n (Pi c e ty) sc)
           = let sc' = updateUsage us sc
                 c' = case u of
-                          Use0 => erased
-                          Use1 => linear -- ignore usage elsewhere, we checked here
-                          UseUnknown => c -- don't know, assumed unchanged and update hole types
-                          UseKeep => c -- matched here, so count usage elsewhere
-                          UseAny => c in -- no constraint, so leave alone
+                          Use0 ⇒ erased
+                          Use1 ⇒ linear -- ignore usage elsewhere, we checked here
+                          UseUnknown ⇒ c -- don't know, assumed unchanged and update hole types
+                          UseKeep ⇒ c -- matched here, so count usage elsewhere
+                          UseAny ⇒ c in -- no constraint, so leave alone
                 Bind bfc n (Pi c' e ty) sc'
       updateUsage _ ty = ty
 
-      rigSafe : RigCount -> RigCount -> Core ()
+      rigSafe : RigCount → RigCount → Core ()
       rigSafe a b = when (a < b)
                          (throw (LinearMisuse fc !(getFullName n) a b))
 
-  expandMeta : {auto c : Ref Ctxt Defs} ->
-               {auto u : Ref UST UState} ->
-               RigCount -> (erase : Bool) -> Env Term vars ->
-               Name -> Int -> Def -> List (Term vars) ->
+  expandMeta : {auto c : Ref Ctxt Defs} →
+               {auto u : Ref UST UState} →
+               RigCount → (erase : Bool) → Env Term vars →
+               Name → Int → Def → List (Term vars) →
                Core (Term vars, Glued vars, Usage vars)
   expandMeta rig erase env n idx (PMDef _ [] (STerm fn) _ _) args
       = do tm <- substMeta (embed fn) args []
            lcheck rig erase env tm
     where
-      substMeta : Term (drop ++ vs) -> List (Term vs) -> SubstEnv drop vs ->
+      substMeta : Term (drop ++ vs) → List (Term vs) → SubstEnv drop vs →
                   Core (Term vs)
       substMeta (Bind bfc n (Lam c e ty) sc) (a :: as) env
           = substMeta sc as (a :: env)
@@ -618,13 +618,13 @@ mutual
   expandMeta rig erase env n idx def _
       = throw (InternalError ("Badly formed metavar solution " ++ show n ++ " " ++ show def))
 
-  lcheckMeta : {auto c : Ref Ctxt Defs} ->
-               {auto u : Ref UST UState} ->
-               RigCount -> Bool -> Env Term vars ->
-               FC -> Name -> Int ->
-               (args : List (Term vars)) ->
-               (checked : List (Term vars)) ->
-               NF vars -> Core (Term vars, Glued vars, Usage vars)
+  lcheckMeta : {auto c : Ref Ctxt Defs} →
+               {auto u : Ref UST UState} →
+               RigCount → Bool → Env Term vars →
+               FC → Name → Int →
+               (args : List (Term vars)) →
+               (checked : List (Term vars)) →
+               NF vars → Core (Term vars, Glued vars, Usage vars)
   lcheckMeta rig erase env fc n idx
              (arg :: args) chk (NBind _ _ (Pi rigf _ ty) sc)
       = do let checkRig = rigf |*| rig
@@ -647,12 +647,12 @@ mutual
            pure (Meta fc n idx (reverse chk), glueBack defs env nty, [])
 
 
-checkEnvUsage : {done : _} ->
-                {auto c : Ref Ctxt Defs} ->
-                {auto u : Ref UST UState} ->
-                FC -> RigCount ->
-                Env Term vars -> Usage (done ++ vars) ->
-                Term (done ++ vars) ->
+checkEnvUsage : {done : _} →
+                {auto c : Ref Ctxt Defs} →
+                {auto u : Ref UST UState} →
+                FC → RigCount →
+                Env Term vars → Usage (done ++ vars) →
+                Term (done ++ vars) →
                 Core ()
 checkEnvUsage fc rig [] usage tm = pure ()
 checkEnvUsage fc rig {done} {vars = nm :: xs} (b :: env) usage tm
@@ -671,7 +671,7 @@ checkEnvUsage fc rig {done} {vars = nm :: xs} (b :: env) usage tm
                (rewrite sym (appendAssociative done [nm] xs) in usage)
                (rewrite sym (appendAssociative done [nm] xs) in tm)
   where
-    checkUsageOK : Nat -> RigCount -> Core ()
+    checkUsageOK : Nat → RigCount → Core ()
     checkUsageOK used r = when (isLinear r && used /= 1)
                                (throw (LinearUsed fc used nm))
 
@@ -680,10 +680,10 @@ checkEnvUsage fc rig {done} {vars = nm :: xs} (b :: env) usage tm
 -- since it might be used for unification/reasoning elsewhere, so we only do this for
 -- definitions ready for compilation).
 export
-linearCheck : {auto c : Ref Ctxt Defs} ->
-              {auto u : Ref UST UState} ->
-              FC -> RigCount -> (erase : Bool) ->
-              Env Term vars -> Term vars ->
+linearCheck : {auto c : Ref Ctxt Defs} →
+              {auto u : Ref UST UState} →
+              FC → RigCount → (erase : Bool) →
+              Env Term vars → Term vars →
               Core (Term vars)
 linearCheck fc rig erase env tm
     = do logTerm 5 "Linearity check on " tm

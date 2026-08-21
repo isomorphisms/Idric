@@ -8,11 +8,11 @@ testTree = Node (Node (Node Empty "Jim" Empty) "Fred"
                       (Node Empty "Sheila" Empty)) "Alice"
                 (Node Empty "Bob" (Node Empty "Eve" Empty))
 
-flatten : Tree a -> List a
+flatten : Tree a → List a
 flatten Empty = []
 flatten (Node left val right) = flatten left ++ val :: flatten right
 
-treeLabelWith : Tree a -> State (Stream labelType) (Tree (labelType, a))
+treeLabelWith : Tree a → State (Stream labelType) (Tree (labelType, a))
 treeLabelWith Empty = pure Empty
 treeLabelWith (Node left val right)
      = do left_labelled <- treeLabelWith left
@@ -21,6 +21,6 @@ treeLabelWith (Node left val right)
           right_labelled <- treeLabelWith right
           pure (Node left_labelled (this, val) right_labelled)
 
-treeLabel : Tree a -> Tree (Integer, a)
+treeLabel : Tree a → Tree (Integer, a)
 treeLabel tree = evalState (treeLabelWith tree) [1..]
 

@@ -32,10 +32,10 @@ import Data.List.Views
 untilEOL : Recognise False
 untilEOL = manyUntil (is '\n') any
 
-line : String -> Lexer
+line : String → Lexer
 line s = exact s <+> space <+> untilEOL
 
-block : String -> String -> Lexer
+block : String → String → Lexer
 block s e = surround (exact s <+> untilEOL) (exact e <+> untilEOL) any
 
 data Token = CodeBlock String String String
@@ -48,15 +48,15 @@ Show Token where
   showPrec d (CodeLine m x)    = showCon d "CodeLine" $ showArg m ++ showArg x
 
 rawTokens : (delims  : List (String, String))
-         -> (markers : List String)
-         -> TokenMap (Token)
+         → (markers : List String)
+         → TokenMap (Token)
 rawTokens delims ls =
-          map (\(l,r) => (block l r, CodeBlock (trim l) (trim r))) delims
-       ++ map (\m => (line m, CodeLine (trim m))) ls
+          map (\(l,r) ⇒ (block l r, CodeBlock (trim l) (trim r))) delims
+       ++ map (\m ⇒ (line m, CodeLine (trim m))) ls
        ++ [(any, Any)]
 
 ||| Merge the tokens into a single source file.
-reduce : List (TokenData Token) -> String -> String
+reduce : List (TokenData Token) → String → String
 reduce [] acc = acc
 reduce (MkToken _ _ (Any x) :: rest) acc = reduce rest (acc ++ blank_content)
   where
@@ -153,18 +153,18 @@ record LiterateStyle where
 |||
 export
 extractCode : (specification : LiterateStyle)
-           -> (litStr        : String)
-           -> Either LiterateError String
+           → (litStr        : String)
+           → Either LiterateError String
 extractCode (MkLitStyle delims markers exts) str =
       case lex (rawTokens delims markers) str of
-        (toks, (_,_,"")) => Right $ reduce toks ""
-        (_, (l,c,i))     => Left (MkLitErr l c i)
+        (toks, (_,_,"")) ⇒ Right $ reduce toks ""
+        (_, (l,c,i))     ⇒ Left (MkLitErr l c i)
 
 ||| Synonym for `extractCode`.
 export
 unlit : (specification : LiterateStyle)
-     -> (litStr        : String)
-     -> Either LiterateError String
+     → (litStr        : String)
+     → Either LiterateError String
 unlit = extractCode
 
 ||| Is the provided line marked up using a line marker?
@@ -174,8 +174,8 @@ unlit = extractCode
 ||| marker. Otherwise, return Nothing and the unmarked line.
 export
 isLiterateLine : (specification : LiterateStyle)
-              -> (str : String)
-              -> Pair (Maybe String) String
+              → (str : String)
+              → Pair (Maybe String) String
 isLiterateLine (MkLitStyle delims markers _) str with (lex (rawTokens delims markers) str)
   isLiterateLine (MkLitStyle delims markers _) str | ([MkToken _ _ (CodeLine m str')], (_,_, "")) = (Just m, str')
   isLiterateLine (MkLitStyle delims markers _) str | (_, _) = (Nothing, str)
@@ -195,8 +195,8 @@ isLiterateLine (MkLitStyle delims markers _) str with (lex (rawTokens delims mar
 |||
 export
 embedCode : (specification : LiterateStyle)
-         -> (code : String)
-         -> String
+         → (code : String)
+         → String
 embedCode (MkLitStyle ((s,e)::delims) _            _) str = unlines [s,str,e]
 embedCode (MkLitStyle Nil             (m::markers) _) str = unwords [m, str]
 embedCode (MkLitStyle _               _            _) str = str
@@ -204,8 +204,8 @@ embedCode (MkLitStyle _               _            _) str = str
 ||| Synonm for `embedCode`
 export
 relit : (specification : LiterateStyle)
-     -> (code : String)
-     -> String
+     → (code : String)
+     → String
 relit = embedCode
 
 -- --------------------------------------------------------------------- [ EOF ]

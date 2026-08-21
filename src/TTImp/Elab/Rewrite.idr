@@ -18,30 +18,30 @@ import TTImp.TTImp
 
 -- TODO: Later, we'll get the name of the lemma from the type, if it's one
 -- that's generated for a dependent type. For now, always return the default
-findRewriteLemma : {auto c : Ref Ctxt Defs} ->
-                   FC -> (rulety : Term vars) ->
+findRewriteLemma : {auto c : Ref Ctxt Defs} →
+                   FC → (rulety : Term vars) →
                    Core Name
 findRewriteLemma loc rulety
    = case !getRewrite of
-          Nothing => throw (GenericMsg loc "No rewrite lemma defined")
-          Just n => pure n
+          Nothing ⇒ throw (GenericMsg loc "No rewrite lemma defined")
+          Just n ⇒ pure n
 
-getRewriteTerms : {auto c : Ref Ctxt Defs} ->
-                  FC -> Defs -> NF vars -> Error ->
+getRewriteTerms : {auto c : Ref Ctxt Defs} →
+                  FC → Defs → NF vars → Error →
                   Core (NF vars, NF vars, NF vars)
 getRewriteTerms loc defs (NTCon nfc eq t a args) err
     = if !(isEqualTy eq)
          then case reverse args of
-                   (rhs :: lhs :: rhsty :: lhsty :: _) =>
+                   (rhs :: lhs :: rhsty :: lhsty :: _) ⇒
                         pure (!(evalClosure defs lhs),
                               !(evalClosure defs rhs),
                               !(evalClosure defs lhsty))
-                   _ => throw err
+                   _ ⇒ throw err
          else throw err
 getRewriteTerms loc defs ty err
     = throw err
 
-rewriteErr : Error -> Bool
+rewriteErr : Error → Bool
 rewriteErr (NotRewriteRule _ _ _) = True
 rewriteErr (RewriteNoChange _ _ _ _) = True
 rewriteErr (InType _ _ err) = rewriteErr err
@@ -54,12 +54,12 @@ rewriteErr _ = False
 -- Returns the rewriting lemma to use, and the predicate for passing to the
 -- rewriting lemma
 export
-elabRewrite : {vars : _} ->
-              {auto c : Ref Ctxt Defs} ->
-              {auto u : Ref UST UState} ->
-              FC -> Env Term vars ->
-              (expected : Term vars) ->
-              (rulety : Term vars) ->
+elabRewrite : {vars : _} →
+              {auto c : Ref Ctxt Defs} →
+              {auto u : Ref UST UState} →
+              FC → Env Term vars →
+              (expected : Term vars) →
+              (rulety : Term vars) →
               Core (Name, Term vars, Term vars)
 elabRewrite loc env expected rulety
     = do defs <- get Ctxt
@@ -92,19 +92,19 @@ elabRewrite loc env expected rulety
          pure (lemn, pred, predty)
 
 export
-checkRewrite : {vars : _} ->
-               {auto c : Ref Ctxt Defs} ->
-               {auto m : Ref MD Metadata} ->
-               {auto u : Ref UST UState} ->
-               {auto e : Ref EST (EState vars)} ->
-               RigCount -> ElabInfo ->
-               NestedNames vars -> Env Term vars ->
-               FC -> RawImp -> RawImp -> Maybe (Glued vars) ->
+checkRewrite : {vars : _} →
+               {auto c : Ref Ctxt Defs} →
+               {auto m : Ref MD Metadata} →
+               {auto u : Ref UST UState} →
+               {auto e : Ref EST (EState vars)} →
+               RigCount → ElabInfo →
+               NestedNames vars → Env Term vars →
+               FC → RawImp → RawImp → Maybe (Glued vars) →
                Core (Term vars, Glued vars)
 checkRewrite rigc elabinfo nest env fc rule tm Nothing
     = throw (GenericMsg fc "Can't infer a type for rewrite")
 checkRewrite {vars} rigc elabinfo nest env fc rule tm (Just expected)
-    = delayOnFailure fc rigc env expected rewriteErr 10 (\delayed =>
+    = delayOnFailure fc rigc env expected rewriteErr 10 (\delayed ⇒
         do (rulev, grulet) <- check erased elabinfo nest env rule Nothing
            rulet <- getTerm grulet
            expTy <- getTerm expected
@@ -125,8 +125,8 @@ checkRewrite {vars} rigc elabinfo nest env fc rule tm (Just expected)
            -- we still need the right type for the EState, so weaken it once
            -- for each of the let bindings above.
            (rwtm, grwty) <- inScope fc (pbind :: env)
-              (\e' => inScope {e=e'} fc env'
-                 (\e'' => check {e = e''} {vars = rname :: pname :: vars}
+              (\e' ⇒ inScope {e=e'} fc env'
+                 (\e'' ⇒ check {e = e''} {vars = rname :: pname :: vars}
                                 rigc elabinfo (weaken (weaken nest)) env'
                                 (apply (IVar fc lemma) [IVar fc pname,
                                                         IVar fc rname,

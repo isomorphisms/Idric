@@ -13,5 +13,5 @@ permissiveStringLit
   = quo <+> manyUntil quo (esc any <|> any) <+> opt quo
 
 export
-stringValue : String -> Maybe String
+stringValue : String → Maybe String
 stringValue x = parseString !(lexString x)

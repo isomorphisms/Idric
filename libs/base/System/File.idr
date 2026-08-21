@@ -10,48 +10,48 @@ public export
 FilePtr : Type
 FilePtr = AnyPtr
 
-support : String -> String
+support : String → String
 support fn = "C:" ++ fn ++ ", libidris2_support"
 
-libc : String -> String
+libc : String → String
 libc fn = "C:" ++ fn ++ ", libc 6"
 
 %foreign support "idris2_openFile"
-prim__open : String -> String -> Int -> PrimIO FilePtr
+prim__open : String → String → Int → PrimIO FilePtr
 %foreign support "idris2_closeFile"
-prim__close : FilePtr -> PrimIO ()
+prim__close : FilePtr → PrimIO ()
 
 %foreign support "idris2_fileError"
-prim_error : FilePtr -> PrimIO Int
+prim_error : FilePtr → PrimIO Int
 %foreign support "idris2_fileErrno"
 prim_fileErrno : PrimIO Int
 
 %foreign support "idris2_readLine"
-prim__readLine : FilePtr -> PrimIO (Ptr String)
+prim__readLine : FilePtr → PrimIO (Ptr String)
 %foreign support "idris2_readChars"
-prim__readChars : Int -> FilePtr -> PrimIO (Ptr String)
+prim__readChars : Int → FilePtr → PrimIO (Ptr String)
 %foreign support "fgetc"
-prim__readChar : FilePtr -> PrimIO Char
+prim__readChar : FilePtr → PrimIO Char
 %foreign support "idris2_writeLine"
-prim__writeLine : FilePtr -> String -> PrimIO Int
+prim__writeLine : FilePtr → String → PrimIO Int
 %foreign support "idris2_eof"
-prim__eof : FilePtr -> PrimIO Int
+prim__eof : FilePtr → PrimIO Int
 %foreign "C:fflush,libc 6"
-prim__flush : FilePtr -> PrimIO Int
+prim__flush : FilePtr → PrimIO Int
 
 %foreign support "idris2_fileRemove"
-prim__fileRemove : String -> PrimIO Int
+prim__fileRemove : String → PrimIO Int
 %foreign support "idris2_fileSize"
-prim__fileSize : FilePtr -> PrimIO Int
+prim__fileSize : FilePtr → PrimIO Int
 %foreign support "idris2_fileSize"
-prim__fPoll : FilePtr -> PrimIO Int
+prim__fPoll : FilePtr → PrimIO Int
 
 %foreign support "idris2_fileAccessTime"
-prim__fileAccessTime : FilePtr -> PrimIO Int
+prim__fileAccessTime : FilePtr → PrimIO Int
 %foreign support "idris2_fileModifiedTime"
-prim__fileModifiedTime : FilePtr -> PrimIO Int
+prim__fileModifiedTime : FilePtr → PrimIO Int
 %foreign support "idris2_fileStatusTime"
-prim__fileStatusTime : FilePtr -> PrimIO Int
+prim__fileStatusTime : FilePtr → PrimIO Int
 
 %foreign support "idris2_stdin"
 prim__stdin : FilePtr
@@ -61,9 +61,9 @@ prim__stdout : FilePtr
 prim__stderr : FilePtr
 
 %foreign libc "chmod"
-prim__chmod : String -> Int -> PrimIO Int
+prim__chmod : String → Int → PrimIO Int
 
-modeStr : Mode -> String
+modeStr : Mode → String
 modeStr Read              = "r"
 modeStr WriteTruncate     = "w"
 modeStr Append            = "a"
@@ -83,12 +83,12 @@ returnError : IO (Either FileError a)
 returnError
     = do err <- primIO prim_fileErrno
          case err of
-              0 => pure $ Left FileReadError
-              1 => pure $ Left FileWriteError
-              2 => pure $ Left FileNotFound
-              3 => pure $ Left PermissionDenied
-              4 => pure $ Left FileExists
-              _ => pure $ Left (GenericFileError (err-5))
+              0 ⇒ pure $ Left FileReadError
+              1 ⇒ pure $ Left FileWriteError
+              2 ⇒ pure $ Left FileNotFound
+              3 ⇒ pure $ Left PermissionDenied
+              4 ⇒ pure $ Left FileExists
+              _ ⇒ pure $ Left (GenericFileError (err-5))
 
 export
 Show FileError where
@@ -99,12 +99,12 @@ Show FileError where
   show PermissionDenied = "Permission Denied"
   show FileExists = "File Exists"
 
-ok : a -> IO (Either FileError a)
+ok : a → IO (Either FileError a)
 ok x = pure (Right x)
 
 public export
 data File : Type where
-     FHandle : FilePtr -> File
+     FHandle : FilePtr → File
 
 export
 stdin : File
@@ -119,7 +119,7 @@ stderr : File
 stderr = FHandle prim__stderr
 
 export
-openFile : String -> Mode -> IO (Either FileError File)
+openFile : String → Mode → IO (Either FileError File)
 openFile f m
     = do res <- primIO (prim__open f (modeStr m) 0)
          if prim__nullAnyPtr res /= 0
@@ -127,17 +127,17 @@ openFile f m
             else ok (FHandle res)
 
 export
-closeFile : File -> IO ()
+closeFile : File → IO ()
 closeFile (FHandle f) = primIO (prim__close f)
 
 export
-fileError : File -> IO Bool
+fileError : File → IO Bool
 fileError (FHandle f)
     = do x <- primIO $ prim_error f
          pure (x /= 0)
 
 export
-fGetLine : (h : File) -> IO (Either FileError String)
+fGetLine : (h : File) → IO (Either FileError String)
 fGetLine (FHandle f)
     = do res <- primIO (prim__readLine f)
          if prim__nullPtr res /= 0
@@ -145,7 +145,7 @@ fGetLine (FHandle f)
             else ok (prim__getString res)
 
 export
-fGetChars : (h : File) -> Int -> IO (Either FileError String)
+fGetChars : (h : File) → Int → IO (Either FileError String)
 fGetChars (FHandle f) max
     = do res <- primIO (prim__readChars max f)
          if prim__nullPtr res /= 0
@@ -153,7 +153,7 @@ fGetChars (FHandle f) max
             else ok (prim__getString res)
 
 export
-fGetChar : (h : File) -> IO (Either FileError Char)
+fGetChar : (h : File) → IO (Either FileError Char)
 fGetChar (FHandle h)
     = do c <- primIO (prim__readChar h)
          ferr <- primIO (prim_error h)
@@ -162,7 +162,7 @@ fGetChar (FHandle h)
             else ok c
 
 export
-fPutStr : (h : File) -> String -> IO (Either FileError ())
+fPutStr : (h : File) → String → IO (Either FileError ())
 fPutStr (FHandle f) str
     = do res <- primIO (prim__writeLine f str)
          if res == 0
@@ -170,23 +170,23 @@ fPutStr (FHandle f) str
             else ok ()
 
 export
-fPutStrLn : (h : File) -> String -> IO (Either FileError ())
+fPutStrLn : (h : File) → String → IO (Either FileError ())
 fPutStrLn f str = fPutStr f (str ++ "\n")
 
 export
-fEOF : (h : File) -> IO Bool
+fEOF : (h : File) → IO Bool
 fEOF (FHandle f)
     = do res <- primIO (prim__eof f)
          pure (res /= 0)
 
 export
-fflush : (h : File) -> IO ()
+fflush : (h : File) → IO ()
 fflush (FHandle f)
     = do primIO (prim__flush f)
          pure ()
 
 export
-fileAccessTime : (h : File) -> IO (Either FileError Int)
+fileAccessTime : (h : File) → IO (Either FileError Int)
 fileAccessTime (FHandle f)
     = do res <- primIO (prim__fileAccessTime f)
          if res > 0
@@ -194,7 +194,7 @@ fileAccessTime (FHandle f)
             else returnError
 
 export
-fileModifiedTime : (h : File) -> IO (Either FileError Int)
+fileModifiedTime : (h : File) → IO (Either FileError Int)
 fileModifiedTime (FHandle f)
     = do res <- primIO (prim__fileModifiedTime f)
          if res > 0
@@ -202,7 +202,7 @@ fileModifiedTime (FHandle f)
             else returnError
 
 export
-fileStatusTime : (h : File) -> IO (Either FileError Int)
+fileStatusTime : (h : File) → IO (Either FileError Int)
 fileStatusTime (FHandle f)
     = do res <- primIO (prim__fileStatusTime f)
          if res > 0
@@ -210,7 +210,7 @@ fileStatusTime (FHandle f)
             else returnError
 
 export
-removeFile : String -> IO (Either FileError ())
+removeFile : String → IO (Either FileError ())
 removeFile fname
     = do res <- primIO (prim__fileRemove fname)
          if res == 0
@@ -218,7 +218,7 @@ removeFile fname
             else returnError
 
 export
-fileSize : (h : File) -> IO (Either FileError Int)
+fileSize : (h : File) → IO (Either FileError Int)
 fileSize (FHandle f)
     = do res <- primIO (prim__fileSize f)
          if res >= 0
@@ -226,41 +226,41 @@ fileSize (FHandle f)
             else returnError
 
 export
-fPoll : File -> IO Bool
+fPoll : File → IO Bool
 fPoll (FHandle f)
     = do p <- primIO (prim__fPoll f)
          pure (p > 0)
 
 export
-readFile : String -> IO (Either FileError String)
+readFile : String → IO (Either FileError String)
 readFile file
   = do Right h <- openFile file Read
-          | Left err => returnError
+          | Left err ⇒ returnError
        Right content <- read [] h
-          | Left err => do closeFile h
+          | Left err ⇒ do closeFile h
                            returnError
        closeFile h
        pure (Right (fastAppend content))
   where
-    read : List String -> File -> IO (Either FileError (List String))
+    read : List String → File → IO (Either FileError (List String))
     read acc h
         = do eof <- fEOF h
              if eof
                 then pure (Right (reverse acc))
                 else
                   do Right str <- fGetLine h
-                        | Left err => returnError
+                        | Left err ⇒ returnError
                      read (str :: acc) h
 
 ||| Write a string to a file
 export
-writeFile : (filepath : String) -> (contents : String) ->
+writeFile : (filepath : String) → (contents : String) →
             IO (Either FileError ())
 writeFile fn contents = do
      Right h  <- openFile fn WriteTruncate
-        | Left err => pure (Left err)
+        | Left err ⇒ pure (Left err)
      Right () <- fPutStr h contents
-        | Left err => do closeFile h
+        | Left err ⇒ do closeFile h
                          pure (Left err)
      closeFile h
      pure (Right ())
@@ -276,20 +276,20 @@ record Permissions where
   group  : List FileMode
   others : List FileMode
 
-mkMode : Permissions -> Int
+mkMode : Permissions → Int
 mkMode p
     = getMs (user p) * 64 + getMs (group p) * 8 + getMs (others p)
   where
-    getM : FileMode -> Int
+    getM : FileMode → Int
     getM Read = 4
     getM Write = 2
     getM Execute = 1
 
-    getMs : List FileMode -> Int
+    getMs : List FileMode → Int
     getMs = sum . map getM
 
 export
-chmodRaw : String -> Int -> IO (Either FileError ())
+chmodRaw : String → Int → IO (Either FileError ())
 chmodRaw fname p
     = do ok <- primIO $ prim__chmod fname p
          if ok == 0
@@ -297,5 +297,5 @@ chmodRaw fname p
             else returnError
 
 export
-chmod : String -> Permissions -> IO (Either FileError ())
+chmod : String → Permissions → IO (Either FileError ())
 chmod fname p = chmodRaw fname (mkMode p)

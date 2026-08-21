@@ -11,43 +11,43 @@ import Data.Vect
 
 mutual
   public export
-  data Lifted : List Name -> Type where
-       LLocal : {idx : Nat} -> FC -> .(IsVar x idx vars) -> Lifted vars
+  data Lifted : List Name → Type where
+       LLocal : {idx : Nat} → FC → .(IsVar x idx vars) → Lifted vars
        -- A known function applied to exactly the right number of arguments,
        -- so the runtime can Just Go
-       LAppName : FC -> Name -> List (Lifted vars) -> Lifted vars
+       LAppName : FC → Name → List (Lifted vars) → Lifted vars
        -- A known function applied to too few arguments, so the runtime should
        -- make a closure and wait for the remaining arguments
-       LUnderApp : FC -> Name -> (missing : Nat) ->
-                   (args : List (Lifted vars)) -> Lifted vars
+       LUnderApp : FC → Name → (missing : Nat) →
+                   (args : List (Lifted vars)) → Lifted vars
        -- A closure applied to one more argument (so, for example a closure
        -- which is waiting for another argument before it can run).
        -- The runtime should add the argument to the closure and run the result
        -- if it is now fully applied.
-       LApp : FC -> (closure : Lifted vars) -> (arg : Lifted vars) -> Lifted vars
-       LLet : FC -> (x : Name) -> Lifted vars ->
-              Lifted (x :: vars) -> Lifted vars
-       LCon : FC -> Name -> (tag : Maybe Int) -> List (Lifted vars) -> Lifted vars
-       LOp : FC -> PrimFn arity -> Vect arity (Lifted vars) -> Lifted vars
-       LExtPrim : FC -> (p : Name) -> List (Lifted vars) -> Lifted vars
-       LConCase : FC -> Lifted vars ->
-                  List (LiftedConAlt vars) ->
-                  Maybe (Lifted vars) -> Lifted vars
-       LConstCase : FC -> Lifted vars ->
-                    List (LiftedConstAlt vars) ->
-                    Maybe (Lifted vars) -> Lifted vars
-       LPrimVal : FC -> Constant -> Lifted vars
-       LErased : FC -> Lifted vars
-       LCrash : FC -> String -> Lifted vars
+       LApp : FC → (closure : Lifted vars) → (arg : Lifted vars) → Lifted vars
+       LLet : FC → (x : Name) → Lifted vars →
+              Lifted (x :: vars) → Lifted vars
+       LCon : FC → Name → (tag : Maybe Int) → List (Lifted vars) → Lifted vars
+       LOp : FC → PrimFn arity → Vect arity (Lifted vars) → Lifted vars
+       LExtPrim : FC → (p : Name) → List (Lifted vars) → Lifted vars
+       LConCase : FC → Lifted vars →
+                  List (LiftedConAlt vars) →
+                  Maybe (Lifted vars) → Lifted vars
+       LConstCase : FC → Lifted vars →
+                    List (LiftedConstAlt vars) →
+                    Maybe (Lifted vars) → Lifted vars
+       LPrimVal : FC → Constant → Lifted vars
+       LErased : FC → Lifted vars
+       LCrash : FC → String → Lifted vars
 
   public export
-  data LiftedConAlt : List Name -> Type where
-       MkLConAlt : Name -> (tag : Maybe Int) -> (args : List Name) ->
-                   Lifted (args ++ vars) -> LiftedConAlt vars
+  data LiftedConAlt : List Name → Type where
+       MkLConAlt : Name → (tag : Maybe Int) → (args : List Name) →
+                   Lifted (args ++ vars) → LiftedConAlt vars
 
   public export
-  data LiftedConstAlt : List Name -> Type where
-       MkLConstAlt : Constant -> Lifted vars -> LiftedConstAlt vars
+  data LiftedConstAlt : List Name → Type where
+       MkLConstAlt : Constant → Lifted vars → LiftedConstAlt vars
 
 public export
 data LiftedDef : Type where
@@ -58,15 +58,15 @@ data LiftedDef : Type where
      -- (Sorry for the awkward API - it's to do with how the indices are
      -- arranged for the variables, and it oculd be expensive to reshuffle them!
      -- See Compiler.ANF for an example of how they get resolved to names)
-     MkLFun : (args : List Name) -> -- function arguments
-              (scope : List Name) -> -- outer scope
-              Lifted (scope ++ args) -> LiftedDef
-     MkLCon : (tag : Maybe Int) -> (arity : Nat) -> (nt : Maybe Nat) -> LiftedDef
-     MkLForeign : (ccs : List String) ->
-                  (fargs : List CFType) ->
-                  CFType ->
+     MkLFun : (args : List Name) → -- function arguments
+              (scope : List Name) → -- outer scope
+              Lifted (scope ++ args) → LiftedDef
+     MkLCon : (tag : Maybe Int) → (arity : Nat) → (nt : Maybe Nat) → LiftedDef
+     MkLForeign : (ccs : List String) →
+                  (fargs : List CFType) →
+                  CFType →
                   LiftedDef
-     MkLError : Lifted [] -> LiftedDef
+     MkLError : Lifted [] → LiftedDef
 
 mutual
   export
@@ -114,7 +114,7 @@ Show LiftedDef where
       = show args ++ show (reverse scope) ++ ": " ++ show exp
   show (MkLCon tag arity pos)
       = "Constructor tag " ++ show tag ++ " arity " ++ show arity ++
-        maybe "" (\n => " (newtype by " ++ show n ++ ")") pos
+        maybe "" (\n ⇒ " (newtype by " ++ show n ++ ")") pos
   show (MkLForeign ccs args ret)
       = "Foreign call " ++ show ccs ++ " " ++
         show args ++ " -> " ++ show ret
@@ -129,7 +129,7 @@ record LDefs where
   defs : List (Name, LiftedDef) -- new definitions we made
   nextName : Int -- name of next definition to lift
 
-genName : {auto l : Ref Lifts LDefs} ->
+genName : {auto l : Ref Lifts LDefs} →
           Core Name
 genName
     = do ldefs <- get Lifts
@@ -137,21 +137,21 @@ genName
          put Lifts (record { nextName = i + 1 } ldefs)
          pure $ mkName (basename ldefs) i
   where
-    mkName : Name -> Int -> Name
+    mkName : Name → Int → Name
     mkName (NS ns b) i = NS ns (mkName b i)
     mkName (UN n) i = MN n i
     mkName (DN _ n) i = mkName n i
     mkName n i = MN (show n) i
 
-unload : FC -> Lifted vars -> List (Lifted vars) -> Core (Lifted vars)
+unload : FC → Lifted vars → List (Lifted vars) → Core (Lifted vars)
 unload fc f [] = pure f
 unload fc f (a :: as) = unload fc (LApp fc f a) as
 
 mutual
-  makeLam : {auto l : Ref Lifts LDefs} ->
-            {vars : _} ->
-            FC -> (bound : List Name) ->
-            CExp (bound ++ vars) -> Core (Lifted vars)
+  makeLam : {auto l : Ref Lifts LDefs} →
+            {vars : _} →
+            FC → (bound : List Name) →
+            CExp (bound ++ vars) → Core (Lifted vars)
   makeLam fc bound (CLam _ x sc') = makeLam fc (x :: bound) sc'
   makeLam {vars} fc bound sc
       = do scl <- liftExp sc
@@ -164,18 +164,18 @@ mutual
            -- about with indices anyway, it's probably not costly to do.
            pure $ LUnderApp fc n (length bound) (allVars vars)
     where
-      allPrfs : (vs : List Name) -> List (Var vs)
+      allPrfs : (vs : List Name) → List (Var vs)
       allPrfs [] = []
       allPrfs (v :: vs) = MkVar First :: map weaken (allPrfs vs)
 
       -- apply to all the variables. 'First' will be first in the last, which
       -- is good, because the most recently bound name is the first argument to
       -- the resulting function
-      allVars : (vs : List Name) -> List (Lifted vs)
-      allVars vs = map (\ (MkVar p) => LLocal fc p) (allPrfs vs)
+      allVars : (vs : List Name) → List (Lifted vs)
+      allVars vs = map (\ (MkVar p) ⇒ LLocal fc p) (allPrfs vs)
 
-  liftExp : {auto l : Ref Lifts LDefs} ->
-            CExp vars -> Core (Lifted vars)
+  liftExp : {auto l : Ref Lifts LDefs} →
+            CExp vars → Core (Lifted vars)
   liftExp (CLocal fc prf) = pure $ LLocal fc prf
   liftExp (CRef fc n) = pure $ LAppName fc n [] -- probably shouldn't happen!
   liftExp (CLam fc x sc) = makeLam fc [x] sc
@@ -188,7 +188,7 @@ mutual
   liftExp (COp fc op args)
       = pure $ LOp fc op !(traverseArgs args)
     where
-      traverseArgs : Vect n (CExp vars) -> Core (Vect n (Lifted vars))
+      traverseArgs : Vect n (CExp vars) → Core (Vect n (Lifted vars))
       traverseArgs [] = pure []
       traverseArgs (a :: as) = pure $ !(liftExp a) :: !(traverseArgs as)
   liftExp (CExtPrim fc p args) = pure $ LExtPrim fc p !(traverse liftExp args)
@@ -198,27 +198,27 @@ mutual
       = pure $ LConCase fc !(liftExp sc) !(traverse liftConAlt alts)
                            !(traverseOpt liftExp def)
     where
-      liftConAlt : CConAlt vars -> Core (LiftedConAlt vars)
+      liftConAlt : CConAlt vars → Core (LiftedConAlt vars)
       liftConAlt (MkConAlt n t args sc) = pure $ MkLConAlt n t args !(liftExp sc)
   liftExp (CConstCase fc sc alts def)
       = pure $ LConstCase fc !(liftExp sc) !(traverse liftConstAlt alts)
                              !(traverseOpt liftExp def)
     where
-      liftConstAlt : CConstAlt vars -> Core (LiftedConstAlt vars)
+      liftConstAlt : CConstAlt vars → Core (LiftedConstAlt vars)
       liftConstAlt (MkConstAlt c sc) = pure $ MkLConstAlt c !(liftExp sc)
   liftExp (CPrimVal fc c) = pure $ LPrimVal fc c
   liftExp (CErased fc) = pure $ LErased fc
   liftExp (CCrash fc str) = pure $ LCrash fc str
 
 export
-liftBody : Name -> CExp vars -> Core (Lifted vars, List (Name, LiftedDef))
+liftBody : Name → CExp vars → Core (Lifted vars, List (Name, LiftedDef))
 liftBody n tm
     = do l <- newRef Lifts (MkLDefs n [] 0)
          tml <- liftExp {l} tm
          ldata <- get Lifts
          pure (tml, defs ldata)
 
-lambdaLiftDef : Name -> CDef -> Core (List (Name, LiftedDef))
+lambdaLiftDef : Name → CDef → Core (List (Name, LiftedDef))
 lambdaLiftDef n (MkFun args exp)
     = do (expl, defs) <- liftBody n exp
          pure ((n, MkLFun args [] expl) :: defs)
@@ -234,10 +234,10 @@ lambdaLiftDef n (MkError exp)
 -- An empty list an error, because on success you will always get at least
 -- one definition, the lifted definition for the given name.
 export
-lambdaLift : {auto c : Ref Ctxt Defs} ->
-             Name -> Core (List (Name, LiftedDef))
+lambdaLift : {auto c : Ref Ctxt Defs} →
+             Name → Core (List (Name, LiftedDef))
 lambdaLift n
     = do defs <- get Ctxt
-         Just def <- lookupCtxtExact n (gamma defs) | Nothing => pure []
-         let Just cexpr = compexpr def              | Nothing => pure []
+         Just def <- lookupCtxtExact n (gamma defs) | Nothing ⇒ pure []
+         let Just cexpr = compexpr def              | Nothing ⇒ pure []
          lambdaLiftDef n cexpr

@@ -25,29 +25,29 @@ Eq JSONStringTokenKind where
   (==) _ _ = False
 
 private
-charValue : String -> Char
+charValue : String → Char
 charValue x = case index 0 x of
-                   Nothing => '\NUL'
-                   Just c  => c
+                   Nothing ⇒ '\NUL'
+                   Just c  ⇒ c
 
 private
-simpleEscapeValue : String -> Char
+simpleEscapeValue : String → Char
 simpleEscapeValue x
   = case index 1 x of
-         Nothing => '\NUL'
-         Just c => case c of
-                        '"'  => '"'
-                        '\\' => '\\'
-                        '/'  => '/'
-                        'b'  => '\b'
-                        'f'  => '\f'
-                        'n'  => '\n'
-                        'r'  => '\r'
-                        't'  => '\t'
-                        _    => '\NUL'
+         Nothing ⇒ '\NUL'
+         Just c ⇒ case c of
+                        '"'  ⇒ '"'
+                        '\\' ⇒ '\\'
+                        '/'  ⇒ '/'
+                        'b'  ⇒ '\b'
+                        'f'  ⇒ '\f'
+                        'n'  ⇒ '\n'
+                        'r'  ⇒ '\r'
+                        't'  ⇒ '\t'
+                        _    ⇒ '\NUL'
 
 private
-unicodeEscapeValue : String -> Char
+unicodeEscapeValue : String → Char
 unicodeEscapeValue x = chr $ cast ("0x" ++ drop 2 x)
 
 public export

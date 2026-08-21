@@ -1,17 +1,17 @@
 import Data.List
 
-data State : (stateType : Type) -> Type -> Type where
+data State : (stateType : Type) → Type → Type where
      Get : State stateType stateType
-     Put : stateType -> State stateType ()
+     Put : stateType → State stateType ()
 
-     Pure : ty -> State stateType ty
-     Bind : State stateType a -> (a -> State stateType b) ->
+     Pure : ty → State stateType ty
+     Bind : State stateType a → (a → State stateType b) →
              State stateType b
 
 get : State stateType stateType
 get = Get
 
-put : stateType -> State stateType ()
+put : stateType → State stateType ()
 put = Put
 
 mutual
@@ -29,12 +29,12 @@ mutual
       (>>=) = Bind
 
 {-
-(>>=) : State stateType a -> (a -> State stateType b) ->
+(>>=) : State stateType a → (a → State stateType b) →
         State stateType b
 (>>=) = Bind
 -}
 
-runState : State stateType a -> (st : stateType) -> (a, stateType)
+runState : State stateType a → (st : stateType) → (a, stateType)
 runState Get st = (st, st)
 runState (Put newState) st = ((), newState)
 
@@ -42,12 +42,12 @@ runState (Pure x) st = (x, st)
 runState (Bind cmd prog) st = let (val, nextState) = runState cmd st in
                                   runState (prog val) nextState
 
-addIfPositive : Integer -> State Integer Bool
+addIfPositive : Integer → State Integer Bool
 addIfPositive val = do when (val > 0) $
                             do current <- get
                                put (current + val)
                        pure (val > 0)
 
-addPositives : List Integer -> State Integer Nat
+addPositives : List Integer → State Integer Nat
 addPositives vals = do added <- traverse addIfPositive vals
                        pure (length (filter id added))

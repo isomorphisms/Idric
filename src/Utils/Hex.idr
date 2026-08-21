@@ -2,7 +2,7 @@ module Utils.Hex
 
 import Data.Primitives.Views
 
-hexDigit : Int -> Char
+hexDigit : Int → Char
 hexDigit 0 = '0'
 hexDigit 1 = '1'
 hexDigit 2 = '2'
@@ -22,16 +22,16 @@ hexDigit 15 = 'f'
 
 ||| Convert a positive integer into a list of (lower case) hexadecimal characters
 export
-asHex : Int -> String
+asHex : Int → String
 asHex n = pack $ asHex' n []
   where
-    asHex' : Int -> List Char -> List Char
+    asHex' : Int → List Char → List Char
     asHex' 0 hex = hex
     asHex' n hex with (n `divides` 16)
       asHex' (16 * div + rem) hex | DivBy {div} {rem} _ = asHex' div (hexDigit rem :: hex)
 
 export
-fromHexDigit : Char -> Maybe Int
+fromHexDigit : Char → Maybe Int
 fromHexDigit '0' = Just 0
 fromHexDigit '1' = Just 1
 fromHexDigit '2' = Just 2
@@ -51,13 +51,13 @@ fromHexDigit 'f' = Just 15
 fromHexDigit _ = Nothing
 
 export
-fromHexChars : List Char -> Maybe Int
+fromHexChars : List Char → Maybe Int
 fromHexChars = fromHexChars' 1
   where
-    fromHexChars' : Int -> List Char -> Maybe Int
+    fromHexChars' : Int → List Char → Maybe Int
     fromHexChars' _ [] = Just 0
     fromHexChars' m (d :: ds) = pure $ !(fromHexDigit (toLower d)) * m + !(fromHexChars' (m*16) ds)
 
 export
-fromHex : String -> Maybe Int
+fromHex : String → Maybe Int
 fromHex = fromHexChars . unpack

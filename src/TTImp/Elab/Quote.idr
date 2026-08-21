@@ -22,10 +22,10 @@ data Unq : Type where
 -- Collect the escaped subterms in a term we're about to quote, and let bind
 -- them first
 mutual
-  getUnquote : {auto c : Ref Ctxt Defs} ->
-               {auto q : Ref Unq (List (Name, FC, RawImp))} ->
-               {auto u : Ref UST UState} ->
-               RawImp ->
+  getUnquote : {auto c : Ref Ctxt Defs} →
+               {auto q : Ref Unq (List (Name, FC, RawImp))} →
+               {auto u : Ref UST UState} →
+               RawImp →
                Core RawImp
   getUnquote (IPi fc c p n arg ret)
       = pure $ IPi fc c p n !(getUnquote arg) !(getUnquote ret)
@@ -73,10 +73,10 @@ mutual
            pure (IUnquote fc (IVar fc qv)) -- turned into just qv when reflecting
   getUnquote tm = pure tm
   
-  getUnquoteClause : {auto c : Ref Ctxt Defs} ->
-                     {auto q : Ref Unq (List (Name, FC, RawImp))} ->
-                     {auto u : Ref UST UState} ->
-                     ImpClause ->
+  getUnquoteClause : {auto c : Ref Ctxt Defs} →
+                     {auto q : Ref Unq (List (Name, FC, RawImp))} →
+                     {auto u : Ref UST UState} →
+                     ImpClause →
                      Core ImpClause
   getUnquoteClause (PatClause fc l r)
       = pure $ PatClause fc !(getUnquote l) !(getUnquote r)
@@ -86,45 +86,45 @@ mutual
   getUnquoteClause (ImpossibleClause fc l)
       = pure $ ImpossibleClause fc !(getUnquote l)
 
-  getUnquoteUpdate : {auto c : Ref Ctxt Defs} ->
-                     {auto q : Ref Unq (List (Name, FC, RawImp))} ->
-                     {auto u : Ref UST UState} ->
-                     IFieldUpdate ->
+  getUnquoteUpdate : {auto c : Ref Ctxt Defs} →
+                     {auto q : Ref Unq (List (Name, FC, RawImp))} →
+                     {auto u : Ref UST UState} →
+                     IFieldUpdate →
                      Core IFieldUpdate
   getUnquoteUpdate (ISetField p t) = pure $ ISetField p !(getUnquote t)
   getUnquoteUpdate (ISetFieldApp p t) = pure $ ISetFieldApp p !(getUnquote t)
 
-  getUnquoteTy : {auto c : Ref Ctxt Defs} ->
-                 {auto q : Ref Unq (List (Name, FC, RawImp))} ->
-                 {auto u : Ref UST UState} ->
-                 ImpTy ->
+  getUnquoteTy : {auto c : Ref Ctxt Defs} →
+                 {auto q : Ref Unq (List (Name, FC, RawImp))} →
+                 {auto u : Ref UST UState} →
+                 ImpTy →
                  Core ImpTy
   getUnquoteTy (MkImpTy fc n t) = pure $ MkImpTy fc n !(getUnquote t)
 
-  getUnquoteField : {auto c : Ref Ctxt Defs} ->
-                    {auto q : Ref Unq (List (Name, FC, RawImp))} ->
-                    {auto u : Ref UST UState} ->
-                    IField ->
+  getUnquoteField : {auto c : Ref Ctxt Defs} →
+                    {auto q : Ref Unq (List (Name, FC, RawImp))} →
+                    {auto u : Ref UST UState} →
+                    IField →
                     Core IField
   getUnquoteField (MkIField fc c p n ty)
       = pure $ MkIField fc c p n !(getUnquote ty)
 
-  getUnquoteRecord : {auto c : Ref Ctxt Defs} ->
-                     {auto q : Ref Unq (List (Name, FC, RawImp))} ->
-                     {auto u : Ref UST UState} ->
-                     ImpRecord ->
+  getUnquoteRecord : {auto c : Ref Ctxt Defs} →
+                     {auto q : Ref Unq (List (Name, FC, RawImp))} →
+                     {auto u : Ref UST UState} →
+                     ImpRecord →
                      Core ImpRecord
   getUnquoteRecord (MkImpRecord fc n ps cn fs)
       = pure $ MkImpRecord fc n !(traverse unqPair ps) cn
                            !(traverse getUnquoteField fs)
     where
-      unqPair : (Name, RawImp) -> Core (Name, RawImp)
+      unqPair : (Name, RawImp) → Core (Name, RawImp)
       unqPair (n, t) = pure (n, !(getUnquote t))
 
-  getUnquoteData : {auto c : Ref Ctxt Defs} ->
-                   {auto q : Ref Unq (List (Name, FC, RawImp))} ->
-                   {auto u : Ref UST UState} ->
-                   ImpData ->
+  getUnquoteData : {auto c : Ref Ctxt Defs} →
+                   {auto q : Ref Unq (List (Name, FC, RawImp))} →
+                   {auto u : Ref UST UState} →
+                   ImpData →
                    Core ImpData
   getUnquoteData (MkImpData fc n tc opts cs) 
       = pure $ MkImpData fc n !(getUnquote tc) opts
@@ -132,10 +132,10 @@ mutual
   getUnquoteData (MkImpLater fc n tc) 
       = pure $ MkImpLater fc n !(getUnquote tc)
 
-  getUnquoteDecl : {auto c : Ref Ctxt Defs} ->
-                   {auto q : Ref Unq (List (Name, FC, RawImp))} ->
-                   {auto u : Ref UST UState} ->
-                   ImpDecl ->
+  getUnquoteDecl : {auto c : Ref Ctxt Defs} →
+                   {auto q : Ref Unq (List (Name, FC, RawImp))} →
+                   {auto u : Ref UST UState} →
+                   ImpDecl →
                    Core ImpDecl
   getUnquoteDecl (IClaim fc c v opts ty)
       = pure $ IClaim fc c v opts !(getUnquoteTy ty)
@@ -147,7 +147,7 @@ mutual
       = pure $ IParameters fc !(traverse unqPair ps) 
                            !(traverse getUnquoteDecl ds)
     where
-      unqPair : (Name, RawImp) -> Core (Name, RawImp)
+      unqPair : (Name, RawImp) → Core (Name, RawImp)
       unqPair (n, t) = pure (n, !(getUnquote t))
   getUnquoteDecl (IRecord fc v d)
       = pure $ IRecord fc v !(getUnquoteRecord d)
@@ -157,13 +157,13 @@ mutual
       = pure $ ITransform fc !(getUnquote l) !(getUnquote r)
   getUnquoteDecl d = pure d
 
-bindUnqs : {auto c : Ref Ctxt Defs} ->
-           {auto m : Ref MD Metadata} ->
-           {auto u : Ref UST UState} ->
-           {auto e : Ref EST (EState vars)} ->
-           List (Name, FC, RawImp) ->
-           RigCount -> ElabInfo -> NestedNames vars -> Env Term vars ->
-           Term vars ->
+bindUnqs : {auto c : Ref Ctxt Defs} →
+           {auto m : Ref MD Metadata} →
+           {auto u : Ref UST UState} →
+           {auto e : Ref EST (EState vars)} →
+           List (Name, FC, RawImp) →
+           RigCount → ElabInfo → NestedNames vars → Env Term vars →
+           Term vars →
            Core (Term vars)
 bindUnqs [] _ _ _ _ tm = pure tm
 bindUnqs ((qvar, fc, esctm) :: qs) rig elabinfo nest env tm
@@ -173,14 +173,14 @@ bindUnqs ((qvar, fc, esctm) :: qs) rig elabinfo nest env tm
                     (refToLocal qvar qvar sc))
 
 export
-checkQuote : {vars : _} ->
-             {auto c : Ref Ctxt Defs} ->
-             {auto m : Ref MD Metadata} ->
-             {auto u : Ref UST UState} ->
-             {auto e : Ref EST (EState vars)} ->
-             RigCount -> ElabInfo ->
-             NestedNames vars -> Env Term vars ->
-             FC -> RawImp -> Maybe (Glued vars) ->
+checkQuote : {vars : _} →
+             {auto c : Ref Ctxt Defs} →
+             {auto m : Ref MD Metadata} →
+             {auto u : Ref UST UState} →
+             {auto e : Ref EST (EState vars)} →
+             RigCount → ElabInfo →
+             NestedNames vars → Env Term vars →
+             FC → RawImp → Maybe (Glued vars) →
              Core (Term vars, Glued vars)
 checkQuote rig elabinfo nest env fc tm exp
     = do defs <- get Ctxt

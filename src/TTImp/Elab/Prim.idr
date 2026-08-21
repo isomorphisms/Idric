@@ -5,7 +5,7 @@ import Core.TT
 %default covering
 
 export
-checkPrim : FC -> Constant -> (Term vars, Term vars)
+checkPrim : FC → Constant → (Term vars, Term vars)
 checkPrim fc (I i) = (PrimVal fc (I i), PrimVal fc IntType)
 checkPrim fc (BI i) = (PrimVal fc (BI i), PrimVal fc IntegerType)
 checkPrim fc (Str s) = (PrimVal fc (Str s), PrimVal fc StringType)

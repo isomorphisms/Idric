@@ -26,23 +26,23 @@ Show ArgMode where
   show (Static tm) = "Static " ++ show tm
   show Dynamic = "Dynamic"
 
-getStatic : ArgMode -> Maybe (Term [])
+getStatic : ArgMode → Maybe (Term [])
 getStatic Dynamic = Nothing
 getStatic (Static t) = Just t
 
-unload : List (FC, Term vars) -> Term vars -> Term vars
+unload : List (FC, Term vars) → Term vars → Term vars
 unload [] fn = fn
 unload ((fc, arg) :: args) fn = unload args (App fc fn arg)
 
-specialiseTy : Nat -> List (Nat, Term []) -> Term vars -> Term vars
+specialiseTy : Nat → List (Nat, Term []) → Term vars → Term vars
 specialiseTy i specs (Bind fc x (Pi c p ty) sc)
     = case lookup i specs of
-           Nothing => Bind fc x (Pi c Explicit ty) $ -- easier later if everything explicit
+           Nothing ⇒ Bind fc x (Pi c Explicit ty) $ -- easier later if everything explicit
                         specialiseTy (1 + i) specs sc
-           Just tm => specialiseTy (1 + i) specs (subst (embed tm) sc)
+           Just tm ⇒ specialiseTy (1 + i) specs (subst (embed tm) sc)
 specialiseTy i specs tm = tm
 
-substLoc : Nat -> Term vs -> Term vs -> Term vs
+substLoc : Nat → Term vs → Term vs → Term vs
 substLoc i tm (Local fc l idx p)
     = if i == idx then tm else (Local fc l idx p)
 substLoc i tm (Bind fc x b sc)
@@ -56,30 +56,30 @@ substLoc i tm (TDelay fc r ty d) = TDelay fc r (substLoc i tm ty) (substLoc i tm
 substLoc i tm (TForce fc r d) = TForce fc r (substLoc i tm d)
 substLoc i tm x = x
 
-substLocs : List (Nat, Term vs) -> Term vs -> Term vs
+substLocs : List (Nat, Term vs) → Term vs → Term vs
 substLocs [] tm = tm
 substLocs ((i, tm') :: subs) tm = substLocs subs (substLoc i tm' tm)
 
-mkSubsts : Nat -> List (Nat, Term []) ->
-           List (Term vs) -> Term vs -> Maybe (List (Nat, Term vs))
+mkSubsts : Nat → List (Nat, Term []) →
+           List (Term vs) → Term vs → Maybe (List (Nat, Term vs))
 mkSubsts i specs [] rhs = Just []
 mkSubsts i specs (arg :: args) rhs
     = do subs <- mkSubsts (1 + i) specs args rhs
          case lookup i specs of
-              Nothing => Just subs
-              Just tm => case arg of
-                              Local _ _ idx _ =>
+              Nothing ⇒ Just subs
+              Just tm ⇒ case arg of
+                              Local _ _ idx _ ⇒
                                    Just ((idx, embed tm) :: subs)
-                              As _ _ (Local _ _ idx1 _) (Local _ _ idx2 _) =>
+                              As _ _ (Local _ _ idx1 _) (Local _ _ idx2 _) ⇒
                                    Just ((idx1, embed tm) :: (idx2, embed tm) :: subs)
-                              As _ _ _ (Local _ _ idx _) =>
+                              As _ _ _ (Local _ _ idx _) ⇒
                                    Just ((idx, embed tm) :: subs)
-                              _ => Nothing
+                              _ ⇒ Nothing
 
 -- In the case where all the specialised positions are variables on the LHS,
 -- substitute the term in on the RHS
-specPatByVar : List (Nat, Term []) ->
-                (vs ** (Env Term vs, Term vs, Term vs)) ->
+specPatByVar : List (Nat, Term []) →
+                (vs ** (Env Term vs, Term vs, Term vs)) →
                 Maybe (vs ** (Env Term vs, Term vs, Term vs))
 specPatByVar specs (vs ** (env, lhs, rhs))
     = do let (fn, args) = getFnArgs lhs
@@ -87,8 +87,8 @@ specPatByVar specs (vs ** (env, lhs, rhs))
          let lhs' = apply (getLoc fn) fn args
          pure (vs ** (env, substLocs psubs lhs', substLocs psubs rhs))
 
-specByVar : List (Nat, Term []) ->
-            List (vs ** (Env Term vs, Term vs, Term vs)) ->
+specByVar : List (Nat, Term []) →
+            List (vs ** (Env Term vs, Term vs, Term vs)) →
             Maybe (List (vs ** (Env Term vs, Term vs, Term vs)))
 specByVar specs [] = pure []
 specByVar specs (p :: ps)
@@ -96,26 +96,26 @@ specByVar specs (p :: ps)
          ps' <- specByVar specs ps
          pure (p' :: ps')
 
-dropSpec : Nat -> List (Nat, Term []) -> List a -> List a
+dropSpec : Nat → List (Nat, Term []) → List a → List a
 dropSpec i sargs [] = []
 dropSpec i sargs (x :: xs)
     = case lookup i sargs of
-           Nothing => x :: dropSpec (1 + i) sargs xs
-           Just _ => dropSpec (1 + i) sargs xs
+           Nothing ⇒ x :: dropSpec (1 + i) sargs xs
+           Just _ ⇒ dropSpec (1 + i) sargs xs
 
-getSpecPats : {auto c : Ref Ctxt Defs} ->
-              FC -> Name ->
-              (fn : Name) -> (stk : List (FC, Term vars)) ->
-              NF [] -> -- Type of 'fn'
-              List (Nat, ArgMode) -> -- All the arguments
-              List (Nat, Term []) -> -- Just the static ones
-              List (vs ** (Env Term vs, Term vs, Term vs)) ->
+getSpecPats : {auto c : Ref Ctxt Defs} →
+              FC → Name →
+              (fn : Name) → (stk : List (FC, Term vars)) →
+              NF [] → -- Type of 'fn'
+              List (Nat, ArgMode) → -- All the arguments
+              List (Nat, Term []) → -- Just the static ones
+              List (vs ** (Env Term vs, Term vs, Term vs)) →
               Core (Maybe (List ImpClause))
 getSpecPats fc pename fn stk fnty args sargs pats
    = do -- First, see if all the specialised positions are variables. If so,
         -- substitute the arguments directly into the RHS
         let Nothing = specByVar sargs pats
-            | Just specpats =>
+            | Just specpats ⇒
                    do ps <- traverse (unelabPat pename) specpats
                       pure (Just ps)
         -- Otherwise, build a new definition by taking the remaining arguments
@@ -126,7 +126,7 @@ getSpecPats fc pename fn stk fnty args sargs pats
         rhs <- mkRHSargs fnty (IVar fc fn) dynnames args
         pure (Just [PatClause fc lhs rhs])
   where
-    mkDynNames : Int -> List (Nat, ArgMode) -> List String
+    mkDynNames : Int → List (Nat, ArgMode) → List String
     mkDynNames i [] = []
     mkDynNames i ((_, Dynamic) :: as)
         = ("_pe" ++ show i) :: mkDynNames (1 + i) as
@@ -135,7 +135,7 @@ getSpecPats fc pename fn stk fnty args sargs pats
     -- Build a RHS from the type of the function to be specialised, the
     -- dynamic argument names, and the list of given arguments. We assume
     -- the latter two correspond appropriately.
-    mkRHSargs : NF [] -> RawImp -> List String -> List (Nat, ArgMode) ->
+    mkRHSargs : NF [] → RawImp → List String → List (Nat, ArgMode) →
                 Core RawImp
     mkRHSargs (NBind _ x (Pi _ Explicit _) sc) app (a :: as) ((_, Dynamic) :: ds)
         = do defs <- get Ctxt
@@ -162,22 +162,22 @@ getSpecPats fc pename fn stk fnty args sargs pats
     mkRHSargs _ app _ _
         = pure app
 
-    getRawArgs : List (Maybe Name, RawImp) -> RawImp -> List (Maybe Name, RawImp)
+    getRawArgs : List (Maybe Name, RawImp) → RawImp → List (Maybe Name, RawImp)
     getRawArgs args (IApp _ f arg) = getRawArgs ((Nothing, arg) :: args) f
     getRawArgs args (IImplicitApp _ f (Just n) arg)
         = getRawArgs ((Just n, arg) :: args) f
     getRawArgs args tm = args
 
-    reapply : RawImp -> List (Maybe Name, RawImp) -> RawImp
+    reapply : RawImp → List (Maybe Name, RawImp) → RawImp
     reapply f [] = f
     reapply f ((Nothing, arg) :: args) = reapply (IApp fc f arg) args
     reapply f ((Just t, arg) :: args)
         = reapply (IImplicitApp fc f (Just t) arg) args
 
-    dropArgs : Name -> RawImp -> RawImp
+    dropArgs : Name → RawImp → RawImp
     dropArgs pename tm = reapply (IVar fc pename) (dropSpec 0 sargs (getRawArgs [] tm))
 
-    unelabPat : Name -> (vs ** (Env Term vs, Term vs, Term vs)) ->
+    unelabPat : Name → (vs ** (Env Term vs, Term vs, Term vs)) →
                 Core ImpClause
     unelabPat pename (_ ** (env, lhs, rhs))
         = do lhsapp <- unelabNoSugar env lhs
@@ -187,7 +187,7 @@ getSpecPats fc pename fn stk fnty args sargs pats
              rhs' <- unelabNoSugar env rhsnf
              pure (PatClause fc lhs' rhs')
 
-    unelabLHS : Name -> (vs ** (Env Term vs, Term vs, Term vs)) ->
+    unelabLHS : Name → (vs ** (Env Term vs, Term vs, Term vs)) →
                 Core RawImp
     unelabLHS pename (_ ** (env, lhs, rhs))
         = do lhsapp <- unelabNoSugar env lhs
@@ -196,46 +196,46 @@ getSpecPats fc pename fn stk fnty args sargs pats
 -- Get the reducible names in a function to be partially evaluated. In practice,
 -- that's all the functions it refers to
 -- TODO: May want to take care with 'partial' names?
-getReducible : List Name -> -- calls to check
-               NameMap Nat -> -- which nodes have been visited. If the entry is
+getReducible : List Name → -- calls to check
+               NameMap Nat → -- which nodes have been visited. If the entry is
                               -- present, it's visited
-               Defs -> Core (NameMap Nat)
+               Defs → Core (NameMap Nat)
 getReducible [] refs defs = pure refs
 getReducible (n :: rest) refs defs
   = do let Nothing = lookup n refs
-           | Just _ => getReducible rest refs defs
+           | Just _ ⇒ getReducible rest refs defs
        case !(lookupCtxtExact n (gamma defs)) of
-            Nothing => getReducible rest refs defs
-            Just def =>
+            Nothing ⇒ getReducible rest refs defs
+            Just def ⇒
               do let refs' = insert n 65536 refs
                  let calls = refersTo def
                  getReducible (keys calls ++ rest) refs' defs
 
-mkSpecDef : {auto c : Ref Ctxt Defs} ->
-            {auto m : Ref MD Metadata} ->
-            {auto u : Ref UST UState} ->
-            FC -> GlobalDef ->
-            Name -> List (Nat, ArgMode) -> Name -> List (FC, Term vars) ->
+mkSpecDef : {auto c : Ref Ctxt Defs} →
+            {auto m : Ref MD Metadata} →
+            {auto u : Ref UST UState} →
+            FC → GlobalDef →
+            Name → List (Nat, ArgMode) → Name → List (FC, Term vars) →
             Core (Term vars)
 mkSpecDef {vars} fc gdef pename sargs fn stk
     = handleUnify
        (do defs <- get Ctxt
            setAllPublic True
            let staticargs
-                 = mapMaybe (\ (x, s) => case s of
-                                              Dynamic => Nothing
-                                              Static t => Just (x, t)) sargs
+                 = mapMaybe (\ (x, s) ⇒ case s of
+                                              Dynamic ⇒ Nothing
+                                              Static t ⇒ Just (x, t)) sargs
            let peapp = unload (dropSpec 0 staticargs stk) (Ref fc Func pename)
            Nothing <- lookupCtxtExact pename (gamma defs)
-               | Just _ => -- already specialised
+               | Just _ ⇒ -- already specialised
                            do log 5 $ "Already specialised " ++ show pename
                               pure peapp
            logC 5 (do fnfull <- toFullNames fn
-                      args' <- traverse (\ (i, arg) =>
+                      args' <- traverse (\ (i, arg) ⇒
                                    do arg' <- the (Core ArgMode) $ case arg of
-                                                   Static a =>
+                                                   Static a ⇒
                                                       pure $ Static !(toFullNames a)
-                                                   Dynamic => pure Dynamic
+                                                   Dynamic ⇒ pure Dynamic
                                       pure (show (i, arg'))) sargs
                       pure $ "Specialising " ++ show fnfull ++
                              " (" ++ show fn ++ ") by " ++
@@ -253,7 +253,7 @@ mkSpecDef {vars} fc gdef pename sargs fn stk
            -- the arguments at most once (so that recursive definitions aren't
            -- unfolded forever)
            let specnames = getAllRefs empty (map snd sargs)
-           specLimits <- traverse (\n => pure (n, 1))
+           specLimits <- traverse (\n ⇒ pure (n, 1))
                                   (keys specnames)
 
            defs <- get Ctxt
@@ -261,14 +261,14 @@ mkSpecDef {vars} fc gdef pename sargs fn stk
            setFlag fc (Resolved peidx) (PartialEval (specLimits ++ toList reds))
 
            let PMDef pminfo pmargs ct tr pats = definition gdef
-               | _ => pure (unload stk (Ref fc Func fn))
+               | _ ⇒ pure (unload stk (Ref fc Func fn))
            logC 5 (do inpats <- traverse unelabDef pats
                       pure $ "Attempting to specialise:\n" ++
                              showSep "\n" (map showPat inpats))
 
            Just newpats <- getSpecPats fc pename fn stk !(nf defs [] (type gdef))
                                        sargs staticargs pats
-                | Nothing => pure (unload stk (Ref fc Func fn))
+                | Nothing ⇒ pure (unload stk (Ref fc Func fn))
            log 5 $ "New patterns for " ++ show pename ++ ":\n" ++
                     showSep "\n" (map showPat newpats)
            processDecl [InPartialEval] (MkNested []) []
@@ -279,25 +279,25 @@ mkSpecDef {vars} fc gdef pename sargs fn stk
            -- application. It might indicates a bug in the P.E. function generation
            -- if it fails, but I don't want the whole system to be dependent on
            -- the correctness of PE!
-        (\err =>
+        (\err ⇒
            do log 1 $ "Partial evaluation of " ++ show !(toFullNames fn) ++ " failed" ++
                       "\n" ++ show err
               defs <- get Ctxt
               put Ctxt (record { peFailures $= insert pename () } defs)
               pure (unload stk (Ref fc Func fn)))
   where
-    getAllRefs : NameMap Bool -> List ArgMode -> NameMap Bool
+    getAllRefs : NameMap Bool → List ArgMode → NameMap Bool
     getAllRefs ns (Dynamic :: xs) = getAllRefs ns xs
     getAllRefs ns (Static t :: xs)
         = addRefs False (UN "_") (getAllRefs ns xs) t
     getAllRefs ns [] = ns
 
-    updateApp : Name -> RawImp -> RawImp
+    updateApp : Name → RawImp → RawImp
     updateApp n (IApp fc f a) = IApp fc (updateApp n f) a
     updateApp n (IImplicitApp fc f m a) = IImplicitApp fc (updateApp n f) m a
     updateApp n f = IVar fc n
 
-    unelabDef : (vs ** (Env Term vs, Term vs, Term vs)) ->
+    unelabDef : (vs ** (Env Term vs, Term vs, Term vs)) →
                 Core ImpClause
     unelabDef (_ ** (env, lhs, rhs))
         = do lhs' <- unelabNoSugar env lhs
@@ -306,31 +306,31 @@ mkSpecDef {vars} fc gdef pename sargs fn stk
              rhs' <- unelabNoSugar env rhsnf
              pure (PatClause fc lhs' rhs')
 
-    showPat : ImpClause -> String
+    showPat : ImpClause → String
     showPat (PatClause _ lhs rhs) = show lhs ++ " = " ++ show rhs
     showPat _ = "Can't happen"
 
-eraseInferred : {auto c : Ref Ctxt Defs} ->
-                Term vars -> Core (Term vars)
+eraseInferred : {auto c : Ref Ctxt Defs} →
+                Term vars → Core (Term vars)
 eraseInferred (Bind fc x b tm)
     = do b' <- traverse eraseInferred b
          tm' <- eraseInferred tm
          pure (Bind fc x b' tm')
 eraseInferred tm
     = case getFnArgs tm of
-           (f, []) => pure f
-           (Ref fc Func n, args) =>
+           (f, []) ⇒ pure f
+           (Ref fc Func n, args) ⇒
                 do defs <- get Ctxt
                    Just gdef <- lookupCtxtExact n (gamma defs)
-                        | Nothing => pure tm
+                        | Nothing ⇒ pure tm
                    let argsE = dropErased fc 0 (inferrable gdef) args
                    argsE' <- traverse eraseInferred argsE
                    pure (apply fc (Ref fc Func n) argsE')
-           (f, args) =>
+           (f, args) ⇒
                 do args' <- traverse eraseInferred args
                    pure (apply (getLoc f) f args)
   where
-    dropErased : FC -> Nat -> List Nat -> List (Term vars) -> List (Term vars)
+    dropErased : FC → Nat → List Nat → List (Term vars) → List (Term vars)
     dropErased fc pos ps [] = []
     dropErased fc pos ps (n :: ns)
         = if pos `elem` ps
@@ -340,63 +340,63 @@ eraseInferred tm
 -- Specialise a function name according to arguments. Return the specialised
 -- application on success, or Nothing if it's not specialisable (due to static
 -- arguments not being concrete)
-specialise : {auto c : Ref Ctxt Defs} ->
-             {auto m : Ref MD Metadata} ->
-             {auto u : Ref UST UState} ->
-             FC -> Env Term vars -> GlobalDef ->
-             Name -> List (FC, Term vars) ->
+specialise : {auto c : Ref Ctxt Defs} →
+             {auto m : Ref MD Metadata} →
+             {auto u : Ref UST UState} →
+             FC → Env Term vars → GlobalDef →
+             Name → List (FC, Term vars) →
              Core (Maybe (Term vars))
 specialise {vars} fc env gdef fn stk
     = case specArgs gdef of
-        [] => pure Nothing
-        specs =>
+        [] ⇒ pure Nothing
+        specs ⇒
             do fnfull <- toFullNames fn
                -- If all the arguments are concrete (meaning, no local variables
                -- or holes in them, so they can be a Term []) we can specialise
                Just sargs <- getSpecArgs 0 specs stk
-                   | Nothing => pure Nothing
+                   | Nothing ⇒ pure Nothing
                let nhash = hash (mapMaybe getStatic (map snd sargs))
                               `hashWithSalt` fn -- add function name to hash to avoid namespace clashes
                let pename = NS ["_PE"]
                             (UN ("PE_" ++ nameRoot fnfull ++ "_" ++ asHex nhash))
                defs <- get Ctxt
                case lookup pename (peFailures defs) of
-                    Nothing => Just <$> mkSpecDef fc gdef pename sargs fn stk
-                    Just _ => pure Nothing
+                    Nothing ⇒ Just <$> mkSpecDef fc gdef pename sargs fn stk
+                    Just _ ⇒ pure Nothing
   where
-    dropAll : {vs : _} -> SubVars [] vs
+    dropAll : {vs : _} → SubVars [] vs
     dropAll {vs = []} = SubRefl
     dropAll {vs = v :: vs} = DropCons dropAll
 
-    concrete : Term vars -> Maybe (Term [])
+    concrete : Term vars → Maybe (Term [])
     concrete tm = shrinkTerm tm dropAll
 
-    getSpecArgs : Nat -> List Nat -> List (FC, Term vars) ->
+    getSpecArgs : Nat → List Nat → List (FC, Term vars) →
                   Core (Maybe (List (Nat, ArgMode)))
     getSpecArgs i specs [] = pure (Just [])
     getSpecArgs i specs ((_, x) :: xs)
         = do Just xs' <- getSpecArgs (1 + i) specs xs
-                 | Nothing => pure Nothing
+                 | Nothing ⇒ pure Nothing
              if i `elem` specs
                 then do defs <- get Ctxt
                         x' <- normaliseHoles defs env x
                         x' <- eraseInferred x'
                         let Just xok = concrete x'
-                            | Nothing => pure Nothing
+                            | Nothing ⇒ pure Nothing
                         pure $ Just ((i, Static xok) :: xs')
                 else pure $ Just ((i, Dynamic) :: xs')
 
-findSpecs : {auto c : Ref Ctxt Defs} ->
-            {auto m : Ref MD Metadata} ->
-            {auto u : Ref UST UState} ->
-            Env Term vars -> List (FC, Term vars) -> Term vars ->
+findSpecs : {auto c : Ref Ctxt Defs} →
+            {auto m : Ref MD Metadata} →
+            {auto u : Ref UST UState} →
+            Env Term vars → List (FC, Term vars) → Term vars →
             Core (Term vars)
 findSpecs env stk (Ref fc Func fn)
     = do defs <- get Ctxt
          Just gdef <- lookupCtxtExact fn (gamma defs)
-              | Nothing => pure (unload stk (Ref fc Func fn))
+              | Nothing ⇒ pure (unload stk (Ref fc Func fn))
          Just r <- specialise fc env gdef fn stk
-              | Nothing => pure (unload stk (Ref fc Func fn))
+              | Nothing ⇒ pure (unload stk (Ref fc Func fn))
          pure r
 findSpecs env stk (Meta fc n i args)
     = do args' <- traverse (findSpecs env []) args
@@ -420,7 +420,7 @@ findSpecs env stk (TForce fc r tm)
          pure $ unload stk (TForce fc r tm')
 findSpecs env stk tm = pure $ unload stk tm
 
-bName : {auto q : Ref QVar Int} -> String -> Core Name
+bName : {auto q : Ref QVar Int} → String → Core Name
 bName n
     = do i <- get QVar
          put QVar (i + 1)
@@ -433,30 +433,30 @@ bName n
 -- quoteHead as compared with the version in Core.Normalise, to deal with
 -- checking for specialised applications.)
 mutual
-  quoteArgs : {bound : _} ->
-              {auto c : Ref Ctxt Defs} ->
-              {auto m : Ref MD Metadata} ->
-              {auto u : Ref UST UState} ->
-              Ref QVar Int -> Defs -> Bounds bound ->
-              Env Term free -> List (Closure free) ->
+  quoteArgs : {bound : _} →
+              {auto c : Ref Ctxt Defs} →
+              {auto m : Ref MD Metadata} →
+              {auto u : Ref UST UState} →
+              Ref QVar Int → Defs → Bounds bound →
+              Env Term free → List (Closure free) →
               Core (List (Term (bound ++ free)))
   quoteArgs q defs bounds env [] = pure []
   quoteArgs q defs bounds env (a :: args)
       = pure $ (!(quoteGenNF q defs bounds env !(evalClosure defs a)) ::
                 !(quoteArgs q defs bounds env args))
 
-  quoteHead : {bound : _} ->
-              {auto c : Ref Ctxt Defs} ->
-              {auto m : Ref MD Metadata} ->
-              {auto u : Ref UST UState} ->
-              Ref QVar Int -> Defs ->
-              FC -> Bounds bound -> Env Term free -> NHead free ->
+  quoteHead : {bound : _} →
+              {auto c : Ref Ctxt Defs} →
+              {auto m : Ref MD Metadata} →
+              {auto u : Ref UST UState} →
+              Ref QVar Int → Defs →
+              FC → Bounds bound → Env Term free → NHead free →
               Core (Term (bound ++ free))
   quoteHead {bound} q defs fc bounds env (NLocal mrig _ prf)
       = let MkVar prf' = addLater bound prf in
             pure $ Local fc mrig _ prf'
     where
-      addLater : (ys : List Name) -> IsVar n idx xs ->
+      addLater : (ys : List Name) → IsVar n idx xs →
                  Var (ys ++ xs)
       addLater [] isv = MkVar isv
       addLater (x :: xs) isv
@@ -464,10 +464,10 @@ mutual
                 MkVar (Later isv')
   quoteHead q defs fc bounds env (NRef Bound (MN n i))
       = case findName bounds of
-             Just (MkVar p) => pure $ Local fc Nothing _ (varExtend p)
-             Nothing => pure $ Ref fc Bound (MN n i)
+             Just (MkVar p) ⇒ pure $ Local fc Nothing _ (varExtend p)
+             Nothing ⇒ pure $ Ref fc Bound (MN n i)
     where
-      findName : Bounds bound' -> Maybe (Var bound')
+      findName : Bounds bound' → Maybe (Var bound')
       findName None = Nothing
       findName (Add x (MN n' i') ns)
           = if i == i' -- this uniquely identifies it, given how we
@@ -483,12 +483,12 @@ mutual
       = do args' <- quoteArgs q defs bounds env args
            pure $ Meta fc n i args'
 
-  quotePi : {bound : _} ->
-            {auto c : Ref Ctxt Defs} ->
-            {auto m : Ref MD Metadata} ->
-            {auto u : Ref UST UState} ->
-            Ref QVar Int -> Defs -> Bounds bound ->
-            Env Term free -> PiInfo (NF free) ->
+  quotePi : {bound : _} →
+            {auto c : Ref Ctxt Defs} →
+            {auto m : Ref MD Metadata} →
+            {auto u : Ref UST UState} →
+            Ref QVar Int → Defs → Bounds bound →
+            Env Term free → PiInfo (NF free) →
             Core (PiInfo (Term (bound ++ free)))
   quotePi q defs bounds env Explicit = pure Explicit
   quotePi q defs bounds env Implicit = pure Implicit
@@ -497,12 +497,12 @@ mutual
       = do t' <- quoteGenNF q defs bounds env t
            pure (DefImplicit t')
 
-  quoteBinder : {bound : _} ->
-                {auto c : Ref Ctxt Defs} ->
-                {auto m : Ref MD Metadata} ->
-                {auto u : Ref UST UState} ->
-                Ref QVar Int -> Defs -> Bounds bound ->
-                Env Term free -> Binder (NF free) ->
+  quoteBinder : {bound : _} →
+                {auto c : Ref Ctxt Defs} →
+                {auto m : Ref MD Metadata} →
+                {auto u : Ref UST UState} →
+                Ref QVar Int → Defs → Bounds bound →
+                Env Term free → Binder (NF free) →
                 Core (Binder (Term (bound ++ free)))
   quoteBinder q defs bounds env (Lam r p ty)
       = do ty' <- quoteGenNF q defs bounds env ty
@@ -528,13 +528,13 @@ mutual
       = do ty' <- quoteGenNF q defs bounds env ty
            pure (PVTy r ty')
 
-  quoteGenNF : {bound : _} ->
-               {auto c : Ref Ctxt Defs} ->
-               {auto m : Ref MD Metadata} ->
-               {auto u : Ref UST UState} ->
-               Ref QVar Int ->
-               Defs -> Bounds bound ->
-               Env Term vars -> NF vars -> Core (Term (bound ++ vars))
+  quoteGenNF : {bound : _} →
+               {auto c : Ref Ctxt Defs} →
+               {auto m : Ref MD Metadata} →
+               {auto u : Ref UST UState} →
+               Ref QVar Int →
+               Defs → Bounds bound →
+               Env Term vars → NF vars → Core (Term (bound ++ vars))
   quoteGenNF q defs bound env (NBind fc n b sc)
       = do var <- bName "qv"
            sc' <- quoteGenNF q defs (Add n var bound) env
@@ -546,22 +546,22 @@ mutual
   -- reduction) then call specialise. Otherwise, quote as normal
   quoteGenNF q defs bound env (NApp fc (NRef Func fn) args)
       = do Just gdef <- lookupCtxtExact fn (gamma defs)
-                | Nothing => do args' <- quoteArgs q defs bound env args
+                | Nothing ⇒ do args' <- quoteArgs q defs bound env args
                                 pure $ apply fc (Ref fc Func fn) args'
            case specArgs gdef of
-                [] => do args' <- quoteArgs q defs bound env args
+                [] ⇒ do args' <- quoteArgs q defs bound env args
                          pure $ apply fc (Ref fc Func fn) args'
-                _ => do empty <- clearDefs defs
+                _ ⇒ do empty <- clearDefs defs
                         args' <- quoteArgs q defs bound env args
-                        Just r <- specialise fc (extendEnv bound env) gdef fn (map (\t => (fc, t)) args')
-                             | Nothing =>
+                        Just r <- specialise fc (extendEnv bound env) gdef fn (map (\t ⇒ (fc, t)) args')
+                             | Nothing ⇒
                                   -- can't specialise, keep the arguments
                                   -- unreduced
                                   do args' <- quoteArgs q empty bound env args
                                      pure $ apply fc (Ref fc Func fn) args'
                         pure r
      where
-       extendEnv : Bounds bs -> Env Term vs -> Env Term (bs ++ vs)
+       extendEnv : Bounds bs → Env Term vs → Env Term (bs ++ vs)
        extendEnv None env = env
        extendEnv (Add x n bs) env
            -- We're just using this to evaluate holes in the right scope, so
@@ -592,40 +592,40 @@ mutual
            tyQ <- quoteGenNF q defs bound env tyNF
            pure (TDelay fc r tyQ argQ)
     where
-      toHolesOnly : Closure vs -> Closure vs
+      toHolesOnly : Closure vs → Closure vs
       toHolesOnly (MkClosure _ locs env tm)
           = MkClosure withHoles locs env tm
       toHolesOnly c = c
   quoteGenNF q defs bound env (NForce fc r arg args)
       = do args' <- quoteArgs q defs bound env args
            case arg of
-                NDelay fc _ _ arg =>
+                NDelay fc _ _ arg ⇒
                    do argNF <- evalClosure defs arg
                       pure $ apply fc !(quoteGenNF q defs bound env argNF) args'
-                _ => do arg' <- quoteGenNF q defs bound env arg
+                _ ⇒ do arg' <- quoteGenNF q defs bound env arg
                         pure $ apply fc (TForce fc r arg') args'
   quoteGenNF q defs bound env (NPrimVal fc c) = pure $ PrimVal fc c
   quoteGenNF q defs bound env (NErased fc i) = pure $ Erased fc i
   quoteGenNF q defs bound env (NType fc) = pure $ TType fc
 
-evalRHS : {auto c : Ref Ctxt Defs} ->
-          {auto m : Ref MD Metadata} ->
-          {auto u : Ref UST UState} ->
-          Env Term vars -> NF vars -> Core (Term vars)
+evalRHS : {auto c : Ref Ctxt Defs} →
+          {auto m : Ref MD Metadata} →
+          {auto u : Ref UST UState} →
+          Env Term vars → NF vars → Core (Term vars)
 evalRHS env nf
     = do q <- newRef QVar 0
          defs <- get Ctxt
          quoteGenNF q defs None env nf
 
 export
-applySpecialise : {auto c : Ref Ctxt Defs} ->
-                  {auto m : Ref MD Metadata} ->
-                  {auto u : Ref UST UState} ->
-                  Env Term vars ->
-                  Maybe (List (Name, Nat)) ->
+applySpecialise : {auto c : Ref Ctxt Defs} →
+                  {auto m : Ref MD Metadata} →
+                  {auto u : Ref UST UState} →
+                  Env Term vars →
+                  Maybe (List (Name, Nat)) →
                         -- ^ If we're specialising, names to reduce in the RHS
                         -- with their reduction limits
-                  Term vars -> -- initial RHS
+                  Term vars → -- initial RHS
                   Core (Term vars)
 applySpecialise env Nothing tm
     = findSpecs env [] tm -- not specialising, just search through RHS

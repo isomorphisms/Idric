@@ -22,46 +22,46 @@ Show GameState where
 initState : GameState
 initState = MkGameState (MkScore 0 0) 12
 
-addWrong : GameState -> GameState
+addWrong : GameState → GameState
 addWrong = record { score.attempted $= (+1) }
 
-addCorrect : GameState -> GameState
+addCorrect : GameState → GameState
 addCorrect = record { score.correct $= (+1),
                       score.attempted $= (+1) }
 
-setDifficulty : Int -> GameState -> GameState
+setDifficulty : Int → GameState → GameState
 setDifficulty newDiff state = record { difficulty = newDiff } state
 
-data Command : Type -> Type where
-     PutStr : String -> Command ()
+data Command : Type → Type where
+     PutStr : String → Command ()
      GetLine : Command String
 
      GetRandom : Command Int
      GetGameState : Command GameState
-     PutGameState : GameState -> Command ()
+     PutGameState : GameState → Command ()
 
-     Pure : ty -> Command ty
-     Bind : Command a -> (a -> Command b) -> Command b
+     Pure : ty → Command ty
+     Bind : Command a → (a → Command b) → Command b
 
-data ConsoleIO : Type -> Type where
-     Quit : a -> ConsoleIO a
-     Do : Command a -> (a -> Inf (ConsoleIO b)) -> ConsoleIO b
+data ConsoleIO : Type → Type where
+     Quit : a → ConsoleIO a
+     Do : Command a → (a → Inf (ConsoleIO b)) → ConsoleIO b
 
 namespace ConsoleDo
   export
-  (>>=) : Command a -> (a -> Inf (ConsoleIO b)) -> ConsoleIO b
+  (>>=) : Command a → (a → Inf (ConsoleIO b)) → ConsoleIO b
   (>>=) = Do
 
 namespace CommandDo
   export
-  (>>=) : Command a -> (a -> Command b) -> Command b
+  (>>=) : Command a → (a → Command b) → Command b
   (>>=)  = Bind
 
-randoms : Int -> Stream Int
+randoms : Int → Stream Int
 randoms seed = let seed' = 1664525 * seed + 1013904223 in
                    (seed' `shiftR` 2) :: randoms seed'
 
-runCommand : Stream Int -> GameState -> Command a ->
+runCommand : Stream Int → GameState → Command a →
              IO (a, Stream Int, GameState)
 runCommand rnds state (PutStr x) = do putStr x
                                       pure ((), rnds, state)
@@ -70,7 +70,7 @@ runCommand rnds state GetLine = do str <- getLine
 runCommand (val :: rnds) state GetRandom
       = pure (getRandom val (difficulty state), rnds, state)
   where
-    getRandom : Int -> Int -> Int
+    getRandom : Int → Int → Int
     getRandom val max with (divides val max)
       getRandom val 0 | DivByZero = 1
       getRandom ((max * div) + rem) max | (DivBy div rem prf) = abs rem + 1
@@ -91,7 +91,7 @@ partial
 forever : Fuel
 forever = More forever
 
-run : Fuel -> Stream Int -> GameState -> ConsoleIO a ->
+run : Fuel → Stream Int → GameState → ConsoleIO a →
       IO (Maybe a, Stream Int, GameState)
 run fuel rnds state (Quit val) = do pure (Just val, rnds, state)
 run (More fuel) rnds state (Do c f)
@@ -106,7 +106,7 @@ mutual
                PutGameState (addCorrect st)
                quiz
 
-  wrong : Int -> ConsoleIO GameState
+  wrong : Int → ConsoleIO GameState
   wrong ans
         = do PutStr ("Wrong, the answer is " ++ show ans ++ "\n")
              st <- GetGameState
@@ -116,7 +116,7 @@ mutual
   data Input = Answer Int
              | QuitCmd
 
-  readInput : (prompt : String) -> Command Input
+  readInput : (prompt : String) → Command Input
   readInput prompt
      = do PutStr prompt
           answer <- GetLine
@@ -132,15 +132,15 @@ mutual
 
             input <- readInput (show num1 ++ " * " ++ show num2 ++ "? ")
             case input of
-               Answer answer => if answer == num1 * num2
+               Answer answer ⇒ if answer == num1 * num2
                                    then correct
                                    else wrong (num1 * num2)
-               QuitCmd => Quit st
+               QuitCmd ⇒ Quit st
 
 partial
 main : IO ()
 main = do seed <- time
           (Just score, _, state) <-
               run forever (randoms (fromInteger seed)) initState quiz
-                  | _ => putStrLn "Ran out of fuel"
+                  | _ ⇒ putStrLn "Ran out of fuel"
           putStrLn ("Final score: " ++ show state)

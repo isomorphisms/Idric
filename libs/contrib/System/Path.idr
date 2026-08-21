@@ -92,17 +92,17 @@ emptyPath = MkPath Nothing False [] False
 |||   with the root. e.g., `c:\\windows` is absolute, while `c:temp`
 |||   and `\temp` are not. In addition, a path with UNC volumn is absolute.
 export
-isAbsolute : Path -> Bool
+isAbsolute : Path → Bool
 isAbsolute p = if isWindows
                  then case p.volumn of
-                           Just (UNC _ _) => True
-                           Just (Disk _) => p.hasRoot
-                           Nothing => False
+                           Just (UNC _ _) ⇒ True
+                           Just (Disk _) ⇒ p.hasRoot
+                           Nothing ⇒ False
                  else p.hasRoot
 
 ||| Returns true if the path is relative, i.e., not absolute.
 export
-isRelative : Path -> Bool
+isRelative : Path → Bool
 isRelative = not . isAbsolute
 
 ||| Appends the right path to the left one.
@@ -119,7 +119,7 @@ isRelative = not . isAbsolute
 ||| pure $ !(parse "/usr") `append` !(parse "local/etc")
 ||| ```
 export
-append : (left : Path) -> (right : Path) -> Path
+append : (left : Path) → (right : Path) → Path
 append l r = if isAbsolute r || isJust r.volumn
                 then r
                 else if hasRoot r
@@ -131,10 +131,10 @@ append l r = if isAbsolute r || isJust r.volumn
 |||
 ||| Returns Nothing if the path terminates in a root or volumn.
 export
-parent : Path -> Maybe Path
+parent : Path → Maybe Path
 parent p = case p.body of
-                [] => Nothing
-                (x::xs) => Just $ record { body = init (x::xs),
+                [] ⇒ Nothing
+                (x::xs) ⇒ Just $ record { body = init (x::xs),
                                            hasTrailSep = False } p
 
 ||| Returns a list of all parents of the path, longest first,
@@ -144,7 +144,7 @@ parent p = case p.body of
 ||| parent of the path, and so on. The list terminates in a
 ||| root or volumn (if any).
 export
-parents : Path -> List Path
+parents : Path → List Path
 parents p = drop 1 $ iterate parent p
 
 ||| Determines whether base is either one of the parents of full or
@@ -152,14 +152,14 @@ parents p = drop 1 $ iterate parent p
 |||
 ||| Trailing separator is ignored.
 export
-startWith : (base : Path) -> (full : Path) -> Bool
+startWith : (base : Path) → (full : Path) → Bool
 startWith base full = base `elem` (iterate parent full)
 
 ||| Returns a path that, when appended onto base, yields full.
 |||
 ||| If base is not a prefix of full (i.e., startWith returns false),
 ||| returns Nothing.
-stripPrefix : (base : Path) -> (full : Path) -> Maybe Path
+stripPrefix : (base : Path) → (full : Path) → Maybe Path
 stripPrefix base full
     = do let MkPath vol1 root1 body1 _ = base
          let MkPath vol2 root2 body2 trialSep = full
@@ -167,7 +167,7 @@ stripPrefix base full
          body <- stripBody body1 body2
          pure $ MkPath Nothing False body trialSep
   where
-    stripBody : (base : List Body) -> (full : List Body) -> Maybe (List Body)
+    stripBody : (base : List Body) → (full : List Body) → Maybe (List Body)
     stripBody [] ys = Just ys
     stripBody xs [] = Nothing
     stripBody (x::xs) (y::ys) = if x == y then stripBody xs ys else Nothing
@@ -179,19 +179,19 @@ stripPrefix base full
 |||
 ||| Returns Nothing if the final body is ".." or "."
 export
-fileName : Path -> Maybe String
+fileName : Path → Maybe String
 fileName p = case last' p.body of
-                  Just (Normal s) => Just s
-                  _ => Nothing
+                  Just (Normal s) ⇒ Just s
+                  _ ⇒ Nothing
 
 private
-splitFileName : String -> (String, String)
+splitFileName : String → (String, String)
 splitFileName name
     = case break (== '.') $ reverse $ unpack name of
-           (_, []) => (name, "")
-           (_, ['.']) => (name, "")
+           (_, []) ⇒ (name, "")
+           (_, ['.']) ⇒ (name, "")
            (revExt, (dot :: revStem))
-              => ((pack $ reverse revStem), (pack $ reverse revExt))
+              ⇒ ((pack $ reverse revStem), (pack $ reverse revExt))
 
 
 ||| Extracts the stem (non-extension) portion of the file name of path.
@@ -204,7 +204,7 @@ splitFileName name
 |||   no other "."s within;
 ||| - Otherwise, the portion of the file name before the final "."
 export
-fileStem : Path -> Maybe String
+fileStem : Path → Maybe String
 fileStem p = pure $ fst $ splitFileName !(fileName p)
 
 ||| Extracts the extension of the file name of path.
@@ -216,7 +216,7 @@ fileStem p = pure $ fst $ splitFileName !(fileName p)
 ||| - Nothing, if the file name begins with "." and has no other "."s within;
 ||| - Otherwise, the portion of the file name after the final "."
 export
-extension : Path -> Maybe String
+extension : Path → Maybe String
 extension p = pure $ snd $ splitFileName !(fileName p)
 
 ||| Updates the file name of the path.
@@ -224,10 +224,10 @@ extension p = pure $ snd $ splitFileName !(fileName p)
 ||| If no file name, this is equivalent to appending the name;
 ||| Otherwise it is equivalent to appending the name to the parent.
 export
-setFileName : (name : String) -> Path -> Path
+setFileName : (name : String) → Path → Path
 setFileName name p = record { body $= updateLastBody name } p
   where
-    updateLastBody : String -> List Body -> List Body
+    updateLastBody : String → List Body → List Body
     updateLastBody s [] = [Normal s]
     updateLastBody s [Normal _] = [Normal s]
     updateLastBody s [x] = x :: [Normal s]
@@ -239,7 +239,7 @@ setFileName name p = record { body $= updateLastBody name } p
 |||
 ||| If extension is Nothing, the extension is added; otherwise it is replaced.
 export
-setExtension : (ext : String) -> Path -> Maybe Path
+setExtension : (ext : String) → Path → Maybe Path
 setExtension ext p = do name <- fileName p
                         let (stem, _) = splitFileName name
                         pure $ setFileName (stem ++ "." ++ ext) p
@@ -313,11 +313,11 @@ pathTokenMap = toTokenMap $
   ]
 
 private
-lexPath : String -> Either String (List PathToken)
+lexPath : String → Either String (List PathToken)
 lexPath str
     = case lex pathTokenMap str of
-           (tokens, _, _, "") => Right (map TokenData.tok tokens)
-           (tokens, l, c, rest) => Left ("Unrecognized tokens "
+           (tokens, _, _, "") ⇒ Right (map TokenData.tok tokens)
+           (tokens, l, c, rest) ⇒ Left ("Unrecognized tokens "
                                      ++ show rest
                                      ++ " at col "
                                      ++ show c)
@@ -361,8 +361,8 @@ private
 disk : Grammar PathToken True Volumn
 disk = do text <- match PTText
           disk <- case unpack text of
-                       (disk :: xs) => pure disk
-                       [] => fail "Expect Disk"
+                       (disk :: xs) ⇒ pure disk
+                       [] ⇒ fail "Expect Disk"
           match $ PTPunct ':'
           pure $ Disk (toUpper disk)
 
@@ -385,10 +385,10 @@ parseBody : Grammar PathToken True Body
 parseBody = do text <- match PTText
                the (Grammar _ False _) $
                    case text of
-                        " " => fail "Empty body"
-                        ".." => pure ParentDir
-                        "." => pure CurDir
-                        s => pure (Normal s)
+                        " " ⇒ fail "Empty body"
+                        ".." ⇒ pure ParentDir
+                        "." ⇒ pure CurDir
+                        s ⇒ pure (Normal s)
 
 private
 parsePath : Grammar PathToken False Path
@@ -417,12 +417,12 @@ parsePath = do vol <- optional parseVolumn
 ||| parse "/usr/local/etc/*"
 ||| ```
 export
-parse : String -> Either String Path
+parse : String → Either String Path
 parse str = case parse parsePath !(lexPath str) of
-                 Right (p, []) => Right p
-                 Right (p, ts) => Left ("Unrecognised tokens remaining : "
+                 Right (p, []) ⇒ Right p
+                 Right (p, ts) ⇒ Left ("Unrecognised tokens remaining : "
                                      ++ show (map text ts))
-                 Left (Error msg ts) => Left (msg ++ " : " ++ show (map text ts))
+                 Left (Error msg ts) ⇒ Left (msg ++ " : " ++ show (map text ts))
 
 ||| Attempt to parse the parts of a path and appends together.
 |||
@@ -430,5 +430,5 @@ parse str = case parse parsePath !(lexPath str) of
 ||| parseParts ["/usr", "local/etc"]
 ||| ```
 export
-parseParts : (parts : List String) -> Either String Path
+parseParts : (parts : List String) → Either String Path
 parseParts parts = map concat (traverse parse parts)

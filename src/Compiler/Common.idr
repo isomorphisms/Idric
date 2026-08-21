@@ -25,10 +25,10 @@ public export
 record Codegen where
   constructor MkCG
   ||| Compile an Idris 2 expression, saving it to a file.
-  compileExpr : Ref Ctxt Defs -> (execDir : String) ->
-                ClosedTerm -> (outfile : String) -> Core (Maybe String)
+  compileExpr : Ref Ctxt Defs → (execDir : String) →
+                ClosedTerm → (outfile : String) → Core (Maybe String)
   ||| Execute an Idris 2 expression directly.
-  executeExpr : Ref Ctxt Defs -> (execDir : String) -> ClosedTerm -> Core ()
+  executeExpr : Ref Ctxt Defs → (execDir : String) → ClosedTerm → Core ()
 
 -- Say which phase of compilation is the last one to use - it saves time if 
 -- you only ask for what you need.
@@ -45,7 +45,7 @@ Eq UsePhase where
 Ord UsePhase where
   compare x y = compare (tag x) (tag y)
     where
-      tag : UsePhase -> Int
+      tag : UsePhase → Int
       tag Cases = 0
       tag Lifted = 0
       tag ANF = 0
@@ -72,9 +72,9 @@ record CompileData where
 ||| Given a value of type Codegen, produce a standalone function
 ||| that executes the `compileExpr` method of the Codegen
 export
-compile : {auto c : Ref Ctxt Defs} ->
-          Codegen ->
-          ClosedTerm -> (outfile : String) -> Core (Maybe String)
+compile : {auto c : Ref Ctxt Defs} →
+          Codegen →
+          ClosedTerm → (outfile : String) → Core (Maybe String)
 compile {c} cg tm out
     = do makeExecDirectory
          d <- getDirs
@@ -85,8 +85,8 @@ compile {c} cg tm out
 ||| As with `compile`, produce a functon that executes
 ||| the `executeExpr` method of the given Codegen
 export
-execute : {auto c : Ref Ctxt Defs} ->
-          Codegen -> ClosedTerm -> Core ()
+execute : {auto c : Ref Ctxt Defs} →
+          Codegen → ClosedTerm → Core ()
 execute {c} cg tm
     = do makeExecDirectory
          d <- getDirs
@@ -96,7 +96,7 @@ execute {c} cg tm
 -- If an entry isn't already decoded, get the minimal entry we need for
 -- compilation, and record the Binary so that we can put it back when we're
 -- done (so that we don't obliterate the definition)
-getMinimalDef : ContextEntry -> Core (GlobalDef, Maybe Binary)
+getMinimalDef : ContextEntry → Core (GlobalDef, Maybe Binary)
 getMinimalDef (Decoded def) = pure (def, Nothing)
 getMinimalDef (Coded bin)
     = do b <- newRef Bin bin
@@ -114,23 +114,23 @@ getMinimalDef (Coded bin)
          pure (def, Just bin)
 
 -- ||| Recursively get all calls in a function definition
-getAllDesc : {auto c : Ref Ctxt Defs} ->
-             List Name -> -- calls to check
-             IOArray (Int, Maybe Binary) ->
+getAllDesc : {auto c : Ref Ctxt Defs} →
+             List Name → -- calls to check
+             IOArray (Int, Maybe Binary) →
                             -- which nodes have been visited. If the entry is
                             -- present, it's visited. Keep the binary entry, if
                             -- we partially decoded it, so that we can put back
                             -- the full definition later.
                             -- (We only need to decode the case tree IR, and
                             -- it's expensive to decode the whole thing)
-             Defs -> Core ()
+             Defs → Core ()
 getAllDesc [] arr defs = pure ()
 getAllDesc (n@(Resolved i) :: rest) arr defs
   = do Nothing <- coreLift $ readArray arr i
-           | Just _ => getAllDesc rest arr defs
+           | Just _ ⇒ getAllDesc rest arr defs
        case !(lookupContextEntry n (gamma defs)) of
-            Nothing => getAllDesc rest arr defs
-            Just (_, entry) =>
+            Nothing ⇒ getAllDesc rest arr defs
+            Just (_, entry) ⇒
               do (def, bin) <- getMinimalDef entry
                  addDef n def 
                  let refs = refersToRuntime def
@@ -143,18 +143,18 @@ getAllDesc (n@(Resolved i) :: rest) arr defs
 getAllDesc (n :: rest) arr defs
   = getAllDesc rest arr defs
 
-getNamedDef : {auto c : Ref Ctxt Defs} ->
-              Name -> Core (Maybe (Name, FC, NamedDef))
+getNamedDef : {auto c : Ref Ctxt Defs} →
+              Name → Core (Maybe (Name, FC, NamedDef))
 getNamedDef n
     = do defs <- get Ctxt
          case !(lookupCtxtExact n (gamma defs)) of
-              Nothing => pure Nothing
-              Just def => case namedcompexpr def of
-                               Nothing => pure Nothing
-                               Just d => pure (Just (n, location def, d))
+              Nothing ⇒ pure Nothing
+              Just def ⇒ case namedcompexpr def of
+                               Nothing ⇒ pure Nothing
+                               Just d ⇒ pure (Just (n, location def, d))
 
-replaceEntry : {auto c : Ref Ctxt Defs} ->
-               (Int, Maybe Binary) -> Core ()
+replaceEntry : {auto c : Ref Ctxt Defs} →
+               (Int, Maybe Binary) → Core ()
 replaceEntry (i, Nothing) = pure ()
 replaceEntry (i, Just b)
     = do addContextEntry (Resolved i) b
@@ -169,7 +169,7 @@ natHackNames
        NS ["Prelude"] (UN "integerToNat")]
 
 export
-fastAppend : List String -> String
+fastAppend : List String → String
 fastAppend xs
     = let len = cast (foldr (+) 0 (map length xs)) in
           unsafePerformIO $
@@ -177,81 +177,81 @@ fastAppend xs
                 build b xs
                 getStringFromBuffer b
   where
-    build : StringBuffer -> List String -> IO ()
+    build : StringBuffer → List String → IO ()
     build b [] = pure ()
     build b (x :: xs) = do addToStringBuffer b x
                            build b xs
 
 -- Hmm, these dump functions are all very similar aren't they...
-dumpCases : Defs -> String -> List Name ->
+dumpCases : Defs → String → List Name →
             Core ()
 dumpCases defs fn cns
     = do cstrs <- traverse dumpCase cns
          Right () <- coreLift $ writeFile fn (fastAppend cstrs)
-               | Left err => throw (FileErr fn err)
+               | Left err ⇒ throw (FileErr fn err)
          pure ()
   where
-    fullShow : Name -> String
+    fullShow : Name → String
     fullShow (DN _ n) = show n
     fullShow n = show n
 
-    dumpCase : Name -> Core String
+    dumpCase : Name → Core String
     dumpCase n
         = case !(lookupCtxtExact n (gamma defs)) of
-               Nothing => pure ""
-               Just d =>
+               Nothing ⇒ pure ""
+               Just d ⇒
                     case namedcompexpr d of
-                         Nothing => pure ""
-                         Just def => pure (fullShow n ++ " = " ++ show def ++ "\n")
+                         Nothing ⇒ pure ""
+                         Just def ⇒ pure (fullShow n ++ " = " ++ show def ++ "\n")
 
-dumpLifted : String -> List (Name, LiftedDef) -> Core ()
+dumpLifted : String → List (Name, LiftedDef) → Core ()
 dumpLifted fn lns
     = do let cstrs = map dumpDef lns
          Right () <- coreLift $ writeFile fn (fastAppend cstrs)
-               | Left err => throw (FileErr fn err)
+               | Left err ⇒ throw (FileErr fn err)
          pure ()
   where
-    fullShow : Name -> String
+    fullShow : Name → String
     fullShow (DN _ n) = show n
     fullShow n = show n
 
-    dumpDef : (Name, LiftedDef) -> String
+    dumpDef : (Name, LiftedDef) → String
     dumpDef (n, d) = fullShow n ++ " = " ++ show d ++ "\n"
 
-dumpANF : String -> List (Name, ANFDef) -> Core ()
+dumpANF : String → List (Name, ANFDef) → Core ()
 dumpANF fn lns
     = do let cstrs = map dumpDef lns
          Right () <- coreLift $ writeFile fn (fastAppend cstrs)
-               | Left err => throw (FileErr fn err)
+               | Left err ⇒ throw (FileErr fn err)
          pure ()
   where
-    fullShow : Name -> String
+    fullShow : Name → String
     fullShow (DN _ n) = show n
     fullShow n = show n
 
-    dumpDef : (Name, ANFDef) -> String
+    dumpDef : (Name, ANFDef) → String
     dumpDef (n, d) = fullShow n ++ " = " ++ show d ++ "\n"
 
-dumpVMCode : String -> List (Name, VMDef) -> Core ()
+dumpVMCode : String → List (Name, VMDef) → Core ()
 dumpVMCode fn lns
     = do let cstrs = map dumpDef lns
          Right () <- coreLift $ writeFile fn (fastAppend cstrs)
-               | Left err => throw (FileErr fn err)
+               | Left err ⇒ throw (FileErr fn err)
          pure ()
   where
-    fullShow : Name -> String
+    fullShow : Name → String
     fullShow (DN _ n) = show n
     fullShow n = show n
 
-    dumpDef : (Name, VMDef) -> String
+    dumpDef : (Name, VMDef) → String
     dumpDef (n, d) = fullShow n ++ " = " ++ show d ++ "\n"
 
 -- Find all the names which need compiling, from a given expression, and compile
 -- them to CExp form (and update that in the Defs).
 -- Return the names, the type tags, and a compiled version of the expression
 export
-getCompileData : {auto c : Ref Ctxt Defs} ->
-                 UsePhase -> ClosedTerm -> Core CompileData
+getCompileData : {auto c : Ref Ctxt Defs} →
+                 UsePhase → ClosedTerm → Core CompileData
 getCompileData phase tm_in
     = do defs <- get Ctxt
          sopts <- getSession
@@ -289,7 +289,7 @@ getCompileData phase tm_in
                       ldefs ++ concat lifted_in
 
          anf <- if phase >= ANF
-                   then logTime "Get ANF" $ traverse (\ (n, d) => pure (n, !(toANF d))) lifted
+                   then logTime "Get ANF" $ traverse (\ (n, d) ⇒ pure (n, !(toANF d))) lifted
                    else pure []
          vmcode <- if phase >= VMCode
                       then logTime "Get VM Code" $ pure (allDefs anf)
@@ -297,19 +297,19 @@ getCompileData phase tm_in
 
          defs <- get Ctxt
          maybe (pure ())
-               (\f => do coreLift $ putStrLn $ "Dumping case trees to " ++ f
+               (\f ⇒ do coreLift $ putStrLn $ "Dumping case trees to " ++ f
                          dumpCases defs f rcns)
                (dumpcases sopts)
          maybe (pure ())
-               (\f => do coreLift $ putStrLn $ "Dumping lambda lifted defs to " ++ f
+               (\f ⇒ do coreLift $ putStrLn $ "Dumping lambda lifted defs to " ++ f
                          dumpLifted f lifted)
                (dumplifted sopts)
          maybe (pure ())
-               (\f => do coreLift $ putStrLn $ "Dumping ANF defs to " ++ f
+               (\f ⇒ do coreLift $ putStrLn $ "Dumping ANF defs to " ++ f
                          dumpANF f anf)
                (dumpanf sopts)
          maybe (pure ())
-               (\f => do coreLift $ putStrLn $ "Dumping VM defs to " ++ f
+               (\f ⇒ do coreLift $ putStrLn $ "Dumping VM defs to " ++ f
                          dumpVMCode f vmcode)
                (dumpvmcode sopts)
 
@@ -321,33 +321,33 @@ getCompileData phase tm_in
                              (mapMaybe id namedefs)
                              lifted anf vmcode)
   where
-    nonErased : Name -> Core Bool
+    nonErased : Name → Core Bool
     nonErased n
         = do defs <- get Ctxt
              Just gdef <- lookupCtxtExact n (gamma defs)
-                  | Nothing => pure True
+                  | Nothing ⇒ pure True
              pure (multiplicity gdef /= erased)
 
 -- Some things missing from Prelude.File
 
 ||| check to see if a given file exists
 export
-exists : String -> IO Bool
+exists : String → IO Bool
 exists f
     = do Right ok <- openFile f Read
-             | Left err => pure False
+             | Left err ⇒ pure False
          closeFile ok
          pure True
 
 ||| generate a temporary file/name
 export
 tmpName : IO String
-tmpName = foreign FFI_C "tmpnam" (Ptr -> IO String) null
+tmpName = foreign FFI_C "tmpnam" (Ptr → IO String) null
 
 ||| change the access rights for a file
 export
-chmod : String -> Int -> IO ()
-chmod f m = foreign FFI_C "chmod" (String -> Int -> IO ()) f m
+chmod : String → Int → IO ()
+chmod f m = foreign FFI_C "chmod" (String → Int → IO ()) f m
 
 -- Parse a calling convention into a backend/target for the call, and
 -- a comma separated list of any other location data.
@@ -357,21 +357,21 @@ chmod f m = foreign FFI_C "chmod" (String -> Int -> IO ()) f m
 -- Returns Nothing if the string is empty (which a backend can interpret
 -- however it likes)
 export
-parseCC : String -> Maybe (String, List String)
+parseCC : String → Maybe (String, List String)
 parseCC "" = Nothing
 parseCC str
     = case span (/= ':') str of
-           (target, "") => Just (trim target, [])
-           (target, opts) => Just (trim target,
+           (target, "") ⇒ Just (trim target, [])
+           (target, opts) ⇒ Just (trim target,
                                    map trim (getOpts
                                        (assert_total (strTail opts))))
   where
-    getOpts : String -> List String
+    getOpts : String → List String
     getOpts "" = []
     getOpts str
         = case span (/= ',') str of
-               (opt, "") => [opt]
-               (opt, rest) => opt :: getOpts (assert_total (strTail rest))
+               (opt, "") ⇒ [opt]
+               (opt, rest) ⇒ opt :: getOpts (assert_total (strTail rest))
 
 export
 dylib_suffix : String
@@ -381,18 +381,18 @@ dylib_suffix
            "so"
 
 export
-locate : {auto c : Ref Ctxt Defs} ->
-         String -> Core (String, String)
+locate : {auto c : Ref Ctxt Defs} →
+         String → Core (String, String)
 locate libspec
     = do -- Attempt to turn libspec into an appropriate filename for the system
          let fname
               = case words libspec of
-                     [] => ""
-                     [fn] => if '.' `elem` unpack fn
+                     [] ⇒ ""
+                     [fn] ⇒ if '.' `elem` unpack fn
                                 then fn -- full filename given
                                 else -- add system extension
                                      fn ++ "." ++ dylib_suffix
-                     (fn :: ver :: _) =>
+                     (fn :: ver :: _) ⇒
                           -- library and version given, build path name as
                           -- appropriate for the system
                           cond [(dylib_suffix == "dll",
@@ -402,18 +402,18 @@ locate libspec
                                 (fn ++ "." ++ dylib_suffix ++ "." ++ ver)
 
          fullname <- catch (findLibraryFile fname)
-                           (\err => -- assume a system library so not
+                           (\err ⇒ -- assume a system library so not
                                     -- in our library path
                                     pure fname)
          pure (fname, fullname)
 
 export
-copyLib : (String, String) -> Core ()
+copyLib : (String, String) → Core ()
 copyLib (lib, fullname)
     = if lib == fullname
          then pure ()
          else do Right bin <- coreLift $ readFromFile fullname
-                    | Left err => throw (FileErr fullname err)
+                    | Left err ⇒ throw (FileErr fullname err)
                  Right _ <- coreLift $ writeToFile lib bin
-                    | Left err => throw (FileErr lib err)
+                    | Left err ⇒ throw (FileErr lib err)
                  pure ()

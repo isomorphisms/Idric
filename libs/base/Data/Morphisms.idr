@@ -3,23 +3,23 @@ module Data.Morphisms
 public export
 record Morphism a b where
   constructor Mor
-  applyMor : a -> b
+  applyMor : a → b
 
 infixr 1 ~>
 
 export
-(~>) : Type -> Type -> Type
+(~>) : Type → Type → Type
 (~>) = Morphism
 
 public export
 record Endomorphism a where
   constructor Endo
-  applyEndo : a -> a
+  applyEndo : a → a
 
 public export
-record Kleislimorphism (f : Type -> Type) a b where
+record Kleislimorphism (f : Type → Type) a b where
   constructor Kleisli
-  applyKleisli : a -> f b
+  applyKleisli : a → f b
 
 export
 Functor (Morphism r) where
@@ -28,19 +28,19 @@ Functor (Morphism r) where
 export
 Applicative (Morphism r) where
   pure a = Mor $ const a
-  (Mor f) <*> (Mor a) = Mor $ \r => f r $ a r
+  (Mor f) <*> (Mor a) = Mor $ \r ⇒ f r $ a r
 
 export
 Monad (Morphism r) where
-  (Mor h) >>= f = Mor $ \r => applyMor (f $ h r) r
+  (Mor h) >>= f = Mor $ \r ⇒ applyMor (f $ h r) r
 
 export
-Semigroup a => Semigroup (Morphism r a) where
-  f <+> g = Mor $ \r => (applyMor f) r <+> (applyMor g) r
+Semigroup a ⇒ Semigroup (Morphism r a) where
+  f <+> g = Mor $ \r ⇒ (applyMor f) r <+> (applyMor g) r
 
 export
-Monoid a => Monoid (Morphism r a) where
-  neutral = Mor \r => neutral
+Monoid a ⇒ Monoid (Morphism r a) where
+  neutral = Mor \r ⇒ neutral
 
 export
 Semigroup (Endomorphism a) where
@@ -51,28 +51,28 @@ Monoid (Endomorphism a) where
   neutral = Endo id
 
 export
-Functor f => Functor (Kleislimorphism f a) where
+Functor f ⇒ Functor (Kleislimorphism f a) where
   map f (Kleisli g) = Kleisli (map f . g)
 
 export
-Applicative f => Applicative (Kleislimorphism f a) where
+Applicative f ⇒ Applicative (Kleislimorphism f a) where
   pure a = Kleisli $ const $ pure a
-  (Kleisli f) <*> (Kleisli a) = Kleisli $ \r => f r <*> a r
+  (Kleisli f) <*> (Kleisli a) = Kleisli $ \r ⇒ f r <*> a r
 
 export
-Monad f => Monad (Kleislimorphism f a) where
-  (Kleisli f) >>= g = Kleisli $ \r => do
+Monad f ⇒ Monad (Kleislimorphism f a) where
+  (Kleisli f) >>= g = Kleisli $ \r ⇒ do
     k1 <- f r
     applyKleisli (g k1) r
 
 -- Applicative is a bit too strong, but there is no suitable superclass
 export
-(Semigroup a, Applicative f) => Semigroup (Kleislimorphism f r a) where
-  f <+> g = Kleisli \r => (<+>) <$> (applyKleisli f) r <*> (applyKleisli g) r
+(Semigroup a, Applicative f) ⇒ Semigroup (Kleislimorphism f r a) where
+  f <+> g = Kleisli \r ⇒ (<+>) <$> (applyKleisli f) r <*> (applyKleisli g) r
 
 export
-(Monoid a, Applicative f) => Monoid (Kleislimorphism f r a) where
-  neutral = Kleisli \r => pure neutral
+(Monoid a, Applicative f) ⇒ Monoid (Kleislimorphism f r a) where
+  neutral = Kleisli \r ⇒ pure neutral
 
 export
 Cast (Endomorphism a) (Morphism a a) where

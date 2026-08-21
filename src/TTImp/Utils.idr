@@ -6,33 +6,33 @@ import TTImp.TTImp
 
 %default covering
 
-lowerFirst : String -> Bool
+lowerFirst : String → Bool
 lowerFirst "" = False
 lowerFirst str = assert_total (isLower (strHead str))
 
 export
-getUnique : List String -> String -> String
+getUnique : List String → String → String
 getUnique xs x = if x `elem` xs then getUnique xs (x ++ "'") else x
 
 -- Bind lower case names in argument position
 -- Don't go under case, let, or local bindings, or IAlternative
 export
-findBindableNames : (arg : Bool) -> List Name -> (used : List String) ->
-                    RawImp -> List (String, String)
+findBindableNames : (arg : Bool) → List Name → (used : List String) →
+                    RawImp → List (String, String)
 findBindableNames True env used (IVar fc (UN n))
     = if not (UN n `elem` env) && lowerFirst n
          then [(n, getUnique used n)]
          else []
 findBindableNames arg env used (IPi fc rig p mn aty retty)
     = let env' = case mn of
-                      Nothing => env
-                      Just n => n :: env in
+                      Nothing ⇒ env
+                      Just n ⇒ n :: env in
           findBindableNames True env' used aty ++
           findBindableNames True env' used retty
 findBindableNames arg env used (ILam fc rig p mn aty sc)
     = let env' = case mn of
-                      Nothing => env
-                      Just n => n :: env in
+                      Nothing ⇒ env
+                      Just n ⇒ n :: env in
       findBindableNames True env' used aty ++
       findBindableNames True env' used sc
 findBindableNames arg env used (IApp fc fn av)
@@ -62,7 +62,7 @@ findBindableNames arg env used tm = []
 -- Find the names in a type that affect the 'using' declarations (i.e. 
 -- the ones that mean the declaration will be added).
 export
-findIBindVars : RawImp -> List Name
+findIBindVars : RawImp → List Name
 findIBindVars (IPi fc rig p mn aty retty)
     = findIBindVars aty ++ findIBindVars retty
 findIBindVars (ILam fc rig p mn aty sc)
@@ -89,20 +89,20 @@ findIBindVars tm = []
 
 mutual
   export
-  substNames : List Name -> List (Name, RawImp) ->
-               RawImp -> RawImp
+  substNames : List Name → List (Name, RawImp) →
+               RawImp → RawImp
   substNames bound ps (IVar fc n)
       = if not (n `elem` bound)
            then case lookup n ps of
-                     Just t => t
-                     _ => IVar fc n
+                     Just t ⇒ t
+                     _ ⇒ IVar fc n
            else IVar fc n
   substNames bound ps (IPi fc r p mn argTy retTy)
-      = let bound' = maybe bound (\n => n :: bound) mn in
+      = let bound' = maybe bound (\n ⇒ n :: bound) mn in
             IPi fc r p mn (substNames bound ps argTy)
                           (substNames bound' ps retTy)
   substNames bound ps (ILam fc r p mn argTy scope)
-      = let bound' = maybe bound (\n => n :: bound) mn in
+      = let bound' = maybe bound (\n ⇒ n :: bound) mn in
             ILam fc r p mn (substNames bound ps argTy)
                            (substNames bound' ps scope)
   substNames bound ps (ILet fc r n nTy nVal scope)
@@ -140,8 +140,8 @@ mutual
   substNames bound ps tm = tm
 
   export
-  substNamesClause : List Name -> List (Name, RawImp) ->
-                     ImpClause -> ImpClause
+  substNamesClause : List Name → List (Name, RawImp) →
+                     ImpClause → ImpClause
   substNamesClause bound ps (PatClause fc lhs rhs)
       = let bound' = map UN (map snd (findBindableNames True bound [] lhs))
                         ++ bound in
@@ -155,21 +155,21 @@ mutual
   substNamesClause bound ps (ImpossibleClause fc lhs)
       = ImpossibleClause fc (substNames bound [] lhs)
 
-  substNamesTy : List Name -> List (Name, RawImp) ->
-                  ImpTy -> ImpTy
+  substNamesTy : List Name → List (Name, RawImp) →
+                  ImpTy → ImpTy
   substNamesTy bound ps (MkImpTy fc n ty)
       = MkImpTy fc n (substNames bound ps ty)
 
-  substNamesData : List Name -> List (Name, RawImp) ->
-                   ImpData -> ImpData
+  substNamesData : List Name → List (Name, RawImp) →
+                   ImpData → ImpData
   substNamesData bound ps (MkImpData fc n con opts dcons)
       = MkImpData fc n (substNames bound ps con) opts
                   (map (substNamesTy bound ps) dcons)
   substNamesData bound ps (MkImpLater fc n con)
       = MkImpLater fc n (substNames bound ps con)
 
-  substNamesDecl : List Name -> List (Name, RawImp ) ->
-                   ImpDecl -> ImpDecl
+  substNamesDecl : List Name → List (Name, RawImp ) →
+                   ImpDecl → ImpDecl
   substNamesDecl bound ps (IClaim fc r vis opts td)
       = IClaim fc r vis opts (substNamesTy bound ps td)
   substNamesDecl bound ps (IDef fc n cs)
@@ -182,7 +182,7 @@ mutual
 
 mutual
   export
-  substLoc : FC -> RawImp -> RawImp
+  substLoc : FC → RawImp → RawImp
   substLoc fc' (IVar fc n) = IVar fc' n
   substLoc fc' (IPi fc r p mn argTy retTy)
       = IPi fc' r p mn (substLoc fc' argTy)
@@ -223,7 +223,7 @@ mutual
   substLoc fc' tm = tm
 
   export
-  substLocClause : FC -> ImpClause -> ImpClause
+  substLocClause : FC → ImpClause → ImpClause
   substLocClause fc' (PatClause fc lhs rhs)
       = PatClause fc' (substLoc fc' lhs)
                       (substLoc fc' rhs)
@@ -234,18 +234,18 @@ mutual
   substLocClause fc' (ImpossibleClause fc lhs)
       = ImpossibleClause fc' (substLoc fc' lhs)
 
-  substLocTy : FC -> ImpTy -> ImpTy
+  substLocTy : FC → ImpTy → ImpTy
   substLocTy fc' (MkImpTy fc n ty)
       = MkImpTy fc' n (substLoc fc' ty)
 
-  substLocData : FC -> ImpData -> ImpData
+  substLocData : FC → ImpData → ImpData
   substLocData fc' (MkImpData fc n con opts dcons)
       = MkImpData fc' n (substLoc fc' con) opts
                         (map (substLocTy fc') dcons)
   substLocData fc' (MkImpLater fc n con)
       = MkImpLater fc' n (substLoc fc' con)
 
-  substLocDecl : FC -> ImpDecl -> ImpDecl
+  substLocDecl : FC → ImpDecl → ImpDecl
   substLocDecl fc' (IClaim fc r vis opts td)
       = IClaim fc' r vis opts (substLocTy fc' td)
   substLocDecl fc' (IDef fc n cs)
@@ -256,17 +256,17 @@ mutual
       = INamespace fc' ns (map (substLocDecl fc') ds)
   substLocDecl fc' d = d
 
-nameNum : String -> (String, Int)
+nameNum : String → (String, Int)
 nameNum str
     = case span isDigit (reverse str) of
-           ("", _) => (str, 0)
+           ("", _) ⇒ (str, 0)
            (nums, pre)
-              => case unpack pre of
-                      ('_' :: rest) => (reverse (pack rest), cast (reverse nums))
-                      _ => (str, 0)
+              ⇒ case unpack pre of
+                      ('_' :: rest) ⇒ (reverse (pack rest), cast (reverse nums))
+                      _ ⇒ (str, 0)
 
 export
-uniqueName : Defs -> List String -> String -> Core String
+uniqueName : Defs → List String → String → Core String
 uniqueName defs used n
     = if !usedName
          then uniqueName defs used (next n)
@@ -275,10 +275,10 @@ uniqueName defs used n
     usedName : Core Bool
     usedName
         = case !(lookupTyName (UN n) (gamma defs)) of
-               [] => pure $ n `elem` used
-               _ => pure True
+               [] ⇒ pure $ n `elem` used
+               _ ⇒ pure True
 
-    next : String -> String
+    next : String → String
     next str
         = let (n, i) = nameNum str in
               n ++ "_" ++ show (i + 1)

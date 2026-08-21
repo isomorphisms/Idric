@@ -18,41 +18,41 @@ import Data.Vect
 mutual
   public export
   data AVar : Type where
-       ALocal : Int -> AVar
+       ALocal : Int → AVar
        ANull : AVar
 
   public export
   data ANF : Type where
-    AV : FC -> AVar -> ANF
-    AAppName : FC -> Name -> List AVar -> ANF
-    AUnderApp : FC -> Name -> (missing : Nat) -> (args : List AVar) -> ANF
-    AApp : FC -> (closure : AVar) -> (arg : AVar) -> ANF
-    ALet : FC -> (var : Int) -> ANF -> ANF -> ANF
-    ACon : FC -> Name -> (tag : Maybe Int) -> List AVar -> ANF
-    AOp : FC -> PrimFn arity -> Vect arity AVar -> ANF
-    AExtPrim : FC -> Name -> List AVar -> ANF
-    AConCase : FC -> AVar -> List AConAlt -> Maybe ANF -> ANF
-    AConstCase : FC -> AVar -> List AConstAlt -> Maybe ANF -> ANF
-    APrimVal : FC -> Constant -> ANF
-    AErased : FC -> ANF
-    ACrash : FC -> String -> ANF
+    AV : FC → AVar → ANF
+    AAppName : FC → Name → List AVar → ANF
+    AUnderApp : FC → Name → (missing : Nat) → (args : List AVar) → ANF
+    AApp : FC → (closure : AVar) → (arg : AVar) → ANF
+    ALet : FC → (var : Int) → ANF → ANF → ANF
+    ACon : FC → Name → (tag : Maybe Int) → List AVar → ANF
+    AOp : FC → PrimFn arity → Vect arity AVar → ANF
+    AExtPrim : FC → Name → List AVar → ANF
+    AConCase : FC → AVar → List AConAlt → Maybe ANF → ANF
+    AConstCase : FC → AVar → List AConstAlt → Maybe ANF → ANF
+    APrimVal : FC → Constant → ANF
+    AErased : FC → ANF
+    ACrash : FC → String → ANF
 
   public export
   data AConAlt : Type where
-       MkAConAlt : Name -> (tag : Maybe Int) -> (args : List Int) ->
-                   ANF -> AConAlt
+       MkAConAlt : Name → (tag : Maybe Int) → (args : List Int) →
+                   ANF → AConAlt
 
   public export
   data AConstAlt : Type where
-       MkAConstAlt : Constant -> ANF -> AConstAlt
+       MkAConstAlt : Constant → ANF → AConstAlt
 
 public export
 data ANFDef : Type where
-     MkAFun : (args : List Int) -> ANF -> ANFDef
-     MkACon : (tag : Maybe Int) -> (arity : Nat) -> ANFDef
-     MkAForeign : (ccs : List String) -> (fargs : List CFType) ->
-                  CFType -> ANFDef
-     MkAError : ANF -> ANFDef
+     MkAFun : (args : List Int) → ANF → ANFDef
+     MkACon : (tag : Maybe Int) → (arity : Nat) → ANFDef
+     MkAForeign : (ccs : List String) → (fargs : List CFType) →
+                  CFType → ANFDef
+     MkAError : ANF → ANFDef
 
 mutual
   export
@@ -94,7 +94,7 @@ mutual
         = "%conalt " ++ show n ++ 
              "(" ++ showSep ", " (map showArg args) ++ ") => " ++ show sc
       where
-        showArg : Int -> String
+        showArg : Int → String
         showArg i = "v" ++ show i
 
   export
@@ -112,25 +112,25 @@ Show ANFDef where
         show args ++ " -> " ++ show ret
   show (MkAError exp) = "Error: " ++ show exp
 
-data AVars : List Name -> Type where
+data AVars : List Name → Type where
      Nil : AVars []
-     (::) : Int -> AVars xs -> AVars (x :: xs)
+     (::) : Int → AVars xs → AVars (x :: xs)
 
 data Next : Type where
 
-nextVar : {auto v : Ref Next Int} ->
+nextVar : {auto v : Ref Next Int} →
           Core Int
 nextVar
     = do i <- get Next
          put Next (i + 1)
          pure i
 
-lookup : IsVar x idx vs -> AVars vs -> Int
+lookup : IsVar x idx vs → AVars vs → Int
 lookup First (x :: xs) = x
 lookup (Later p) (x :: xs) = lookup p xs
 
-bindArgs : {auto v : Ref Next Int} ->
-           List ANF -> Core (List (AVar, Maybe ANF))
+bindArgs : {auto v : Ref Next Int} →
+           List ANF → Core (List (AVar, Maybe ANF))
 bindArgs [] = pure []
 bindArgs (AV fc var :: xs)
     = do xs' <- bindArgs xs
@@ -143,42 +143,42 @@ bindArgs (x :: xs)
          xs' <- bindArgs xs
          pure $ (ALocal i, Just x) :: xs'
 
-letBind : {auto v : Ref Next Int} ->
-          FC -> List ANF -> (List AVar -> ANF) -> Core ANF
+letBind : {auto v : Ref Next Int} →
+          FC → List ANF → (List AVar → ANF) → Core ANF
 letBind fc args f
     = do bargs <- bindArgs args
          pure $ doBind [] bargs
   where
-    doBind : List AVar -> List (AVar, Maybe ANF) -> ANF
+    doBind : List AVar → List (AVar, Maybe ANF) → ANF
     doBind vs [] = f (reverse vs)
     doBind vs ((ALocal i, Just t) :: xs)
         = ALet fc i t (doBind (ALocal i :: vs) xs)
     doBind vs ((var, _) :: xs) = doBind (var :: vs) xs
 
-toVect : (n : Nat) -> List a -> Maybe (Vect n a)
+toVect : (n : Nat) → List a → Maybe (Vect n a)
 toVect Z [] = Just []
 toVect (S k) (x :: xs)
     = do xs' <- toVect k xs
          pure (x :: xs')
 toVect _ _ = Nothing
 
-mlet : {auto v : Ref Next Int} ->
-       FC -> ANF -> (AVar -> ANF) -> Core ANF
+mlet : {auto v : Ref Next Int} →
+       FC → ANF → (AVar → ANF) → Core ANF
 mlet fc (AV _ var) sc = pure $ sc var
 mlet fc val sc
     = do i <- nextVar
          pure $ ALet fc i val (sc (ALocal i)) 
 
 mutual
-  anfArgs : {auto v : Ref Next Int} ->
-            FC -> AVars vars ->
-            List (Lifted vars) -> (List AVar -> ANF) -> Core ANF
+  anfArgs : {auto v : Ref Next Int} →
+            FC → AVars vars →
+            List (Lifted vars) → (List AVar → ANF) → Core ANF
   anfArgs fc vs args f
       = do args' <- traverse (anf vs) args
            letBind fc args' f
 
-  anf : {auto v : Ref Next Int} ->
-        AVars vars -> Lifted vars -> Core ANF
+  anf : {auto v : Ref Next Int} →
+        AVars vars → Lifted vars → Core ANF
   anf vs (LLocal fc p) = pure $ AV fc (ALocal (lookup p vs))
   anf vs (LAppName fc n args)
       = anfArgs fc vs args (AAppName fc n)
@@ -186,9 +186,9 @@ mutual
       = anfArgs fc vs args (AUnderApp fc n m)
   anf vs (LApp fc f a)
       = anfArgs fc vs [f, a]
-                (\args => case args of
-                               [fvar, avar] => AApp fc fvar avar
-                               _ => ACrash fc "Can't happen (AApp)")
+                (\args ⇒ case args of
+                               [fvar, avar] ⇒ AApp fc fvar avar
+                               _ ⇒ ACrash fc "Can't happen (AApp)")
   anf vs (LLet fc x val sc)
       = do i <- nextVar
            let vs' = i :: vs
@@ -198,33 +198,33 @@ mutual
   anf vs (LOp {arity} fc op args)
       = do args' <- traverse (anf vs) (toList args)
            letBind fc args'
-                (\args => case toVect arity args of
-                               Nothing => ACrash fc "Can't happen (AOp)"
-                               Just argsv => AOp fc op argsv)
+                (\args ⇒ case toVect arity args of
+                               Nothing ⇒ ACrash fc "Can't happen (AOp)"
+                               Just argsv ⇒ AOp fc op argsv)
   anf vs (LExtPrim fc p args)
       = anfArgs fc vs args (AExtPrim fc p)
   anf vs (LConCase fc scr alts def)
       = do scr' <- anf vs scr
            alts' <- traverse (anfConAlt vs) alts
            def' <- traverseOpt (anf vs) def
-           mlet fc scr' (\x => AConCase fc x alts' def')
+           mlet fc scr' (\x ⇒ AConCase fc x alts' def')
   anf vs (LConstCase fc scr alts def)
       = do scr' <- anf vs scr
            alts' <- traverse (anfConstAlt vs) alts
            def' <- traverseOpt (anf vs) def
-           mlet fc scr' (\x => AConstCase fc x alts' def')
+           mlet fc scr' (\x ⇒ AConstCase fc x alts' def')
   anf vs (LPrimVal fc c) = pure $ APrimVal fc c
   anf vs (LErased fc) = pure $ AErased fc
   anf vs (LCrash fc err) = pure $ ACrash fc err
 
-  anfConAlt : {auto v : Ref Next Int} ->
-              AVars vars -> LiftedConAlt vars -> Core AConAlt
+  anfConAlt : {auto v : Ref Next Int} →
+              AVars vars → LiftedConAlt vars → Core AConAlt
   anfConAlt vs (MkLConAlt n t args sc)
       = do (is, vs') <- bindArgs args vs
            pure $ MkAConAlt n t is !(anf vs' sc)
     where
-      bindArgs : {auto v : Ref Next Int} ->
-                 (args : List Name) -> AVars vars' ->
+      bindArgs : {auto v : Ref Next Int} →
+                 (args : List Name) → AVars vars' →
                  Core (List Int, AVars (args ++ vars'))
       bindArgs [] vs = pure ([], vs)
       bindArgs (n :: ns) vs
@@ -232,13 +232,13 @@ mutual
                (is, vs') <- bindArgs ns vs
                pure (i :: is, i :: vs')
 
-  anfConstAlt : {auto v : Ref Next Int} ->
-                AVars vars -> LiftedConstAlt vars -> Core AConstAlt
+  anfConstAlt : {auto v : Ref Next Int} →
+                AVars vars → LiftedConstAlt vars → Core AConstAlt
   anfConstAlt vs (MkLConstAlt c sc)
       = pure $ MkAConstAlt c !(anf vs sc)
 
 export
-toANF : LiftedDef -> Core ANFDef
+toANF : LiftedDef → Core ANFDef
 toANF (MkLFun args scope sc)
     = do v <- newRef Next (the Int 0)
          (iargs, vsNil) <- bindArgs args []
@@ -247,8 +247,8 @@ toANF (MkLFun args scope sc)
          (iargs', vs) <- bindArgs scope vs
          pure $ MkAFun (iargs ++ reverse iargs') !(anf vs sc)
   where
-    bindArgs : {auto v : Ref Next Int} ->
-               (args : List Name) -> AVars vars' ->
+    bindArgs : {auto v : Ref Next Int} →
+               (args : List Name) → AVars vars' →
                Core (List Int, AVars (args ++ vars'))
     bindArgs [] vs = pure ([], vs)
     bindArgs (n :: ns) vs

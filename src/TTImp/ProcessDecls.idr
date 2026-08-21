@@ -20,12 +20,12 @@ import TTImp.ProcessType
 import TTImp.TTImp
 
 -- Implements processDecl, declared in TTImp.Elab.Check
-process : {vars : _} ->
-          {auto c : Ref Ctxt Defs} ->
-          {auto m : Ref MD Metadata} ->
-          {auto u : Ref UST UState} ->
-          List ElabOpt ->
-          NestedNames vars -> Env Term vars -> ImpDecl -> Core ()
+process : {vars : _} →
+          {auto c : Ref Ctxt Defs} →
+          {auto m : Ref MD Metadata} →
+          {auto u : Ref UST UState} →
+          List ElabOpt →
+          NestedNames vars → Env Term vars → ImpDecl → Core ()
 process eopts nest env (IClaim fc rig vis opts ty)
     = processType eopts nest env fc rig vis opts ty
 process eopts nest env (IData fc vis ddef)
@@ -53,31 +53,31 @@ process eopts nest env (ILog n)
 TTImp.Elab.Check.processDecl = process
 
 export
-processDecls : {vars : _} ->
-               {auto c : Ref Ctxt Defs} ->
-               {auto m : Ref MD Metadata} ->
-               {auto u : Ref UST UState} ->
-               NestedNames vars -> Env Term vars -> List ImpDecl -> Core Bool
+processDecls : {vars : _} →
+               {auto c : Ref Ctxt Defs} →
+               {auto m : Ref MD Metadata} →
+               {auto u : Ref UST UState} →
+               NestedNames vars → Env Term vars → List ImpDecl → Core Bool
 processDecls nest env decls
     = do traverse_ (processDecl [] nest env) decls
          pure True -- TODO: False on error
 
-processTTImpDecls : {vars : _} ->
-                    {auto c : Ref Ctxt Defs} ->
-                    {auto m : Ref MD Metadata} ->
-                    {auto u : Ref UST UState} ->
-                    NestedNames vars -> Env Term vars -> List ImpDecl -> Core Bool
+processTTImpDecls : {vars : _} →
+                    {auto c : Ref Ctxt Defs} →
+                    {auto m : Ref MD Metadata} →
+                    {auto u : Ref UST UState} →
+                    NestedNames vars → Env Term vars → List ImpDecl → Core Bool
 processTTImpDecls {vars} nest env decls
-    = do traverse_ (\d => do d' <- bindNames d
+    = do traverse_ (\d ⇒ do d' <- bindNames d
                              processDecl [] nest env d') decls
          pure True -- TODO: False on error
   where
-    bindConNames : ImpTy -> Core ImpTy
+    bindConNames : ImpTy → Core ImpTy
     bindConNames (MkImpTy fc n ty)
         = do ty' <- bindTypeNames [] vars ty
              pure (MkImpTy fc n ty')
 
-    bindDataNames : ImpData -> Core ImpData
+    bindDataNames : ImpData → Core ImpData
     bindDataNames (MkImpData fc n t opts cons)
         = do t' <- bindTypeNames [] vars t
              cons' <- traverse bindConNames cons
@@ -87,7 +87,7 @@ processTTImpDecls {vars} nest env decls
              pure (MkImpLater fc n t')
 
     -- bind implicits to make raw TTImp source a bit friendlier
-    bindNames : ImpDecl -> Core ImpDecl
+    bindNames : ImpDecl → Core ImpDecl
     bindNames (IClaim fc c vis opts (MkImpTy tfc n ty))
         = do ty' <- bindTypeNames [] vars ty
              pure (IClaim fc c vis opts (MkImpTy tfc n ty'))
@@ -97,21 +97,21 @@ processTTImpDecls {vars} nest env decls
     bindNames d = pure d
 
 export
-processTTImpFile : {auto c : Ref Ctxt Defs} ->
-                   {auto m : Ref MD Metadata} ->
-                   {auto u : Ref UST UState} ->
-                   String -> Core Bool
+processTTImpFile : {auto c : Ref Ctxt Defs} →
+                   {auto m : Ref MD Metadata} →
+                   {auto u : Ref UST UState} →
+                   String → Core Bool
 processTTImpFile fname
     = do Right tti <- logTime "Parsing" $ coreLift $ parseFile fname
                             (do decls <- prog fname
                                 eoi
                                 pure decls)
-               | Left err => do coreLift (putStrLn (show err))
+               | Left err ⇒ do coreLift (putStrLn (show err))
                                 pure False
          logTime "Elaboration" $
             catch (do processTTImpDecls (MkNested []) [] tti
                       Nothing <- checkDelayedHoles
-                          | Just err => throw err
+                          | Just err ⇒ throw err
                       pure True)
-                  (\err => do coreLift (printLn err)
+                  (\err ⇒ do coreLift (printLn err)
                               pure False)

@@ -16,8 +16,8 @@ public export
 data NameType : Type where
      Bound   : NameType
      Func    : NameType
-     DataCon : (tag : Int) -> (arity : Nat) -> NameType
-     TyCon   : (tag : Int) -> (arity : Nat) -> NameType
+     DataCon : (tag : Int) → (arity : Nat) → NameType
+     TyCon   : (tag : Int) → (arity : Nat) → NameType
 
 public export
 data Constant
@@ -36,19 +36,19 @@ data Constant
     | WorldType
 
 export
-constantEq : (x, y : Constant) -> Maybe (x = y)
+constantEq : (x, y : Constant) → Maybe (x = y)
 constantEq (I x) (I y) = case decEq x y of
-                              Yes Refl => Just Refl
-                              No contra => Nothing
+                              Yes Refl ⇒ Just Refl
+                              No contra ⇒ Nothing
 constantEq (BI x) (BI y) = case decEq x y of
-                                Yes Refl => Just Refl
-                                No contra => Nothing
+                                Yes Refl ⇒ Just Refl
+                                No contra ⇒ Nothing
 constantEq (Str x) (Str y) = case decEq x y of
-                                  Yes Refl => Just Refl
-                                  No contra => Nothing
+                                  Yes Refl ⇒ Just Refl
+                                  No contra ⇒ Nothing
 constantEq (Ch x) (Ch y) = case decEq x y of
-                                Yes Refl => Just Refl
-                                No contra => Nothing
+                                Yes Refl ⇒ Just Refl
+                                No contra ⇒ Nothing
 constantEq (Db x) (Db y) = Nothing -- no DecEq for Doubles!
 constantEq WorldVal WorldVal = Just Refl
 constantEq IntType IntType = Just Refl
@@ -92,8 +92,8 @@ Eq Constant where
 
 -- for typecase
 export
-constTag : Constant -> Int
--- 1 = ->, 2 = Type
+constTag : Constant → Int
+-- 1 = →, 2 = Type
 constTag IntType = 3
 constTag IntegerType = 4
 constTag StringType = 5
@@ -104,25 +104,25 @@ constTag _ = 0
 
 -- All the internal operators, parameterised by their arity
 public export
-data PrimFn : Nat -> Type where
-     Add : (ty : Constant) -> PrimFn 2
-     Sub : (ty : Constant) -> PrimFn 2
-     Mul : (ty : Constant) -> PrimFn 2
-     Div : (ty : Constant) -> PrimFn 2
-     Mod : (ty : Constant) -> PrimFn 2
-     Neg : (ty : Constant) -> PrimFn 1
-     ShiftL : (ty : Constant) -> PrimFn 2
-     ShiftR : (ty : Constant) -> PrimFn 2
+data PrimFn : Nat → Type where
+     Add : (ty : Constant) → PrimFn 2
+     Sub : (ty : Constant) → PrimFn 2
+     Mul : (ty : Constant) → PrimFn 2
+     Div : (ty : Constant) → PrimFn 2
+     Mod : (ty : Constant) → PrimFn 2
+     Neg : (ty : Constant) → PrimFn 1
+     ShiftL : (ty : Constant) → PrimFn 2
+     ShiftR : (ty : Constant) → PrimFn 2
 
-     BAnd : (ty : Constant) -> PrimFn 2
-     BOr : (ty : Constant) -> PrimFn 2
-     BXOr : (ty : Constant) -> PrimFn 2
+     BAnd : (ty : Constant) → PrimFn 2
+     BOr : (ty : Constant) → PrimFn 2
+     BXOr : (ty : Constant) → PrimFn 2
 
-     LT  : (ty : Constant) -> PrimFn 2
-     LTE : (ty : Constant) -> PrimFn 2
-     EQ  : (ty : Constant) -> PrimFn 2
-     GTE : (ty : Constant) -> PrimFn 2
-     GT  : (ty : Constant) -> PrimFn 2
+     LT  : (ty : Constant) → PrimFn 2
+     LTE : (ty : Constant) → PrimFn 2
+     EQ  : (ty : Constant) → PrimFn 2
+     GTE : (ty : Constant) → PrimFn 2
+     GT  : (ty : Constant) → PrimFn 2
 
      StrLength : PrimFn 1
      StrHead : PrimFn 1
@@ -145,7 +145,7 @@ data PrimFn : Nat -> Type where
      DoubleFloor : PrimFn 1
      DoubleCeiling : PrimFn 1
 
-     Cast : Constant -> Constant -> PrimFn 1
+     Cast : Constant → Constant → PrimFn 1
      BelieveMe : PrimFn 3
      Crash : PrimFn 2
 
@@ -197,21 +197,21 @@ data PiInfo t = Implicit | Explicit | AutoImplicit | DefImplicit t
 -- there's a default during elaboration - so often it's easier just to erase it
 -- to a normal implicit
 export
-forgetDef : PiInfo t -> PiInfo t'
+forgetDef : PiInfo t → PiInfo t'
 forgetDef Explicit = Explicit
 forgetDef Implicit = Implicit
 forgetDef AutoImplicit = AutoImplicit
 forgetDef (DefImplicit t) = Implicit
 
 export
-Show t => Show (PiInfo t) where
+Show t ⇒ Show (PiInfo t) where
   show Implicit = "Implicit"
   show Explicit = "Explicit"
   show AutoImplicit = "AutoImplicit"
   show (DefImplicit t) = "DefImplicit " ++ show t
 
 export
-Eq t => Eq (PiInfo t) where
+Eq t ⇒ Eq (PiInfo t) where
   (==) Implicit Implicit = True
   (==) Explicit Explicit = True
   (==) AutoImplicit AutoImplicit = True
@@ -219,26 +219,26 @@ Eq t => Eq (PiInfo t) where
   (==) _ _ = False
 
 public export
-data Binder : Type -> Type where
+data Binder : Type → Type where
 	   -- Lambda bound variables with their implicitness
-     Lam : RigCount -> PiInfo type -> (ty : type) -> Binder type
+     Lam : RigCount → PiInfo type → (ty : type) → Binder type
 		 -- Let bound variables with their value
-     Let : RigCount -> (val : type) -> (ty : type) -> Binder type
+     Let : RigCount → (val : type) → (ty : type) → Binder type
 		 -- Forall/pi bound variables with their implicitness
-     Pi : RigCount -> PiInfo type -> (ty : type) -> Binder type
+     Pi : RigCount → PiInfo type → (ty : type) → Binder type
 		 -- pattern bound variables. The PiInfo gives the implicitness at the
      -- point it was bound (Explicit if it was explicitly named in the
      -- program)
-     PVar : RigCount -> PiInfo type -> (ty : type) -> Binder type
+     PVar : RigCount → PiInfo type → (ty : type) → Binder type
 		 -- variable bound for an as pattern (Like a let, but no computational
      -- force, and only used on the lhs. Converted to a let on the rhs because
      -- we want the computational behaviour.)
-     PLet : RigCount -> (val : type) -> (ty : type) -> Binder type
+     PLet : RigCount → (val : type) → (ty : type) → Binder type
 		 -- the type of pattern bound variables
-     PVTy : RigCount -> (ty : type) -> Binder type
+     PVTy : RigCount → (ty : type) → Binder type
 
 export
-binderType : Binder tm -> tm
+binderType : Binder tm → tm
 binderType (Lam _ x ty) = ty
 binderType (Let _ val ty) = ty
 binderType (Pi _ x ty) = ty
@@ -247,7 +247,7 @@ binderType (PLet _ val ty) = ty
 binderType (PVTy _ ty) = ty
 
 export
-multiplicity : Binder tm -> RigCount
+multiplicity : Binder tm → RigCount
 multiplicity (Lam c x ty) = c
 multiplicity (Let c val ty) = c
 multiplicity (Pi c x ty) = c
@@ -256,7 +256,7 @@ multiplicity (PLet c val ty) = c
 multiplicity (PVTy c ty) = c
 
 export
-setMultiplicity : Binder tm -> RigCount -> Binder tm
+setMultiplicity : Binder tm → RigCount → Binder tm
 setMultiplicity (Lam c x ty) c' = Lam c' x ty
 setMultiplicity (Let c val ty) c' = Let c' val ty
 setMultiplicity (Pi c x ty) c' = Pi c' x ty
@@ -264,10 +264,10 @@ setMultiplicity (PVar c p ty) c' = PVar c' p ty
 setMultiplicity (PLet c val ty) c' = PLet c' val ty
 setMultiplicity (PVTy c ty) c' = PVTy c' ty
 
-showCount : RigCount -> String
+showCount : RigCount → String
 showCount = elimSemi "0 " "1 " (const "")
 
-Show ty => Show (Binder ty) where
+Show ty ⇒ Show (Binder ty) where
 	show (Lam c _ t) = "\\" ++ showCount c ++ show t
 	show (Pi c _ t) = "Pi " ++ showCount c ++ show t
 	show (Let c v t) = "let " ++ showCount c ++ show v ++ " : " ++ show t
@@ -276,7 +276,7 @@ Show ty => Show (Binder ty) where
 	show (PVTy c t) = "pty " ++ showCount c ++ show t
 
 export
-setType : Binder tm -> tm -> Binder tm
+setType : Binder tm → tm → Binder tm
 setType (Lam c x _) ty = Lam c x ty
 setType (Let c val _) ty = Let c val ty
 setType (Pi c x _) ty = Pi c x ty
@@ -301,29 +301,29 @@ Functor Binder where
   map func (PVTy c ty) = PVTy c (func ty)
 
 public export
-data IsVar : Name -> Nat -> List Name -> Type where
+data IsVar : Name → Nat → List Name → Type where
      First : IsVar n Z (n :: ns)
-     Later : IsVar n i ns -> IsVar n (S i) (m :: ns)
+     Later : IsVar n i ns → IsVar n (S i) (m :: ns)
 
 public export
-dropVar : (ns : List Name) -> {idx : Nat} -> .(IsVar name idx ns) -> List Name
+dropVar : (ns : List Name) → {idx : Nat} → .(IsVar name idx ns) → List Name
 dropVar (n :: xs) First = xs
 dropVar (n :: xs) (Later p) = n :: dropVar xs p
 
 public export
-data Var : List Name -> Type where
-     MkVar : {i : Nat} -> .(IsVar n i vars) -> Var vars
+data Var : List Name → Type where
+     MkVar : {i : Nat} → .(IsVar n i vars) → Var vars
 
 export
-sameVar : Var xs -> Var xs -> Bool
+sameVar : Var xs → Var xs → Bool
 sameVar (MkVar {i=x} _) (MkVar {i=y} _) = x == y
 
 export
-varIdx : Var xs -> Nat
+varIdx : Var xs → Nat
 varIdx (MkVar {i} _) = i
 
 export
-dropFirst : List (Var (v :: vs)) -> List (Var vs)
+dropFirst : List (Var (v :: vs)) → List (Var vs)
 dropFirst [] = []
 dropFirst (MkVar First :: vs) = dropFirst vs
 dropFirst (MkVar (Later p) :: vs) = MkVar p :: dropFirst vs
@@ -335,9 +335,9 @@ Show (Var ns) where
 namespace CList
   -- A list correspoding to another list
   public export
-  data CList : List a -> Type -> Type where
+  data CList : List a → Type → Type where
        Nil : CList [] ty
-       (::) : (x : ty) -> CList cs ty -> CList (c :: cs) ty
+       (::) : (x : ty) → CList cs ty → CList (c :: cs) ty
 
 -- Typechecked terms
 -- These are guaranteed to be well-scoped wrt local variables, because they are
@@ -351,17 +351,17 @@ public export
 data UseSide = UseLeft | UseRight
 
 public export
-data Term : List Name -> Type where
-     Local : {name : _} ->
-             FC -> (isLet : Maybe Bool) ->
-             (idx : Nat) -> .(IsVar name idx vars) -> Term vars
-     Ref : FC -> NameType -> (name : Name) -> Term vars
+data Term : List Name → Type where
+     Local : {name : _} →
+             FC → (isLet : Maybe Bool) →
+             (idx : Nat) → .(IsVar name idx vars) → Term vars
+     Ref : FC → NameType → (name : Name) → Term vars
      -- Metavariables and the scope they are applied to
-     Meta : FC -> Name -> Int -> List (Term vars) -> Term vars
-     Bind : FC -> (x : Name) ->
-            (b : Binder (Term vars)) ->
-            (scope : Term (x :: vars)) -> Term vars
-     App : FC -> (fn : Term vars) -> (arg : Term vars) -> Term vars
+     Meta : FC → Name → Int → List (Term vars) → Term vars
+     Bind : FC → (x : Name) →
+            (b : Binder (Term vars)) →
+            (scope : Term (x :: vars)) → Term vars
+     App : FC → (fn : Term vars) → (arg : Term vars) → Term vars
      -- as patterns; since we check LHS patterns as terms before turning
      -- them into patterns, this helps us get it right. When normalising,
      -- we just reduce the inner term and ignore the 'as' part
@@ -369,18 +369,18 @@ data Term : List Name -> Type where
      -- easier this way since it gives us the ability to work with unresolved
      -- names (Ref) and resolved names (Local) without having to define a
      -- special purpose thing. (But it'd be nice to tidy that up, nevertheless)
-     As : FC -> UseSide -> (as : Term vars) -> (pat : Term vars) -> Term vars
+     As : FC → UseSide → (as : Term vars) → (pat : Term vars) → Term vars
      -- Typed laziness annotations
-     TDelayed : FC -> LazyReason -> Term vars -> Term vars
-     TDelay : FC -> LazyReason -> (ty : Term vars) -> (arg : Term vars) -> Term vars
-     TForce : FC -> LazyReason -> Term vars -> Term vars
-     PrimVal : FC -> (c : Constant) -> Term vars
-     Erased : FC -> (imp : Bool) -> -- True == impossible term, for coverage checker
+     TDelayed : FC → LazyReason → Term vars → Term vars
+     TDelay : FC → LazyReason → (ty : Term vars) → (arg : Term vars) → Term vars
+     TForce : FC → LazyReason → Term vars → Term vars
+     PrimVal : FC → (c : Constant) → Term vars
+     Erased : FC → (imp : Bool) → -- True == impossible term, for coverage checker
               Term vars
-     TType : FC -> Term vars
+     TType : FC → Term vars
 
 export
-getLoc : Term vars -> FC
+getLoc : Term vars → FC
 getLoc (Local fc _ _ _) = fc
 getLoc (Ref fc _ _) = fc
 getLoc (Meta fc _ _ _) = fc
@@ -402,13 +402,13 @@ Eq LazyReason where
   (==) _ _ = False
 
 export
-compatible : LazyReason -> LazyReason -> Bool
+compatible : LazyReason → LazyReason → Bool
 compatible LUnknown _ = True
 compatible _ LUnknown = True
 compatible x y = x == y
 
 export
-Eq a => Eq (Binder a) where
+Eq a ⇒ Eq (Binder a) where
   (Lam c p ty) == (Lam c' p' ty') = c == c' && p == p' && ty == ty'
   (Let c v ty) == (Let c' v' ty') = c == c' && v == v' && ty == ty'
   (Pi c p ty) == (Pi c' p' ty') = c == c' && p == p' && ty == ty'
@@ -437,7 +437,7 @@ Eq (Term vars) where
 
 -- Check equality, ignoring variable naming
 export
-eqTerm : Term vs -> Term vs' -> Bool
+eqTerm : Term vs → Term vs' → Bool
 eqTerm (Local _ _ idx _) (Local _ _ idx' _) = idx == idx'
 eqTerm (Ref _ _ n) (Ref _ _ n') = n == n'
 eqTerm (Meta _ _ i args) (Meta _ _ i' args')
@@ -445,14 +445,14 @@ eqTerm (Meta _ _ i args) (Meta _ _ i' args')
 eqTerm (Bind _ _ b sc) (Bind _ _ b' sc')
     = assert_total (eqBinder b b' && eqTerm sc sc')
   where
-    eqPiInfo : PiInfo (Term vs) -> PiInfo (Term vs') -> Bool
+    eqPiInfo : PiInfo (Term vs) → PiInfo (Term vs') → Bool
     eqPiInfo Explicit Explicit = True
     eqPiInfo Implicit Implicit = True
     eqPiInfo AutoImplicit AutoImplicit = True
     eqPiInfo (DefImplicit t) (DefImplicit t') = eqTerm t t'
     eqPiInfo _ _ = False
 
-    eqBinder : Binder (Term vs) -> Binder (Term vs') -> Bool
+    eqBinder : Binder (Term vs) → Binder (Term vs') → Bool
     eqBinder (Lam c p ty) (Lam c' p' ty')
         = c == c' && eqPiInfo p p' && eqTerm ty ty'
     eqBinder (Let c v ty) (Let c' v' ty')
@@ -477,9 +477,9 @@ eqTerm (TType _) (TType _) = True
 eqTerm _ _ = False
 
 public export
-interface Weaken (tm : List Name -> Type) where
-  weaken : tm vars -> tm (n :: vars)
-  weakenNs : (ns : List Name) -> tm vars -> tm (ns ++ vars)
+interface Weaken (tm : List Name → Type) where
+  weaken : tm vars → tm (n :: vars)
+  weakenNs : (ns : List Name) → tm vars → tm (ns ++ vars)
 
   weakenNs [] t = t
   weakenNs (n :: ns) t = weaken (weakenNs ns t)
@@ -584,7 +584,7 @@ Show Totality where
           c = isCovering tot in
         showTot t c
     where
-      showTot : Terminating -> Covering -> String
+      showTot : Terminating → Covering → String
       showTot IsTerminating IsCovering = "total"
       showTot IsTerminating c = show c
       showTot t IsCovering = show t
@@ -603,13 +603,13 @@ notCovering : Totality
 notCovering = MkTotality Unchecked (MissingCases [])
 
 public export
-data NVar : Name -> List Name -> Type where
-     MkNVar : {i : Nat} -> .(IsVar n i vars) -> NVar n vars
+data NVar : Name → List Name → Type where
+     MkNVar : {i : Nat} → .(IsVar n i vars) → NVar n vars
 
 export
-insertNVar : {outer : List Name} ->
-            (idx : Nat) ->
-            .(IsVar name idx (outer ++ inner)) ->
+insertNVar : {outer : List Name} →
+            (idx : Nat) →
+            .(IsVar name idx (outer ++ inner)) →
             NVar name (outer ++ n :: inner)
 insertNVar {outer = []} idx x = MkNVar (Later x)
 insertNVar {outer = (name :: xs)} Z First = MkNVar First
@@ -618,9 +618,9 @@ insertNVar {n} {outer = (x :: xs)} (S i) (Later y)
           MkNVar (Later prf)
 
 export
-insertVar : {outer : _} ->
-            (idx : Nat) ->
-            .(IsVar name idx (outer ++ inner)) ->
+insertVar : {outer : _} →
+            (idx : Nat) →
+            .(IsVar name idx (outer ++ inner)) →
             Var (outer ++ n :: inner)
 insertVar {outer = []} idx x = MkVar (Later x)
 insertVar {outer = (name :: xs)} Z First = MkVar First
@@ -629,7 +629,7 @@ insertVar {n} {outer = (x :: xs)} (S i) (Later y)
           MkVar (Later prf)
 
 export
-weakenVar : (ns : List Name) -> {idx : Nat} -> .(IsVar name idx inner) ->
+weakenVar : (ns : List Name) → {idx : Nat} → .(IsVar name idx inner) →
             Var (ns ++ inner)
 weakenVar [] x = MkVar x
 weakenVar (y :: xs) x
@@ -637,7 +637,7 @@ weakenVar (y :: xs) x
          MkVar (Later x')
 
 export
-weakenNVar : (ns : List Name) -> {idx : Nat} -> .(IsVar name idx inner) ->
+weakenNVar : (ns : List Name) → {idx : Nat} → .(IsVar name idx inner) →
              NVar name (ns ++ inner)
 weakenNVar [] x = MkNVar x
 weakenNVar (y :: xs) x
@@ -645,9 +645,9 @@ weakenNVar (y :: xs) x
          MkNVar (Later x')
 
 export
-insertVarNames : {outer, ns : _} ->
-                 (idx : Nat) ->
-                 .(IsVar name idx (outer ++ inner)) ->
+insertVarNames : {outer, ns : _} →
+                 (idx : Nat) →
+                 .(IsVar name idx (outer ++ inner)) →
                  Var (outer ++ (ns ++ inner))
 insertVarNames {ns} {outer = []} idx prf = weakenVar ns prf
 insertVarNames {outer = (y :: xs)} Z First = MkVar First
@@ -656,9 +656,9 @@ insertVarNames {ns} {outer = (y :: xs)} (S i) (Later x)
           MkVar (Later prf)
 
 export
-insertNVarNames : {outer, ns : _} ->
-                  (idx : Nat) ->
-                  .(IsVar name idx (outer ++ inner)) ->
+insertNVarNames : {outer, ns : _} →
+                  (idx : Nat) →
+                  .(IsVar name idx (outer ++ inner)) →
                   NVar name (outer ++ (ns ++ inner))
 insertNVarNames {ns} {outer = []} idx prf = weakenNVar ns prf
 insertNVarNames {outer = (y :: xs)} Z First = MkNVar First
@@ -667,8 +667,8 @@ insertNVarNames {ns} {outer = (y :: xs)} (S i) (Later x)
           MkNVar (Later prf)
 
 export
-thin : {outer, inner : _} ->
-       (n : Name) -> Term (outer ++ inner) -> Term (outer ++ n :: inner)
+thin : {outer, inner : _} →
+       (n : Name) → Term (outer ++ inner) → Term (outer ++ n :: inner)
 thin n (Local fc r idx prf)
     = let MkNVar var' = insertNVar {n} idx prf in
           Local fc r _ var'
@@ -678,14 +678,14 @@ thin {outer} {inner} n (Bind fc x b scope)
     = let sc' = thin {outer = x :: outer} {inner} n scope in
           Bind fc x (thinBinder n b) sc'
   where
-    thinPi : (n : Name) -> PiInfo (Term (outer ++ inner)) ->
+    thinPi : (n : Name) → PiInfo (Term (outer ++ inner)) →
              PiInfo (Term (outer ++ n :: inner))
     thinPi n Explicit = Explicit
     thinPi n Implicit = Implicit
     thinPi n AutoImplicit = AutoImplicit
     thinPi n (DefImplicit t) = DefImplicit (thin n t)
 
-    thinBinder : (n : Name) -> Binder (Term (outer ++ inner)) ->
+    thinBinder : (n : Name) → Binder (Term (outer ++ inner)) →
                  Binder (Term (outer ++ n :: inner))
     thinBinder n (Lam c p ty) = Lam c (thinPi n p) (thin n ty)
     thinBinder n (Let c val ty) = Let c (thin n val) (thin n ty)
@@ -703,8 +703,8 @@ thin n (Erased fc i) = Erased fc i
 thin n (TType fc) = TType fc
 
 export
-insertNames : {outer, inner : _} ->
-              (ns : List Name) -> Term (outer ++ inner) ->
+insertNames : {outer, inner : _} →
+              (ns : List Name) → Term (outer ++ inner) →
               Term (outer ++ (ns ++ inner))
 insertNames ns (Local fc r idx prf)
     = let MkNVar prf' = insertNVarNames {ns} idx prf in
@@ -737,7 +737,7 @@ Weaken Var where
   weaken (MkVar p) = MkVar (Later p)
 
 export
-varExtend : IsVar x idx xs -> IsVar x idx (xs ++ ys)
+varExtend : IsVar x idx xs → IsVar x idx (xs ++ ys)
 -- What Could Possibly Go Wrong?
 -- This relies on the runtime representation of the term being the same
 -- after embedding! It is just an identity function at run time, though, and
@@ -745,7 +745,7 @@ varExtend : IsVar x idx xs -> IsVar x idx (xs ++ ys)
 varExtend p = believe_me p
 
 export
-embed : Term vars -> Term (vars ++ more)
+embed : Term vars → Term (vars ++ more)
 embed tm = believe_me tm
 
 public export
@@ -753,44 +753,44 @@ ClosedTerm : Type
 ClosedTerm = Term []
 
 export
-apply : FC -> Term vars -> List (Term vars) -> Term vars
+apply : FC → Term vars → List (Term vars) → Term vars
 apply loc fn [] = fn
 apply loc fn (a :: args) = apply loc (App loc fn a) args
 
 -- Build a simple function type
 export
-fnType : Term vars -> Term vars -> Term vars
+fnType : Term vars → Term vars → Term vars
 fnType arg scope = Bind emptyFC (MN "_" 0) (Pi top Explicit arg) (weaken scope)
 
 export
-linFnType : Term vars -> Term vars -> Term vars
+linFnType : Term vars → Term vars → Term vars
 linFnType arg scope = Bind emptyFC (MN "_" 0) (Pi linear Explicit arg) (weaken scope)
 
 export
-getFnArgs : Term vars -> (Term vars, List (Term vars))
+getFnArgs : Term vars → (Term vars, List (Term vars))
 getFnArgs tm = getFA [] tm
   where
-    getFA : List (Term vars) -> Term vars ->
+    getFA : List (Term vars) → Term vars →
             (Term vars, List (Term vars))
     getFA args (App _ f a) = getFA (a :: args) f
     getFA args tm = (tm, args)
 
 export
-getFn : Term vars -> Term vars
+getFn : Term vars → Term vars
 getFn (App _ f a) = getFn f
 getFn tm = tm
 
 export
-getArgs : Term vars -> (List (Term vars))
+getArgs : Term vars → (List (Term vars))
 getArgs = snd . getFnArgs
 
 public export
-data CompatibleVars : List Name -> List Name -> Type where
+data CompatibleVars : List Name → List Name → Type where
      CompatPre : CompatibleVars xs xs
-     CompatExt : CompatibleVars xs ys -> CompatibleVars (n :: xs) (m :: ys)
+     CompatExt : CompatibleVars xs ys → CompatibleVars (n :: xs) (m :: ys)
 
 export
-areVarsCompatible : (xs : List Name) -> (ys : List Name) ->
+areVarsCompatible : (xs : List Name) → (ys : List Name) →
                     Maybe (CompatibleVars xs ys)
 areVarsCompatible [] [] = pure CompatPre
 areVarsCompatible (x :: xs) (y :: ys)
@@ -798,15 +798,15 @@ areVarsCompatible (x :: xs) (y :: ys)
          pure (CompatExt compat)
 areVarsCompatible _ _ = Nothing
 
-extendCompats : (args : List Name) ->
-                CompatibleVars xs ys ->
+extendCompats : (args : List Name) →
+                CompatibleVars xs ys →
                 CompatibleVars (args ++ xs) (args ++ ys)
 extendCompats [] prf = prf
 extendCompats (x :: xs) prf = CompatExt (extendCompats xs prf)
 
-renameLocalRef : CompatibleVars xs ys ->
-                 {idx : Nat} ->
-                 .(IsVar name idx xs) ->
+renameLocalRef : CompatibleVars xs ys →
+                 {idx : Nat} →
+                 .(IsVar name idx xs) →
                  Var ys
 renameLocalRef prf p = believe_me (MkVar p)
 -- renameLocalRef CompatPre First = (MkVar First)
@@ -815,12 +815,12 @@ renameLocalRef prf p = believe_me (MkVar p)
 -- renameLocalRef (CompatExt y) (Later p)
 --     = let (MkVar p') = renameLocalRef y p in MkVar (Later p')
 
-renameVarList : CompatibleVars xs ys -> Var xs -> Var ys
+renameVarList : CompatibleVars xs ys → Var xs → Var ys
 renameVarList prf (MkVar p) = renameLocalRef prf p
 
 -- TODO: Surely identity at run time, can we replace with 'believe_me'?
 export
-renameVars : CompatibleVars xs ys -> Term xs -> Term ys
+renameVars : CompatibleVars xs ys → Term xs → Term ys
 renameVars CompatPre tm = tm
 renameVars prf (Local fc r idx vprf)
     = let MkVar vprf' = renameLocalRef prf vprf in
@@ -843,18 +843,18 @@ renameVars prf (Erased fc i) = Erased fc i
 renameVars prf (TType fc) = TType fc
 
 export
-renameTop : (m : Name) -> Term (n :: vars) -> Term (m :: vars)
+renameTop : (m : Name) → Term (n :: vars) → Term (m :: vars)
 renameTop m tm = renameVars (CompatExt CompatPre) tm
 
 public export
-data SubVars : List Name -> List Name -> Type where
+data SubVars : List Name → List Name → Type where
      SubRefl  : SubVars xs xs
-     DropCons : SubVars xs ys -> SubVars xs (y :: ys)
-     KeepCons : SubVars xs ys -> SubVars (x :: xs) (x :: ys)
+     DropCons : SubVars xs ys → SubVars xs (y :: ys)
+     KeepCons : SubVars xs ys → SubVars (x :: xs) (x :: ys)
 
 export
-subElem : {idx : Nat} -> .(IsVar name idx xs) ->
-          SubVars ys xs -> Maybe (Var ys)
+subElem : {idx : Nat} → .(IsVar name idx xs) →
+          SubVars ys xs → Maybe (Var ys)
 subElem prf SubRefl = Just (MkVar prf)
 subElem First (DropCons p) = Nothing
 subElem (Later x) (DropCons p)
@@ -866,19 +866,19 @@ subElem (Later x) (KeepCons p)
          Just (MkVar (Later prf'))
 
 export
-subExtend : (ns : List Name) -> SubVars xs ys -> SubVars (ns ++ xs) (ns ++ ys)
+subExtend : (ns : List Name) → SubVars xs ys → SubVars (ns ++ xs) (ns ++ ys)
 subExtend [] sub = sub
 subExtend (x :: xs) sub = KeepCons (subExtend xs sub)
 
 export
-subInclude : (ns : List Name) -> SubVars xs ys -> SubVars (xs ++ ns) (ys ++ ns)
+subInclude : (ns : List Name) → SubVars xs ys → SubVars (xs ++ ns) (ys ++ ns)
 subInclude ns SubRefl = SubRefl
 subInclude ns (DropCons p) = DropCons (subInclude ns p)
 subInclude ns (KeepCons p) = KeepCons (subInclude ns p)
 
 mutual
   export
-  shrinkPi : PiInfo (Term vars) -> SubVars newvars vars ->
+  shrinkPi : PiInfo (Term vars) → SubVars newvars vars →
              Maybe (PiInfo (Term newvars))
   shrinkPi Explicit prf = pure Explicit
   shrinkPi Implicit prf = pure Implicit
@@ -886,7 +886,7 @@ mutual
   shrinkPi (DefImplicit t) prf = pure (DefImplicit !(shrinkTerm t prf))
 
   export
-  shrinkBinder : Binder (Term vars) -> SubVars newvars vars ->
+  shrinkBinder : Binder (Term vars) → SubVars newvars vars →
                  Maybe (Binder (Term newvars))
   shrinkBinder (Lam c p ty) prf
       = Just (Lam c !(shrinkPi p prf) !(shrinkTerm ty prf))
@@ -902,18 +902,18 @@ mutual
       = Just (PVTy c !(shrinkTerm ty prf))
 
   export
-  shrinkVar : Var vars -> SubVars newvars vars -> Maybe (Var newvars)
+  shrinkVar : Var vars → SubVars newvars vars → Maybe (Var newvars)
   shrinkVar (MkVar x) prf = subElem x prf
 
   export
-  shrinkTerm : Term vars -> SubVars newvars vars -> Maybe (Term newvars)
+  shrinkTerm : Term vars → SubVars newvars vars → Maybe (Term newvars)
   shrinkTerm (Local fc r idx loc) prf
      = case subElem loc prf of
-            Nothing => Nothing
-            Just (MkVar loc') => Just (Local fc r _ loc')
+            Nothing ⇒ Nothing
+            Just (MkVar loc') ⇒ Just (Local fc r _ loc')
   shrinkTerm (Ref fc x name) prf = Just (Ref fc x name)
   shrinkTerm (Meta fc x y xs) prf
-     = do xs' <- traverse (\x => shrinkTerm x prf) xs
+     = do xs' <- traverse (\x ⇒ shrinkTerm x prf) xs
           Just (Meta fc x y xs')
   shrinkTerm (Bind fc x b scope) prf
      = Just (Bind fc x !(shrinkBinder b prf) !(shrinkTerm scope (KeepCons prf)))
@@ -931,8 +931,8 @@ mutual
   shrinkTerm (Erased fc i) prf = Just (Erased fc i)
   shrinkTerm (TType fc) prf = Just (TType fc)
 
-varEmbedSub : SubVars small vars ->
-              {idx : Nat} -> .(IsVar n idx small) ->
+varEmbedSub : SubVars small vars →
+              {idx : Nat} → .(IsVar n idx small) →
               Var vars
 varEmbedSub SubRefl y = MkVar y
 varEmbedSub (DropCons prf) y
@@ -944,7 +944,7 @@ varEmbedSub (KeepCons prf) (Later p)
           MkVar (Later p')
 
 export
-embedSub : SubVars small vars -> Term small -> Term vars
+embedSub : SubVars small vars → Term small → Term vars
 embedSub sub (Local fc x idx y)
     = let MkVar y' = varEmbedSub sub y in Local fc x _ y'
 embedSub sub (Ref fc x name) = Ref fc x name
@@ -966,14 +966,14 @@ embedSub sub (TType fc) = TType fc
 
 namespace Bounds
   public export
-  data Bounds : List Name -> Type where
+  data Bounds : List Name → Type where
        None : Bounds []
-       Add : (x : Name) -> Name -> Bounds xs -> Bounds (x :: xs)
+       Add : (x : Name) → Name → Bounds xs → Bounds (x :: xs)
 
 export
-addVars : {later, bound : _} ->
-          {idx : Nat} ->
-          Bounds bound -> .(IsVar name idx (later ++ vars)) ->
+addVars : {later, bound : _} →
+          {idx : Nat} →
+          Bounds bound → .(IsVar name idx (later ++ vars)) →
           NVar name (later ++ (bound ++ vars))
 addVars {later = []} {bound} bs p = weakenNVar bound p
 addVars {later = (x :: xs)} bs First = MkNVar First
@@ -981,7 +981,7 @@ addVars {later = (x :: xs)} bs (Later p)
   = let MkNVar p' = addVars {later = xs} bs p in
         MkNVar (Later p')
 
-resolveRef : (done : List Name) -> Bounds bound -> FC -> Name ->
+resolveRef : (done : List Name) → Bounds bound → FC → Name →
              Maybe (Term (later ++ (done ++ bound ++ vars)))
 resolveRef done None fc n = Nothing
 resolveRef {later} {vars} done (Add {xs} new old bs) fc n
@@ -993,9 +993,9 @@ resolveRef {later} {vars} done (Add {xs} new old bs) fc n
          else rewrite appendAssociative done [new] (xs ++ vars)
                 in resolveRef (done ++ [new]) bs fc n
 
-mkLocals : {later, bound : _} ->
-           Bounds bound ->
-           Term (later ++ vars) -> Term (later ++ (bound ++ vars))
+mkLocals : {later, bound : _} →
+           Bounds bound →
+           Term (later ++ vars) → Term (later ++ (bound ++ vars))
 mkLocals bs (Local fc r idx p)
     = let MkNVar p' = addVars bs p in Local fc r _ p'
 mkLocals bs (Ref fc Bound name)
@@ -1023,31 +1023,31 @@ mkLocals bs (Erased fc i) = Erased fc i
 mkLocals bs (TType fc) = TType fc
 
 export
-refsToLocals : Bounds bound -> Term vars -> Term (bound ++ vars)
+refsToLocals : Bounds bound → Term vars → Term (bound ++ vars)
 refsToLocals None y = y
 refsToLocals bs y = mkLocals {later = []} bs y
 
 -- Replace any reference to 'x' with a locally bound name 'new'
 export
-refToLocal : (x : Name) -> (new : Name) -> Term vars -> Term (new :: vars)
+refToLocal : (x : Name) → (new : Name) → Term vars → Term (new :: vars)
 refToLocal x new tm = refsToLocals (Add new x None) tm
 
 export
-isVar : (n : Name) -> (ns : List Name) -> Maybe (Var ns)
+isVar : (n : Name) → (ns : List Name) → Maybe (Var ns)
 isVar n [] = Nothing
 isVar n (m :: ms)
     = case nameEq n m of
-           Nothing => do MkVar p <- isVar n ms
+           Nothing ⇒ do MkVar p <- isVar n ms
                          pure (MkVar (Later p))
-           Just Refl => pure (MkVar First)
+           Just Refl ⇒ pure (MkVar First)
 
 -- Replace any Ref Bound in a type with appropriate local
 export
-resolveNames : (vars : List Name) -> Term vars -> Term vars
+resolveNames : (vars : List Name) → Term vars → Term vars
 resolveNames vars (Ref fc Bound name)
     = case isVar name vars of
-           Just (MkVar prf) => Local fc (Just False) _ prf
-           _ => Ref fc Bound name
+           Just (MkVar prf) ⇒ Local fc (Just False) _ prf
+           _ ⇒ Ref fc Bound name
 resolveNames vars (Meta fc n i xs)
     = Meta fc n i (map (resolveNames vars) xs)
 resolveNames vars (Bind fc x b scope)
@@ -1071,29 +1071,29 @@ resolveNames vars tm = tm
 -- names from the scope
 namespace SubstEnv
   public export
-  data SubstEnv : List Name -> List Name -> Type where
+  data SubstEnv : List Name → List Name → Type where
        Nil : SubstEnv [] vars
-       (::) : Term vars ->
-              SubstEnv ds vars -> SubstEnv (d :: ds) vars
+       (::) : Term vars →
+              SubstEnv ds vars → SubstEnv (d :: ds) vars
 
-  findDrop : {drop : _} -> {idx : Nat} ->
-             FC -> Maybe Bool -> .(IsVar name idx (drop ++ vars)) ->
-             SubstEnv drop vars -> Term vars
+  findDrop : {drop : _} → {idx : Nat} →
+             FC → Maybe Bool → .(IsVar name idx (drop ++ vars)) →
+             SubstEnv drop vars → Term vars
   findDrop {drop = []} fc r var env = Local fc r _ var
   findDrop {drop = x :: xs} fc r First (tm :: env) = tm
   findDrop {drop = x :: xs} fc r (Later p) (tm :: env)
       = findDrop fc r p env
 
-  find : {outer : _} -> {idx : Nat} ->
-         FC -> Maybe Bool -> .(IsVar name idx (outer ++ (drop ++ vars))) ->
-         SubstEnv drop vars ->
+  find : {outer : _} → {idx : Nat} →
+         FC → Maybe Bool → .(IsVar name idx (outer ++ (drop ++ vars))) →
+         SubstEnv drop vars →
          Term (outer ++ vars)
   find {outer = []} fc r var env = findDrop fc r var env
   find {outer = x :: xs} fc r First env = Local fc r _ First
   find {outer = x :: xs} fc r (Later p) env = weaken (find fc r p env)
 
-  substEnv : {outer : _} ->
-             SubstEnv drop vars -> Term (outer ++ (drop ++ vars)) ->
+  substEnv : {outer : _} →
+             SubstEnv drop vars → Term (outer ++ (drop ++ vars)) →
              Term (outer ++ vars)
   substEnv env (Local fc r _ prf)
       = find fc r prf env
@@ -1116,20 +1116,20 @@ namespace SubstEnv
   substEnv env (TType fc) = TType fc
 
 export
-substs : SubstEnv drop vars -> Term (drop ++ vars) -> Term vars
+substs : SubstEnv drop vars → Term (drop ++ vars) → Term vars
 substs env tm = substEnv {outer = []} env tm
 
 export
-subst : Term vars -> Term (x :: vars) -> Term vars
+subst : Term vars → Term (x :: vars) → Term vars
 subst val tm = substEnv {outer = []} {drop = [_]} [val] tm
 
 -- Replace an explicit name with a term
 export
-substName : Name -> Term vars -> Term vars -> Term vars
+substName : Name → Term vars → Term vars → Term vars
 substName x new (Ref fc nt name)
     = case nameEq x name of
-           Nothing => Ref fc nt name
-           Just Refl => new
+           Nothing ⇒ Ref fc nt name
+           Just Refl ⇒ new
 substName x new (Meta fc n i xs)
     = Meta fc n i (map (substName x new) xs)
 -- ASSUMPTION: When we substitute under binders, the name has always been
@@ -1149,12 +1149,12 @@ substName x new (TForce fc r y)
 substName x new tm = tm
 
 export
-addMetas : NameMap Bool -> Term vars -> NameMap Bool
+addMetas : NameMap Bool → Term vars → NameMap Bool
 addMetas ns (Local fc x idx y) = ns
 addMetas ns (Ref fc x name) = ns
 addMetas ns (Meta fc n i xs) = addMetaArgs (insert n False ns) xs
   where
-    addMetaArgs : NameMap Bool -> List (Term vars) -> NameMap Bool
+    addMetaArgs : NameMap Bool → List (Term vars) → NameMap Bool
     addMetaArgs ns [] = ns
     addMetaArgs ns (t :: ts) = addMetaArgs (addMetas ns t) ts
 addMetas ns (Bind fc x (Let c val ty) scope)
@@ -1174,18 +1174,18 @@ addMetas ns (TType fc) = ns
 
 -- Get the metavariable names in a term
 export
-getMetas : Term vars -> NameMap Bool
+getMetas : Term vars → NameMap Bool
 getMetas tm = addMetas empty tm
 
 export
-addRefs : (underAssert : Bool) -> (aTotal : Name) ->
-          NameMap Bool -> Term vars -> NameMap Bool
+addRefs : (underAssert : Bool) → (aTotal : Name) →
+          NameMap Bool → Term vars → NameMap Bool
 addRefs ua at ns (Local fc x idx y) = ns
 addRefs ua at ns (Ref fc x name) = insert name ua ns
 addRefs ua at ns (Meta fc n i xs)
     = addRefsArgs ns xs
   where
-    addRefsArgs : NameMap Bool -> List (Term vars) -> NameMap Bool
+    addRefsArgs : NameMap Bool → List (Term vars) → NameMap Bool
     addRefsArgs ns [] = ns
     addRefsArgs ns (t :: ts) = addRefsArgs (addRefs ua at ns t) ts
 addRefs ua at ns (Bind fc x (Let c val ty) scope)
@@ -1211,19 +1211,19 @@ addRefs ua at ns (TType fc) = ns
 -- 'assert_total' because we may need to know that in coverage/totality
 -- checking
 export
-getRefs : (aTotal : Name) -> Term vars -> NameMap Bool
+getRefs : (aTotal : Name) → Term vars → NameMap Bool
 getRefs at tm = addRefs False at empty tm
 
 export
-nameAt : {vars : _} ->
-         (idx : Nat) -> .(p : IsVar n idx vars) -> Name
+nameAt : {vars : _} →
+         (idx : Nat) → .(p : IsVar n idx vars) → Name
 nameAt {vars = n :: ns} Z First = n
 nameAt {vars = n :: ns} (S k) (Later p) = nameAt k p
 
 export Show (Term vars) where
   show tm = let (fn, args) = getFnArgs tm in showApp fn args
     where
-      showApp : Term vars -> List (Term vars) -> String
+      showApp : Term vars → List (Term vars) → String
       showApp (Local {name} _ c idx _) []
          = show name ++ "[" ++ show idx ++ "]"
       showApp (Ref _ _ n) [] = show n
@@ -1231,34 +1231,34 @@ export Show (Term vars) where
           = "?" ++ show n ++ "_" ++ show args
       showApp (Bind _ x (Lam c p ty) sc) []
           = "\\" ++ showCount c ++ show x ++ " : " ++ show ty ++
-            " => " ++ show sc
+            " ⇒ " ++ show sc
       showApp (Bind _ x (Let c val ty) sc) []
           = "let " ++ showCount c ++ show x ++ " : " ++ show ty ++
             " = " ++ show val ++ " in " ++ show sc
       showApp (Bind _ x (Pi c Explicit ty) sc) []
           = "((" ++ showCount c ++ show x ++ " : " ++ show ty ++
-            ") -> " ++ show sc ++ ")"
+            ") → " ++ show sc ++ ")"
       showApp (Bind _ x (Pi c Implicit ty) sc) []
           = "{" ++ showCount c ++ show x ++ " : " ++ show ty ++
-            "} -> " ++ show sc
+            "} → " ++ show sc
       showApp (Bind _ x (Pi c AutoImplicit ty) sc) []
           = "{auto " ++ showCount c ++ show x ++ " : " ++ show ty ++
-            "} -> " ++ show sc
+            "} → " ++ show sc
       showApp (Bind _ x (PVar c Explicit ty) sc) []
           = "pat " ++ showCount c ++ show x ++ " : " ++ show ty ++
-            " => " ++ show sc
+            " ⇒ " ++ show sc
       showApp (Bind _ x (PVar c Implicit ty) sc) []
           = "{pat " ++ showCount c ++ show x ++ " : " ++ show ty ++
-            "} => " ++ show sc
+            "} ⇒ " ++ show sc
       showApp (Bind _ x (PVar c AutoImplicit ty) sc) []
           = "{auto pat " ++ showCount c ++ show x ++ " : " ++ show ty ++
-            "} => " ++ show sc
+            "} ⇒ " ++ show sc
       showApp (Bind _ x (PLet c val ty) sc) []
           = "plet " ++ showCount c ++ show x ++ " : " ++ show ty ++
             " = " ++ show val ++ " in " ++ show sc
       showApp (Bind _ x (PVTy c ty) sc) []
           = "pty " ++ showCount c ++ show x ++ " : " ++ show ty ++
-            " => " ++ show sc
+            " ⇒ " ++ show sc
       showApp (App _ _ _) [] = "[can't happen]"
       showApp (As _ _ n tm) [] = show n ++ "@" ++ show tm
       showApp (TDelayed _ _ tm) [] = "%Delayed " ++ show tm

@@ -55,24 +55,24 @@ SExpable Highlight where
                           ]
                ]
 
-inFile : String -> (FC, (Name, Nat, ClosedTerm)) -> Bool
+inFile : String → (FC, (Name, Nat, ClosedTerm)) → Bool
 inFile fname (MkFC file _ _, _) = file == fname
 
 ||| Output some data using current dialog index
 export
-printOutput : {auto o : Ref ROpts REPLOpts} ->
-              SExp -> Core ()
+printOutput : {auto o : Ref ROpts REPLOpts} →
+              SExp → Core ()
 printOutput msg
   =  do opts <- get ROpts
         case idemode opts of
-          REPL _ => pure ()
-          IDEMode i _ f =>
+          REPL _ ⇒ pure ()
+          IDEMode i _ f ⇒
             send f (SExpList [SymbolAtom "output",
                               msg, toSExp i])
 
 
-outputHighlight : {auto opts : Ref ROpts REPLOpts} ->
-                  Highlight -> Core ()
+outputHighlight : {auto opts : Ref ROpts REPLOpts} →
+                  Highlight → Core ()
 outputHighlight h =
   printOutput $ SExpList [ SymbolAtom "ok"
                          , SExpList [ SymbolAtom "highlight-source"
@@ -83,40 +83,40 @@ outputHighlight h =
     hlt : List Highlight
     hlt = [h]
 
-outputNameSyntax : {auto opts : Ref ROpts REPLOpts} ->
-                   (FC, (Name, Nat, ClosedTerm)) -> Core ()
+outputNameSyntax : {auto opts : Ref ROpts REPLOpts} →
+                   (FC, (Name, Nat, ClosedTerm)) → Core ()
 outputNameSyntax (fc, (name, _, term)) =
   let dec = case term of
-                 (Local fc x idx y) => Just Bound
+                 (Local fc x idx y) ⇒ Just Bound
 
                  -- See definition of NameType in Core.TT for possible values of Ref's nametype field
                  -- data NameType : Type where
                  -- Bound   : NameType
                  -- Func    : NameType
-                 -- DataCon : (tag : Int) -> (arity : Nat) -> NameType
-                 -- TyCon   : (tag : Int) -> (arity : Nat) -> NameType
-                 (Ref fc Bound name) => Just Bound
-                 (Ref fc Func name) => Just Function
-                 (Ref fc (DataCon tag arity) name) => Just Data
-                 (Ref fc (TyCon tag arity) name) => Just Typ
-                 (Meta fc x y xs) => Just Bound
-                 (Bind fc x b scope) => Just Bound
-                 (App fc fn arg) => Just Bound
-                 (As fc x as pat) => Just Bound
-                 (TDelayed fc x y) => Nothing
-                 (TDelay fc x ty arg) => Nothing
-                 (TForce fc x y) => Nothing
-                 (PrimVal fc c) => Just Typ
-                 (Erased fc imp) => Just Bound
-                 (TType fc) => Just Typ
-      hilite = F.map (\ d => MkHighlight fc name False "" d "" (show term) "") dec
+                 -- DataCon : (tag : Int) → (arity : Nat) → NameType
+                 -- TyCon   : (tag : Int) → (arity : Nat) → NameType
+                 (Ref fc Bound name) ⇒ Just Bound
+                 (Ref fc Func name) ⇒ Just Function
+                 (Ref fc (DataCon tag arity) name) ⇒ Just Data
+                 (Ref fc (TyCon tag arity) name) ⇒ Just Typ
+                 (Meta fc x y xs) ⇒ Just Bound
+                 (Bind fc x b scope) ⇒ Just Bound
+                 (App fc fn arg) ⇒ Just Bound
+                 (As fc x as pat) ⇒ Just Bound
+                 (TDelayed fc x y) ⇒ Nothing
+                 (TDelay fc x ty arg) ⇒ Nothing
+                 (TForce fc x y) ⇒ Nothing
+                 (PrimVal fc c) ⇒ Just Typ
+                 (Erased fc imp) ⇒ Just Bound
+                 (TType fc) ⇒ Just Typ
+      hilite = F.map (\ d ⇒ MkHighlight fc name False "" d "" (show term) "") dec
   in maybe (pure ()) outputHighlight hilite
 
 export
-outputSyntaxHighlighting : {auto m : Ref MD Metadata} ->
-                           {auto opts : Ref ROpts REPLOpts} ->
-                           String ->
-                           REPLResult ->
+outputSyntaxHighlighting : {auto m : Ref MD Metadata} →
+                           {auto opts : Ref ROpts REPLOpts} →
+                           String →
+                           REPLResult →
                            Core REPLResult
 outputSyntaxHighlighting fname loadResult = do
   allNames <- filter (inFile fname) . names <$> get MD

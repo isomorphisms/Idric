@@ -24,12 +24,12 @@ Show ClockType where
   show GCReal    = "gcReal"
 
 public export
-data Clock : (type : ClockType) -> Type where
+data Clock : (type : ClockType) → Type where
   MkClock
     : {type : ClockType}
-    -> (seconds : Integer)
-    -> (nanoseconds : Integer)
-    -> Clock type
+    → (seconds : Integer)
+    → (nanoseconds : Integer)
+    → Clock type
 
 public export
 Eq (Clock type) where
@@ -40,9 +40,9 @@ public export
 Ord (Clock type) where
   compare (MkClock seconds1 nanoseconds1) (MkClock seconds2 nanoseconds2) =
   case compare seconds1 seconds2 of
-    LT => LT
-    GT => GT
-    EQ => compare nanoseconds1 nanoseconds2
+    LT ⇒ LT
+    GT ⇒ GT
+    EQ ⇒ compare nanoseconds1 nanoseconds2
 
 public export
 Show (Clock type) where
@@ -51,17 +51,17 @@ Show (Clock type) where
 
 ||| A helper to deconstruct a Clock.
 public export
-seconds : Clock type -> Integer
+seconds : Clock type → Integer
 seconds (MkClock s _) = s
 
 ||| A helper to deconstruct a Clock.
 public export
-nanoseconds : Clock type -> Integer
+nanoseconds : Clock type → Integer
 nanoseconds (MkClock _ ns) = ns
 
 ||| Make a duration value.
 public export
-makeDuration : Integer -> Integer -> Clock Duration
+makeDuration : Integer → Integer → Clock Duration
 makeDuration = MkClock
 
 ||| Opaque clock value manipulated by the back-end.
@@ -74,7 +74,7 @@ data ClockTypeMandatory
   | Optional
 
 public export
-isClockMandatory : ClockType -> ClockTypeMandatory
+isClockMandatory : ClockType → ClockTypeMandatory
 isClockMandatory GCCPU  = Optional
 isClockMandatory GCReal = Optional
 isClockMandatory _      = Mandatory
@@ -82,7 +82,7 @@ isClockMandatory _      = Mandatory
 prim_clockTimeMonotonic : IO OSClock
 prim_clockTimeMonotonic = schemeCall OSClock "blodwen-clock-time-monotonic" []
 
-fetchOSClock : ClockType -> IO OSClock
+fetchOSClock : ClockType → IO OSClock
 fetchOSClock UTC       = schemeCall OSClock "blodwen-clock-time-utc" []
 fetchOSClock Monotonic = prim_clockTimeMonotonic
 fetchOSClock Process   = schemeCall OSClock "blodwen-clock-time-process" []
@@ -92,10 +92,10 @@ fetchOSClock GCReal    = schemeCall OSClock "blodwen-clock-time-gcreal" []
 fetchOSClock Duration  = prim_clockTimeMonotonic
 
 ||| A test to determine the status of optional clocks.
-osClockValid : OSClock -> IO Int
+osClockValid : OSClock → IO Int
 osClockValid clk = schemeCall Int "blodwen-is-time?" [clk]
 
-fromOSClock : {type : ClockType} -> OSClock -> IO (Clock type)
+fromOSClock : {type : ClockType} → OSClock → IO (Clock type)
 fromOSClock clk =
   pure $
     MkClock
@@ -104,7 +104,7 @@ fromOSClock clk =
       !(schemeCall Integer "blodwen-clock-nanosecond" [clk])
 
 public export
-clockTimeReturnType : (typ : ClockType) -> Type
+clockTimeReturnType : (typ : ClockType) → Type
 clockTimeReturnType typ with (isClockMandatory typ)
   clockTimeReturnType typ | Optional = Maybe (Clock typ)
   clockTimeReturnType typ | Mandatory = Clock typ
@@ -112,7 +112,7 @@ clockTimeReturnType typ with (isClockMandatory typ)
 ||| Fetch the system clock of a given kind. If the clock is mandatory,
 ||| we return a (Clock type) else (Maybe (Clock type)).
 public export
-clockTime : (typ : ClockType) -> IO (clockTimeReturnType typ)
+clockTime : (typ : ClockType) → IO (clockTimeReturnType typ)
 clockTime clockType with (isClockMandatory clockType)
   clockTime clockType | Mandatory = fetchOSClock clockType >>= fromOSClock
   clockTime clockType | Optional = do
@@ -122,12 +122,12 @@ clockTime clockType with (isClockMandatory clockType)
       then map Just $ fromOSClock clk
       else pure Nothing
 
-toNano : Clock type -> Integer
+toNano : Clock type → Integer
 toNano (MkClock seconds nanoseconds) =
   let scale = 1000000000
    in scale * seconds + nanoseconds
 
-fromNano : {type : ClockType} -> Integer -> Clock type
+fromNano : {type : ClockType} → Integer → Clock type
 fromNano n =
   let scale       = 1000000000
       seconds     = n `div` scale
@@ -136,15 +136,15 @@ fromNano n =
 
 ||| Compute difference between two clocks of the same type.
 public export
-timeDifference : Clock type -> Clock type -> Clock Duration
+timeDifference : Clock type → Clock type → Clock Duration
 timeDifference clock duration = fromNano $ toNano clock - toNano duration
 
 ||| Add a duration to a clock value.
 public export
-addDuration : {type : ClockType} -> Clock type -> Clock Duration -> Clock type
+addDuration : {type : ClockType} → Clock type → Clock Duration → Clock type
 addDuration clock duration = fromNano $ toNano clock + toNano duration
 
 ||| Subtract a duration from a clock value.
 public export
-subtractDuration : {type : ClockType} -> Clock type -> Clock Duration -> Clock type
+subtractDuration : {type : ClockType} → Clock type → Clock Duration → Clock type
 subtractDuration clock duration = fromNano $ toNano clock - toNano duration

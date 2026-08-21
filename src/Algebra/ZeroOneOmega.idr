@@ -39,7 +39,7 @@ Show ZeroOneOmega where
   show RigW = "RigW"
 
 export
-rigPlus : ZeroOneOmega -> ZeroOneOmega -> ZeroOneOmega
+rigPlus : ZeroOneOmega → ZeroOneOmega → ZeroOneOmega
 rigPlus Rig0 a = a
 rigPlus a Rig0 = a
 rigPlus Rig1 a = RigW
@@ -47,7 +47,7 @@ rigPlus a Rig1 = RigW
 rigPlus RigW RigW = RigW
 
 export
-rigMult : ZeroOneOmega -> ZeroOneOmega -> ZeroOneOmega
+rigMult : ZeroOneOmega → ZeroOneOmega → ZeroOneOmega
 rigMult Rig0 _ = Rig0
 rigMult _ Rig0 = Rig0
 rigMult Rig1 a = a

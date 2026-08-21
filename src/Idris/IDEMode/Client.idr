@@ -11,43 +11,43 @@ import Idris.IDEMode.REPL
 import Parser.Support
 import Utils.Hex
 
-connectTo : String -> Int -> IO (Either String Socket)
+connectTo : String → Int → IO (Either String Socket)
 connectTo host port = do
   osock <- socket AF_INET Stream 0
   case osock of
-    Left fail => do
+    Left fail ⇒ do
       pure $ Left ("Failed to open client socket " ++ show fail)
-    Right sock => do
+    Right sock ⇒ do
       res <- connect sock (Hostname host) port
       if res /= 0
       then pure $ Left ("Failed to connect to :" ++ host ++ ":" ++ show port ++", " ++ show res)
       else pure (Right sock)
 
 ||| Runs an ide-mode client to execute one command against a given server
-serialize : IDECommand -> Maybe String
+serialize : IDECommand → Maybe String
 serialize cmd =
   let scmd = show $ SExpList [ toSExp cmd, toSExp 1 ]
       hexLen = asHex $ cast $ Strings.length scmd
       len = case isLTE (length hexLen) 6 of
-                 (Yes _) => Just $ cast (replicate (6 - length hexLen) '0') ++  hexLen
-                 (No  _) => Nothing
+                 (Yes _) ⇒ Just $ cast (replicate (6 - length hexLen) '0') ++  hexLen
+                 (No  _) ⇒ Nothing
   in (++) <$> len <*> Just scmd
 
 
-readOutput : Socket -> IO (Either String  SExp)
+readOutput : Socket → IO (Either String  SExp)
 readOutput sock = do
-  Right (len, _) <- recv sock 6 | Left err => pure (Left $ "failed to read from socket, error: " ++ show err)
+  Right (len, _) <- recv sock 6 | Left err ⇒ pure (Left $ "failed to read from socket, error: " ++ show err)
   case toHex 1 (reverse $ cast len) of
-    Nothing => pure $ Left ("expected a length in six-digits hexadecimal, got " ++ len)
-    Just num => do
-      Right (msg, _) <- recv sock num | Left err => pure (Left $ "failed to read from socket, error: " ++ show err)
+    Nothing ⇒ pure $ Left ("expected a length in six-digits hexadecimal, got " ++ len)
+    Just num ⇒ do
+      Right (msg, _) <- recv sock num | Left err ⇒ pure (Left $ "failed to read from socket, error: " ++ show err)
       pure $ either (Left . show) Right $ parseSExp msg
 
 data IDEResult : Type where
-  IDEReturn : SExp -> IDEResult
-  NetworkError : String -> IDEResult
-  InputError : String -> IDEResult
-  OutputError : String -> IDEResult
+  IDEReturn : SExp → IDEResult
+  NetworkError : String → IDEResult
+  InputError : String → IDEResult
+  OutputError : String → IDEResult
 
 implementation Show IDEResult where
   show (IDEReturn exprs) = show exprs
@@ -56,40 +56,40 @@ implementation Show IDEResult where
   show (OutputError reason) = reason
 
 
-readResult: Socket -> (SExp -> IO Bool) -> IO IDEResult
+readResult: Socket → (SExp → IO Bool) → IO IDEResult
 readResult sock cont = do
-  Right output <- readOutput sock | Left err => pure (OutputError err)
+  Right output <- readOutput sock | Left err ⇒ pure (OutputError err)
   case output of
-    (SExpList (SymbolAtom "return" ::  result :: _)) => pure (IDEReturn result)
-    other => do continue <- cont other
+    (SExpList (SymbolAtom "return" ::  result :: _)) ⇒ pure (IDEReturn result)
+    other ⇒ do continue <- cont other
                 if continue
                 then readResult sock cont
                 else pure (IDEReturn other)
 
-printExp : SExp -> IO Bool
+printExp : SExp → IO Bool
 printExp exp = do putStrLn (show exp)
                   pure True
 
-execute : Socket -> IDECommand -> IO IDEResult
+execute : Socket → IDECommand → IO IDEResult
 execute cnx command = do
       let cmdString = serialize command
       case cmdString of
-        Just cmd => do
+        Just cmd ⇒ do
           Right sent <- send cnx cmd
-            | Left err => pure (NetworkError ("Failed to send command, error: " ++ show err))
+            | Left err ⇒ pure (NetworkError ("Failed to send command, error: " ++ show err))
           readResult cnx printExp
-        Nothing => pure $ InputError "Command is too long"
+        Nothing ⇒ pure $ InputError "Command is too long"
 
-connect : String -> Int -> IO Socket
+connect : String → Int → IO Socket
 connect host port = do
   Right sock <- connectTo host port
-    | Left fail => do
+    | Left fail ⇒ do
       putStrLn $ "fail to connect to " ++ host ++ ":" ++ show port ++", error: " ++ fail
       exit 1
   pure sock
 
 covering
-makeIDECommand : REPLCmd -> Either String IDECommand
+makeIDECommand : REPLCmd → Either String IDECommand
 makeIDECommand (Eval term)            = Right $ Interpret (show term)
 makeIDECommand (Check term)           = Right $ TypeOf (show term) Nothing
 makeIDECommand (Load file)            = Right $ LoadFile file Nothing
@@ -121,18 +121,18 @@ makeIDECommand _ = Left $ "Don't know how to interpret command"
 -- makeIDECommand NOP = ?makeIDECommand_rhs_23
 
 
-parseCommand : String -> Either String IDECommand
+parseCommand : String → Either String IDECommand
 parseCommand str =
   case parseRepl str of
-    Left err => Left $ show err
-    Right Nothing => Left "No command"
-    Right (Just cmd) => makeIDECommand cmd
+    Left err ⇒ Left $ show err
+    Right Nothing ⇒ Left "No command"
+    Right (Just cmd) ⇒ makeIDECommand cmd
 
-repl : Socket -> IO ()
+repl : Socket → IO ()
 repl cnx
     = do putStr prompt
          Right input <- map parseCommand getLine
-           | Left err => do
+           | Left err ⇒ do
                   putStrLn err
                   repl cnx
          end <- fEOF stdin
@@ -147,15 +147,15 @@ repl cnx
     prompt : String
     prompt = "λ> "
 
-readProtocol : Socket -> IO ()
+readProtocol : Socket → IO ()
 readProtocol sock = do
   res <- readResult sock (const $ pure False)
   case res of
-    (IDEReturn (SExpList [ SymbolAtom "protocol-version" , IntegerAtom 2, IntegerAtom 0])) => pure ()
-    _ => do { putStrLn ("Expected protocol version 2.0, got " ++ show res) ; exit 1 }
+    (IDEReturn (SExpList [ SymbolAtom "protocol-version" , IntegerAtom 2, IntegerAtom 0])) ⇒ pure ()
+    _ ⇒ do { putStrLn ("Expected protocol version 2.0, got " ++ show res) ; exit 1 }
 
 export
-client : String -> Int -> IO ()
+client : String → Int → IO ()
 client host port = do
   sock <- connect host port
   readProtocol sock

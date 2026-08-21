@@ -11,7 +11,7 @@ TestProto
             then do Respond Char; Done
             else do Respond String; Done
 
-testClient : (1 chan : Client TestProto) -> Any IO ()
+testClient : (1 chan : Client TestProto) → Any IO ()
 testClient chan
     = do lift $ putStrLn "Starting client"
          lift $ sleep 1
@@ -22,7 +22,7 @@ testClient chan
          lift $ putStrLn ("Result: " ++ c)
          close chan
 
-testServer : (1 chan : Server TestProto) -> Any IO ()
+testServer : (1 chan : Server TestProto) → Any IO ()
 testServer chan
     = do lift $ putStrLn "Waiting"
          cmd @@ chan <- recv chan

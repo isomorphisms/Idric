@@ -33,90 +33,90 @@ mutual
   data PTerm : Type where
        -- Direct (more or less) translations to RawImp
 
-       PRef : FC -> Name -> PTerm
-       PPi : FC -> RigCount -> PiInfo PTerm -> Maybe Name ->
-             (argTy : PTerm) -> (retTy : PTerm) -> PTerm
-       PLam : FC -> RigCount -> PiInfo PTerm -> PTerm ->
-              (argTy : PTerm) -> (scope : PTerm) -> PTerm
-       PLet : FC -> RigCount -> (pat : PTerm) ->
-              (nTy : PTerm) -> (nVal : PTerm) -> (scope : PTerm) ->
-              (alts : List PClause) -> PTerm
-       PCase : FC -> PTerm -> List PClause -> PTerm
-       PLocal : FC -> List PDecl -> (scope : PTerm) -> PTerm
-       PUpdate : FC -> List PFieldUpdate -> PTerm
-       PApp : FC -> PTerm -> PTerm -> PTerm
-       PWithApp : FC -> PTerm -> PTerm -> PTerm
-       PImplicitApp : FC -> PTerm -> (argn : Maybe Name) -> PTerm -> PTerm
+       PRef : FC → Name → PTerm
+       PPi : FC → RigCount → PiInfo PTerm → Maybe Name →
+             (argTy : PTerm) → (retTy : PTerm) → PTerm
+       PLam : FC → RigCount → PiInfo PTerm → PTerm →
+              (argTy : PTerm) → (scope : PTerm) → PTerm
+       PLet : FC → RigCount → (pat : PTerm) →
+              (nTy : PTerm) → (nVal : PTerm) → (scope : PTerm) →
+              (alts : List PClause) → PTerm
+       PCase : FC → PTerm → List PClause → PTerm
+       PLocal : FC → List PDecl → (scope : PTerm) → PTerm
+       PUpdate : FC → List PFieldUpdate → PTerm
+       PApp : FC → PTerm → PTerm → PTerm
+       PWithApp : FC → PTerm → PTerm → PTerm
+       PImplicitApp : FC → PTerm → (argn : Maybe Name) → PTerm → PTerm
 
-       PDelayed : FC -> LazyReason -> PTerm -> PTerm
-       PDelay : FC -> PTerm -> PTerm
-       PForce : FC -> PTerm -> PTerm
+       PDelayed : FC → LazyReason → PTerm → PTerm
+       PDelay : FC → PTerm → PTerm
+       PForce : FC → PTerm → PTerm
 
-       PSearch : FC -> (depth : Nat) -> PTerm
-       PPrimVal : FC -> Constant -> PTerm
-       PQuote : FC -> PTerm -> PTerm
-       PQuoteDecl : FC -> PDecl -> PTerm
-       PUnquote : FC -> PTerm -> PTerm
-       PRunElab : FC -> PTerm -> PTerm
-       PHole : FC -> (bracket : Bool) -> (holename : String) -> PTerm
-       PType : FC -> PTerm
-       PAs : FC -> Name -> (pattern : PTerm) -> PTerm
-       PDotted : FC -> PTerm -> PTerm
-       PImplicit : FC -> PTerm
-       PInfer : FC -> PTerm
+       PSearch : FC → (depth : Nat) → PTerm
+       PPrimVal : FC → Constant → PTerm
+       PQuote : FC → PTerm → PTerm
+       PQuoteDecl : FC → PDecl → PTerm
+       PUnquote : FC → PTerm → PTerm
+       PRunElab : FC → PTerm → PTerm
+       PHole : FC → (bracket : Bool) → (holename : String) → PTerm
+       PType : FC → PTerm
+       PAs : FC → Name → (pattern : PTerm) → PTerm
+       PDotted : FC → PTerm → PTerm
+       PImplicit : FC → PTerm
+       PInfer : FC → PTerm
 
        -- Operators
 
-       POp : FC -> OpStr -> PTerm -> PTerm -> PTerm
-       PPrefixOp : FC -> OpStr -> PTerm -> PTerm
-       PSectionL : FC -> OpStr -> PTerm -> PTerm
-       PSectionR : FC -> PTerm -> OpStr -> PTerm
-       PEq : FC -> PTerm -> PTerm -> PTerm
-       PBracketed : FC -> PTerm -> PTerm
+       POp : FC → OpStr → PTerm → PTerm → PTerm
+       PPrefixOp : FC → OpStr → PTerm → PTerm
+       PSectionL : FC → OpStr → PTerm → PTerm
+       PSectionR : FC → PTerm → OpStr → PTerm
+       PEq : FC → PTerm → PTerm → PTerm
+       PBracketed : FC → PTerm → PTerm
 
        -- Syntactic sugar
 
-       PDoBlock : FC -> List PDo -> PTerm
-       PBang : FC -> PTerm -> PTerm
-       PIdiom : FC -> PTerm -> PTerm
-       PList : FC -> List PTerm -> PTerm
-       PPair : FC -> PTerm -> PTerm -> PTerm
-       PDPair : FC -> PTerm -> PTerm -> PTerm -> PTerm
-       PUnit : FC -> PTerm
-       PIfThenElse : FC -> PTerm -> PTerm -> PTerm -> PTerm
-       PComprehension : FC -> PTerm -> List PDo -> PTerm
-       PRewrite : FC -> PTerm -> PTerm -> PTerm
+       PDoBlock : FC → List PDo → PTerm
+       PBang : FC → PTerm → PTerm
+       PIdiom : FC → PTerm → PTerm
+       PList : FC → List PTerm → PTerm
+       PPair : FC → PTerm → PTerm → PTerm
+       PDPair : FC → PTerm → PTerm → PTerm → PTerm
+       PUnit : FC → PTerm
+       PIfThenElse : FC → PTerm → PTerm → PTerm → PTerm
+       PComprehension : FC → PTerm → List PDo → PTerm
+       PRewrite : FC → PTerm → PTerm → PTerm
        -- A list range  [x,y..z]
-       PRange : FC -> PTerm -> Maybe PTerm -> PTerm -> PTerm
+       PRange : FC → PTerm → Maybe PTerm → PTerm → PTerm
        -- A stream range [x,y..]
-       PRangeStream : FC -> PTerm -> Maybe PTerm -> PTerm
+       PRangeStream : FC → PTerm → Maybe PTerm → PTerm
        -- record field access (r.x.y)
-       PRecordFieldAccess : FC -> PTerm -> List Name -> PTerm
+       PRecordFieldAccess : FC → PTerm → List Name → PTerm
        -- record projection (.x.y)
-       PRecordProjection : FC -> List Name -> PTerm
+       PRecordProjection : FC → List Name → PTerm
 
        -- Debugging
-       PUnifyLog : FC -> Nat -> PTerm -> PTerm
+       PUnifyLog : FC → Nat → PTerm → PTerm
 
        -- TODO: 'with' disambiguation
 
   public export
   data PFieldUpdate : Type where
-       PSetField : (path : List String) -> PTerm -> PFieldUpdate
-       PSetFieldApp : (path : List String) -> PTerm -> PFieldUpdate
+       PSetField : (path : List String) → PTerm → PFieldUpdate
+       PSetFieldApp : (path : List String) → PTerm → PFieldUpdate
 
   public export
   data PDo : Type where
-       DoExp : FC -> PTerm -> PDo
-       DoBind : FC -> Name -> PTerm -> PDo
-       DoBindPat : FC -> PTerm -> PTerm -> List PClause -> PDo
-       DoLet : FC -> Name -> RigCount -> PTerm -> PTerm -> PDo
-       DoLetPat : FC -> PTerm -> PTerm -> PTerm -> List PClause -> PDo
-       DoLetLocal : FC -> List PDecl -> PDo
-       DoRewrite : FC -> PTerm -> PDo
+       DoExp : FC → PTerm → PDo
+       DoBind : FC → Name → PTerm → PDo
+       DoBindPat : FC → PTerm → PTerm → List PClause → PDo
+       DoLet : FC → Name → RigCount → PTerm → PTerm → PDo
+       DoLetPat : FC → PTerm → PTerm → PTerm → List PClause → PDo
+       DoLetLocal : FC → List PDecl → PDo
+       DoRewrite : FC → PTerm → PDo
 
   export
-  getLoc : PDo -> FC
+  getLoc : PDo → FC
   getLoc (DoExp fc _) = fc
   getLoc (DoBind fc _ _) = fc
   getLoc (DoBindPat fc _ _ _) = fc
@@ -126,52 +126,52 @@ mutual
   getLoc (DoRewrite fc _) = fc
 
   export
-  papply : FC -> PTerm -> List PTerm -> PTerm
+  papply : FC → PTerm → List PTerm → PTerm
   papply fc f [] = f
   papply fc f (a :: as) = papply fc (PApp fc f a) as
 
   public export
   data PTypeDecl : Type where
-       MkPTy : FC -> (n : Name) -> (type : PTerm) -> PTypeDecl
+       MkPTy : FC → (n : Name) → (type : PTerm) → PTypeDecl
 
   public export
   data PDataDecl : Type where
-       MkPData : FC -> (tyname : Name) -> (tycon : PTerm) ->
-                 (opts : List DataOpt) ->
-                 (datacons : List PTypeDecl) -> PDataDecl
-       MkPLater : FC -> (tyname : Name) -> (tycon : PTerm) -> PDataDecl
+       MkPData : FC → (tyname : Name) → (tycon : PTerm) →
+                 (opts : List DataOpt) →
+                 (datacons : List PTypeDecl) → PDataDecl
+       MkPLater : FC → (tyname : Name) → (tycon : PTerm) → PDataDecl
 
   public export
   data PClause : Type where
-       MkPatClause : FC -> (lhs : PTerm) -> (rhs : PTerm) ->
-                     (whereblock : List PDecl) -> PClause
-       MkWithClause : FC -> (lhs : PTerm) -> (wval : PTerm) ->
-                        List PClause -> PClause
-       MkImpossible : FC -> (lhs : PTerm) -> PClause
+       MkPatClause : FC → (lhs : PTerm) → (rhs : PTerm) →
+                     (whereblock : List PDecl) → PClause
+       MkWithClause : FC → (lhs : PTerm) → (wval : PTerm) →
+                        List PClause → PClause
+       MkImpossible : FC → (lhs : PTerm) → PClause
 
   public export
   data Directive : Type where
-       Hide : Name -> Directive
-       Logging : Nat -> Directive
-       LazyOn : Bool -> Directive
-       UnboundImplicits : Bool -> Directive
-       AmbigDepth : Nat -> Directive
-       PairNames : Name -> Name -> Name -> Directive
-       RewriteName : Name -> Name -> Directive
-       PrimInteger : Name -> Directive
-       PrimString : Name -> Directive
-       PrimChar : Name -> Directive
-       CGAction : String -> String -> Directive
-       Names : Name -> List String -> Directive
-       StartExpr : PTerm -> Directive
-       Overloadable : Name -> Directive
-       Extension : LangExt -> Directive
-       DefaultTotality : TotalReq -> Directive
-       UndottedRecordProjections : Bool -> Directive
+       Hide : Name → Directive
+       Logging : Nat → Directive
+       LazyOn : Bool → Directive
+       UnboundImplicits : Bool → Directive
+       AmbigDepth : Nat → Directive
+       PairNames : Name → Name → Name → Directive
+       RewriteName : Name → Name → Directive
+       PrimInteger : Name → Directive
+       PrimString : Name → Directive
+       PrimChar : Name → Directive
+       CGAction : String → String → Directive
+       Names : Name → List String → Directive
+       StartExpr : PTerm → Directive
+       Overloadable : Name → Directive
+       Extension : LangExt → Directive
+       DefaultTotality : TotalReq → Directive
+       UndottedRecordProjections : Bool → Directive
 
   public export
   data PField : Type where
-       MkField : FC -> RigCount -> PiInfo PTerm -> Name -> (ty : PTerm) -> PField
+       MkField : FC → RigCount → PiInfo PTerm → Name → (ty : PTerm) → PField
 
   -- For noting the pass we're in when desugaring a mutual block
   -- TODO: Decide whether we want mutual blocks!
@@ -186,70 +186,70 @@ mutual
     _ == _ = False
 
   export
-  typePass : Pass -> Bool
+  typePass : Pass → Bool
   typePass p = p == Single || p == AsType
 
   export
-  defPass : Pass -> Bool
+  defPass : Pass → Bool
   defPass p = p == Single || p == AsDef
 
   public export
   data PFnOpt : Type where
-       IFnOpt : FnOpt -> PFnOpt
-       PForeign : List PTerm -> PFnOpt
+       IFnOpt : FnOpt → PFnOpt
+       PForeign : List PTerm → PFnOpt
 
   public export
   data PDecl : Type where
-       PClaim : FC -> RigCount -> Visibility -> List PFnOpt -> PTypeDecl -> PDecl
-       PDef : FC -> List PClause -> PDecl
-       PData : FC -> Visibility -> PDataDecl -> PDecl
-       PParameters : FC -> List (Name, PTerm) -> List PDecl -> PDecl
-       PUsing : FC -> List (Maybe Name, PTerm) -> List PDecl -> PDecl
-       PReflect : FC -> PTerm -> PDecl
-       PInterface : FC ->
-                    Visibility ->
-                    (constraints : List (Maybe Name, PTerm)) ->
-                    Name ->
-                    (params : List (Name, PTerm)) ->
-                    (det : List Name) ->
-                    (conName : Maybe Name) ->
-                    List PDecl ->
+       PClaim : FC → RigCount → Visibility → List PFnOpt → PTypeDecl → PDecl
+       PDef : FC → List PClause → PDecl
+       PData : FC → Visibility → PDataDecl → PDecl
+       PParameters : FC → List (Name, PTerm) → List PDecl → PDecl
+       PUsing : FC → List (Maybe Name, PTerm) → List PDecl → PDecl
+       PReflect : FC → PTerm → PDecl
+       PInterface : FC →
+                    Visibility →
+                    (constraints : List (Maybe Name, PTerm)) →
+                    Name →
+                    (params : List (Name, PTerm)) →
+                    (det : List Name) →
+                    (conName : Maybe Name) →
+                    List PDecl →
                     PDecl
-       PImplementation : FC ->
-                         Visibility -> List PFnOpt -> Pass ->
-                         (implicits : List (Name, RigCount, PTerm)) ->
-                         (constraints : List (Maybe Name, PTerm)) ->
-                         Name ->
-                         (params : List PTerm) ->
-                         (implName : Maybe Name) ->
-                         (nusing : List Name) ->
-                         Maybe (List PDecl) ->
+       PImplementation : FC →
+                         Visibility → List PFnOpt → Pass →
+                         (implicits : List (Name, RigCount, PTerm)) →
+                         (constraints : List (Maybe Name, PTerm)) →
+                         Name →
+                         (params : List PTerm) →
+                         (implName : Maybe Name) →
+                         (nusing : List Name) →
+                         Maybe (List PDecl) →
                          PDecl
-       PRecord : FC ->
-                 Visibility ->
-                 Name ->
-                 (params : List (Name, RigCount, PiInfo PTerm, PTerm)) ->
-                 (conName : Maybe Name) ->
-                 List PField ->
+       PRecord : FC →
+                 Visibility →
+                 Name →
+                 (params : List (Name, RigCount, PiInfo PTerm, PTerm)) →
+                 (conName : Maybe Name) →
+                 List PField →
                  PDecl
 
        -- TODO: PPostulate
        -- TODO: POpen (for opening named interfaces)
-       PMutual : FC -> List PDecl -> PDecl
-       PFixity : FC -> Fixity -> Nat -> OpStr -> PDecl
-       PNamespace : FC -> List String -> List PDecl -> PDecl
-       PTransform : FC -> String -> PTerm -> PTerm -> PDecl
-       PDirective : FC -> Directive -> PDecl
+       PMutual : FC → List PDecl → PDecl
+       PFixity : FC → Fixity → Nat → OpStr → PDecl
+       PNamespace : FC → List String → List PDecl → PDecl
+       PTransform : FC → String → PTerm → PTerm → PDecl
+       PDirective : FC → Directive → PDecl
 
-definedInData : PDataDecl -> List Name
+definedInData : PDataDecl → List Name
 definedInData (MkPData _ n _ _ cons) = n :: map getName cons
   where
-    getName : PTypeDecl -> Name
+    getName : PTypeDecl → Name
     getName (MkPTy _ n _) = n
 definedInData (MkPLater _ n _) = [n]
 
 export
-definedIn : List PDecl -> List Name
+definedIn : List PDecl → List Name
 definedIn [] = []
 definedIn (PClaim _ _ _ _ (MkPTy _ n _) :: ds) = n :: definedIn ds
 definedIn (PData _ _ d :: ds) = definedInData d ++ definedIn ds
@@ -272,12 +272,12 @@ Show REPLEval where
 
 public export
 data REPLOpt : Type where
-     ShowImplicits : Bool -> REPLOpt
-     ShowNamespace : Bool -> REPLOpt
-     ShowTypes : Bool -> REPLOpt
-     EvalMode : REPLEval -> REPLOpt
-     Editor : String -> REPLOpt
-     CG : String -> REPLOpt
+     ShowImplicits : Bool → REPLOpt
+     ShowNamespace : Bool → REPLOpt
+     ShowTypes : Bool → REPLOpt
+     EvalMode : REPLEval → REPLOpt
+     Editor : String → REPLOpt
+     CG : String → REPLOpt
 
 export
 Show REPLOpt where
@@ -291,37 +291,37 @@ Show REPLOpt where
 
 public export
 data EditCmd : Type where
-     TypeAt : Int -> Int -> Name -> EditCmd
-     CaseSplit : Bool -> Int -> Int -> Name -> EditCmd
-     AddClause : Bool -> Int -> Name -> EditCmd
-     ExprSearch : Bool -> Int -> Name -> List Name -> Bool -> EditCmd
-     GenerateDef : Bool -> Int -> Name -> EditCmd
-     MakeLemma : Bool -> Int -> Name -> EditCmd
-     MakeCase : Bool -> Int -> Name -> EditCmd
-     MakeWith : Bool -> Int -> Name -> EditCmd
+     TypeAt : Int → Int → Name → EditCmd
+     CaseSplit : Bool → Int → Int → Name → EditCmd
+     AddClause : Bool → Int → Name → EditCmd
+     ExprSearch : Bool → Int → Name → List Name → Bool → EditCmd
+     GenerateDef : Bool → Int → Name → EditCmd
+     MakeLemma : Bool → Int → Name → EditCmd
+     MakeCase : Bool → Int → Name → EditCmd
+     MakeWith : Bool → Int → Name → EditCmd
 
 public export
 data REPLCmd : Type where
-     Eval : PTerm -> REPLCmd
-     Check : PTerm -> REPLCmd
-     PrintDef : Name -> REPLCmd
+     Eval : PTerm → REPLCmd
+     Check : PTerm → REPLCmd
+     PrintDef : Name → REPLCmd
      Reload : REPLCmd
-     Load : String -> REPLCmd
+     Load : String → REPLCmd
      Edit : REPLCmd
-     Compile : PTerm -> String -> REPLCmd
-     Exec : PTerm -> REPLCmd
+     Compile : PTerm → String → REPLCmd
+     Exec : PTerm → REPLCmd
      Help : REPLCmd
-     ProofSearch : Name -> REPLCmd
-     DebugInfo : Name -> REPLCmd
-     SetOpt : REPLOpt -> REPLCmd
+     ProofSearch : Name → REPLCmd
+     DebugInfo : Name → REPLCmd
+     SetOpt : REPLOpt → REPLCmd
      GetOpts : REPLCmd
-     CD : String -> REPLCmd
+     CD : String → REPLCmd
      CWD: REPLCmd
-     Missing : Name -> REPLCmd
-     Total : Name -> REPLCmd
-     SetLog : Nat -> REPLCmd
+     Missing : Name → REPLCmd
+     Total : Name → REPLCmd
+     SetLog : Nat → REPLCmd
      Metavars : REPLCmd
-     Editing : EditCmd -> REPLCmd
+     Editing : EditCmd → REPLCmd
      ShowVersion : REPLCmd
      Quit : REPLCmd
      NOP : REPLCmd
@@ -342,19 +342,19 @@ record Module where
   imports : List Import
   decls : List PDecl
 
-showCount : RigCount -> String
+showCount : RigCount → String
 showCount = elimSemi
                 ("0 ")
                 ("1 ")
                 (const "")
 
 mutual
-  showAlt : PClause -> String
-  showAlt (MkPatClause _ lhs rhs _) = " | " ++ show lhs ++ " => " ++ show rhs ++ ";"
+  showAlt : PClause → String
+  showAlt (MkPatClause _ lhs rhs _) = " | " ++ show lhs ++ " ⇒ " ++ show rhs ++ ";"
   showAlt (MkWithClause _ lhs wval cs) = " | <<with alts not possible>>;"
   showAlt (MkImpossible _ lhs) = " | " ++ show lhs ++ " impossible;"
 
-  showDo : PDo -> String
+  showDo : PDo → String
   showDo (DoExp _ tm) = show tm
   showDo (DoBind _ n tm) = show n ++ " <- " ++ show tm
   showDo (DoBindPat _ l tm alts)
@@ -368,7 +368,7 @@ mutual
   showDo (DoRewrite _ rule)
       = "rewrite " ++ show rule
 
-  showUpdate : PFieldUpdate -> String
+  showUpdate : PFieldUpdate → String
   showUpdate (PSetField p v) = showSep "." p ++ " = " ++ show v
   showUpdate (PSetFieldApp p v) = showSep "." p ++ " $= " ++ show v
 
@@ -376,25 +376,25 @@ mutual
   Show PTerm where
     showPrec d (PRef _ n) = showPrec d n
     showPrec d (PPi _ rig Explicit Nothing arg ret)
-        = showPrec d arg ++ " -> " ++ showPrec d ret
+        = showPrec d arg ++ " → " ++ showPrec d ret
     showPrec d (PPi _ rig Explicit (Just n) arg ret)
-        = "(" ++ Syntax.showCount rig ++ showPrec d n ++ " : " ++ showPrec d arg ++ ") -> " ++ showPrec d ret
+        = "(" ++ Syntax.showCount rig ++ showPrec d n ++ " : " ++ showPrec d arg ++ ") → " ++ showPrec d ret
     showPrec d (PPi _ rig Implicit Nothing arg ret) -- shouldn't happen
-        = "{" ++ Syntax.showCount rig ++ "_ : " ++ showPrec d arg ++ "} -> " ++ showPrec d ret
+        = "{" ++ Syntax.showCount rig ++ "_ : " ++ showPrec d arg ++ "} → " ++ showPrec d ret
     showPrec d (PPi _ rig Implicit (Just n) arg ret)
-        = "{" ++ Syntax.showCount rig ++ showPrec d n ++ " : " ++ showPrec d arg ++ "} -> " ++ showPrec d ret
+        = "{" ++ Syntax.showCount rig ++ showPrec d n ++ " : " ++ showPrec d arg ++ "} → " ++ showPrec d ret
     showPrec d (PPi _ top AutoImplicit Nothing arg ret)
-        = showPrec d arg ++ " => " ++ showPrec d ret
+        = showPrec d arg ++ " ⇒ " ++ showPrec d ret
     showPrec d (PPi _ rig AutoImplicit (Just n) arg ret)
-        = "{auto " ++ showCount rig ++ showPrec d n ++ " : " ++ showPrec d arg ++ "} -> " ++ showPrec d ret
+        = "{auto " ++ showCount rig ++ showPrec d n ++ " : " ++ showPrec d arg ++ "} → " ++ showPrec d ret
     showPrec d (PPi _ rig (DefImplicit t) Nothing arg ret) -- shouldn't happen
-        = "{default " ++ showPrec App t ++ " " ++ showCount rig ++ "_ : " ++ showPrec d arg ++ "} -> " ++ showPrec d ret
+        = "{default " ++ showPrec App t ++ " " ++ showCount rig ++ "_ : " ++ showPrec d arg ++ "} → " ++ showPrec d ret
     showPrec d (PPi _ rig (DefImplicit t) (Just n) arg ret)
-        = "{default " ++ showPrec App t ++ " " ++ showCount rig ++ showPrec d n ++ " : " ++ showPrec d arg ++ "} -> " ++ showPrec d ret
+        = "{default " ++ showPrec App t ++ " " ++ showCount rig ++ showPrec d n ++ " : " ++ showPrec d arg ++ "} → " ++ showPrec d ret
     showPrec d (PLam _ rig _ n (PImplicit _) sc)
-        = "\\" ++ Syntax.showCount rig ++ showPrec d n ++ " => " ++ showPrec d sc
+        = "\\" ++ Syntax.showCount rig ++ showPrec d n ++ " ⇒ " ++ showPrec d sc
     showPrec d (PLam _ rig _ n ty sc)
-        = "\\" ++ Syntax.showCount rig ++ showPrec d n ++ " : " ++ showPrec d ty ++ " => " ++ showPrec d sc
+        = "\\" ++ Syntax.showCount rig ++ showPrec d n ++ " : " ++ showPrec d ty ++ " ⇒ " ++ showPrec d sc
     showPrec d (PLet _ rig n (PImplicit _) val sc alts)
         = "let " ++ Syntax.showCount rig ++ showPrec d n ++ " = " ++ showPrec d val ++ " in " ++ showPrec d sc
     showPrec d (PLet _ rig n ty val sc alts)
@@ -402,16 +402,16 @@ mutual
                  ++ showPrec d val ++ concatMap showAlt alts ++
                  " in " ++ showPrec d sc
       where
-        showAlt : PClause -> String
-        showAlt (MkPatClause _ lhs rhs _) = " | " ++ show lhs ++ " => " ++ show rhs ++ ";"
+        showAlt : PClause → String
+        showAlt (MkPatClause _ lhs rhs _) = " | " ++ show lhs ++ " ⇒ " ++ show rhs ++ ";"
         showAlt (MkWithClause _ lhs rhs _) = " | <<with alts not possible>>"
         showAlt (MkImpossible _ lhs) = " | " ++ show lhs ++ " impossible;"
     showPrec _ (PCase _ tm cs)
         = "case " ++ show tm ++ " of { " ++
             showSep " ; " (map showCase cs) ++ " }"
       where
-        showCase : PClause -> String
-        showCase (MkPatClause _ lhs rhs _) = show lhs ++ " => " ++ show rhs
+        showCase : PClause → String
+        showCase (MkPatClause _ lhs rhs _) = show lhs ++ " ⇒ " ++ show rhs
         showCase (MkWithClause _ lhs rhs _) = " | <<with alts not possible>>"
         showCase (MkImpossible _ lhs) = show lhs ++ " impossible"
     showPrec d (PLocal _ ds sc) -- We'll never see this when displaying a normal form...
@@ -471,12 +471,12 @@ mutual
         = "[" ++ showPrec d (dePure ret) ++ " | " ++
                  showSep ", " (map (showDo . deGuard) es) ++ "]"
       where
-        dePure : PTerm -> PTerm
+        dePure : PTerm → PTerm
         dePure tm@(PApp _ (PRef _ n) arg)
             = if dropNS n == UN "pure" then arg else tm
         dePure tm = tm
 
-        deGuard : PDo -> PDo
+        deGuard : PDo → PDo
         deGuard tm@(DoExp fc (PApp _ (PRef _ n) arg))
             = if dropNS n == UN "guard" then DoExp fc arg else tm
         deGuard tm = tm
@@ -547,11 +547,11 @@ TTC Fixity where
 
   fromBuf b
       = case !getTag of
-             0 => pure InfixL
-             1 => pure InfixR
-             2 => pure Infix
-             3 => pure Prefix
-             _ => corrupt "Fixity"
+             0 ⇒ pure InfixL
+             1 ⇒ pure InfixR
+             2 ⇒ pure Infix
+             3 ⇒ pure Prefix
+             _ ⇒ corrupt "Fixity"
 
 export
 TTC SyntaxInfo where
@@ -579,11 +579,11 @@ HasNames IFaceInfo where
 
   resolved gam iface = pure iface
 
-HasNames a => HasNames (ANameMap a) where
+HasNames a ⇒ HasNames (ANameMap a) where
   full gam nmap
       = insertAll empty (toList nmap)
     where
-      insertAll : ANameMap a -> List (Name, a) -> Core (ANameMap a)
+      insertAll : ANameMap a → List (Name, a) → Core (ANameMap a)
       insertAll ms [] = pure ms
       insertAll ms ((k, v) :: ns)
           = insertAll (addName !(full gam k) !(full gam v) ms) ns
@@ -591,7 +591,7 @@ HasNames a => HasNames (ANameMap a) where
   resolved gam nmap
       = insertAll empty (toList nmap)
     where
-      insertAll : ANameMap a -> List (Name, a) -> Core (ANameMap a)
+      insertAll : ANameMap a → List (Name, a) → Core (ANameMap a)
       insertAll ms [] = pure ms
       insertAll ms ((k, v) :: ns)
           = insertAll (addName !(resolved gam k) !(resolved gam v) ms) ns
@@ -622,12 +622,12 @@ export
 data Syn : Type where
 
 export
-mapPTermM : (PTerm -> Core PTerm) -> PTerm -> Core PTerm
+mapPTermM : (PTerm → Core PTerm) → PTerm → Core PTerm
 mapPTermM f = goPTerm where
 
   mutual
 
-    goPTerm : PTerm -> Core PTerm
+    goPTerm : PTerm → Core PTerm
     goPTerm t@(PRef _ _) = f t
     goPTerm (PPi fc x info z argTy retTy) =
       PPi fc x <$> goPiInfo info
@@ -779,11 +779,11 @@ mapPTermM f = goPTerm where
     goPTerm (PRecordProjection fc fields) =
       f (PRecordProjection fc fields)
 
-    goPFieldUpdate : PFieldUpdate -> Core PFieldUpdate
+    goPFieldUpdate : PFieldUpdate → Core PFieldUpdate
     goPFieldUpdate (PSetField p t)    = PSetField p <$> goPTerm t
     goPFieldUpdate (PSetFieldApp p t) = PSetFieldApp p <$> goPTerm t
 
-    goPDo : PDo -> Core PDo
+    goPDo : PDo → Core PDo
     goPDo (DoExp fc t) = DoExp fc <$> goPTerm t
     goPDo (DoBind fc n t) = DoBind fc n <$> goPTerm t
     goPDo (DoBindPat fc t u cls) =
@@ -801,7 +801,7 @@ mapPTermM f = goPTerm where
     goPDo (DoLetLocal fc decls) = DoLetLocal fc <$> goPDecls decls
     goPDo (DoRewrite fc t) = DoRewrite fc <$> goPTerm t
 
-    goPClause : PClause -> Core PClause
+    goPClause : PClause → Core PClause
     goPClause (MkPatClause fc lhs rhs wh) =
       MkPatClause fc <$> goPTerm lhs
                      <*> goPTerm rhs
@@ -812,7 +812,7 @@ mapPTermM f = goPTerm where
                       <*> goPClauses cls
     goPClause (MkImpossible fc lhs) = MkImpossible fc <$> goPTerm lhs
 
-    goPDecl : PDecl -> Core PDecl
+    goPDecl : PDecl → Core PDecl
     goPDecl (PClaim fc c v opts tdecl) =
       PClaim fc c v <$> goPFnOpts opts
                     <*> goPTypeDecl tdecl
@@ -851,87 +851,87 @@ mapPTermM f = goPTerm where
     goPDecl p@(PDirective _ _) = pure p
 
 
-    goPTypeDecl : PTypeDecl -> Core PTypeDecl
+    goPTypeDecl : PTypeDecl → Core PTypeDecl
     goPTypeDecl (MkPTy fc n t) = MkPTy fc n <$> goPTerm t
 
-    goPDataDecl : PDataDecl -> Core PDataDecl
+    goPDataDecl : PDataDecl → Core PDataDecl
     goPDataDecl (MkPData fc n t opts tdecls) =
       MkPData fc n <$> goPTerm t
                    <*> pure opts
                    <*> goPTypeDecls tdecls
     goPDataDecl (MkPLater fc n t) = MkPLater fc n <$> goPTerm t
 
-    goPField : PField -> Core PField
+    goPField : PField → Core PField
     goPField (MkField fc c info n t) =
       MkField fc c <$> goPiInfo info
                    <*> pure n
                    <*> goPTerm t
 
-    goPiInfo : PiInfo PTerm -> Core (PiInfo PTerm)
+    goPiInfo : PiInfo PTerm → Core (PiInfo PTerm)
     goPiInfo (DefImplicit t) = DefImplicit <$> goPTerm t
     goPiInfo t = pure t
 
-    goPFnOpt : PFnOpt -> Core PFnOpt
+    goPFnOpt : PFnOpt → Core PFnOpt
     goPFnOpt o@(IFnOpt _) = pure o
     goPFnOpt (PForeign ts) = PForeign <$> goPTerms ts
 
     -- Traversable stuff. Inlined for termination checking.
 
-    goMPTerm : Maybe PTerm -> Core (Maybe PTerm)
+    goMPTerm : Maybe PTerm → Core (Maybe PTerm)
     goMPTerm Nothing  = pure Nothing
     goMPTerm (Just t) = Just <$> goPTerm t
 
-    goPTerms : List PTerm -> Core (List PTerm)
+    goPTerms : List PTerm → Core (List PTerm)
     goPTerms []        = pure []
     goPTerms (t :: ts) = (::) <$> goPTerm t <*> goPTerms ts
 
-    goPairedPTerms : List (a, PTerm) -> Core (List (a, PTerm))
+    goPairedPTerms : List (a, PTerm) → Core (List (a, PTerm))
     goPairedPTerms []             = pure []
     goPairedPTerms ((a, t) :: ts) =
        (::) . MkPair a <$> goPTerm t
                        <*> goPairedPTerms ts
 
-    go3TupledPTerms : List (a, b, PTerm) -> Core (List (a, b, PTerm))
+    go3TupledPTerms : List (a, b, PTerm) → Core (List (a, b, PTerm))
     go3TupledPTerms [] = pure []
     go3TupledPTerms ((a, b, t) :: ts) =
-      (::) . (\ c => (a, b, c)) <$> goPTerm t
+      (::) . (\ c ⇒ (a, b, c)) <$> goPTerm t
                                 <*> go3TupledPTerms ts
 
-    go4TupledPTerms : List (a, b, PiInfo PTerm, PTerm) -> Core (List (a, b, PiInfo PTerm, PTerm))
+    go4TupledPTerms : List (a, b, PiInfo PTerm, PTerm) → Core (List (a, b, PiInfo PTerm, PTerm))
     go4TupledPTerms [] = pure []
     go4TupledPTerms ((a, b, p, t) :: ts) =
-      (\ p, d, ts => (a, b, p, d) :: ts) <$> goPiInfo p
+      (\ p, d, ts ⇒ (a, b, p, d) :: ts) <$> goPiInfo p
                                          <*> goPTerm t
                                          <*> go4TupledPTerms ts
 
-    goPDos : List PDo -> Core (List PDo)
+    goPDos : List PDo → Core (List PDo)
     goPDos []        = pure []
     goPDos (d :: ds) = (::) <$> goPDo d <*> goPDos ds
 
-    goPClauses : List PClause -> Core (List PClause)
+    goPClauses : List PClause → Core (List PClause)
     goPClauses []          = pure []
     goPClauses (cl :: cls) = (::) <$> goPClause cl <*> goPClauses cls
 
-    goMPDecls : Maybe (List PDecl) -> Core (Maybe (List PDecl))
+    goMPDecls : Maybe (List PDecl) → Core (Maybe (List PDecl))
     goMPDecls Nothing   = pure Nothing
     goMPDecls (Just ps) = Just <$> goPDecls ps
 
-    goPDecls : List PDecl -> Core (List PDecl)
+    goPDecls : List PDecl → Core (List PDecl)
     goPDecls []          = pure []
     goPDecls (d :: ds) = (::) <$> goPDecl d <*> goPDecls ds
 
-    goPFieldUpdates : List PFieldUpdate -> Core (List PFieldUpdate)
+    goPFieldUpdates : List PFieldUpdate → Core (List PFieldUpdate)
     goPFieldUpdates []          = pure []
     goPFieldUpdates (fu :: fus) = (::) <$> goPFieldUpdate fu <*> goPFieldUpdates fus
 
-    goPFields : List PField -> Core (List PField)
+    goPFields : List PField → Core (List PField)
     goPFields []        = pure []
     goPFields (f :: fs) = (::) <$> goPField f <*> goPFields fs
 
-    goPFnOpts : List PFnOpt -> Core (List PFnOpt)
+    goPFnOpts : List PFnOpt → Core (List PFnOpt)
     goPFnOpts []        = pure []
     goPFnOpts (o :: os) = (::) <$> goPFnOpt o <*> goPFnOpts os
 
-    goPTypeDecls : List PTypeDecl -> Core (List PTypeDecl)
+    goPTypeDecls : List PTypeDecl → Core (List PTypeDecl)
     goPTypeDecls []        = pure []
     goPTypeDecls (t :: ts) = (::) <$> goPTypeDecl t <*> goPTypeDecls ts

@@ -9,8 +9,8 @@ import public Text.Quantity
 import public Text.Token
 
 export
-toTokenMap : List (Lexer, k) -> TokenMap (Token k)
-toTokenMap = map $ \(l, kind) => (l, Tok kind)
+toTokenMap : List (Lexer, k) → TokenMap (Token k)
+toTokenMap = map $ \(l, kind) ⇒ (l, Tok kind)
 
 ||| Recognise any character.
 ||| /./
@@ -22,106 +22,106 @@ any = pred (const True)
 ||| to consume input.
 ||| /`l`?/
 export
-opt : (l : Lexer) -> Recognise False
+opt : (l : Lexer) → Recognise False
 opt l = l <|> empty
 
 ||| Recognise any character if the sub-lexer `l` fails.
 ||| /(?!`l`)./
 export
-non : (l : Lexer) -> Lexer
+non : (l : Lexer) → Lexer
 non l = reject l <+> any
 
 ||| Produce recognisers by applying a function to elements of a container, and
 ||| recognise the first match. Consumes input if the function produces consuming
 ||| recognisers. Fails if the container is empty.
 export
-choiceMap : {c : Bool} ->
-            Foldable t => (a -> Recognise c) -> t a -> Recognise c
-choiceMap {c} f xs = foldr (\x, acc => rewrite sym (andSameNeutral c) in
+choiceMap : {c : Bool} →
+            Foldable t ⇒ (a → Recognise c) → t a → Recognise c
+choiceMap {c} f xs = foldr (\x, acc ⇒ rewrite sym (andSameNeutral c) in
                                                f x <|> acc)
                            fail xs
 
 ||| Recognise the first matching recogniser in a container. Consumes input if
 ||| recognisers in the list consume. Fails if the container is empty.
 export
-choice : {c : _} ->
-         Foldable t => t (Recognise c) -> Recognise c
+choice : {c : _} →
+         Foldable t ⇒ t (Recognise c) → Recognise c
 choice = Lexer.choiceMap id
 
 ||| Sequence a list of recognisers. Guaranteed to consume input if the list is
 ||| non-empty and the recognisers consume.
 export
-concat : {c : _} ->
-         (xs : List (Recognise c)) -> Recognise (c && isCons xs)
+concat : {c : _} →
+         (xs : List (Recognise c)) → Recognise (c && isCons xs)
 concat = Lexer.Core.concatMap id
 
 ||| Recognise a specific character.
 ||| /[`x`]/
 export
-is : (x : Char) -> Lexer
+is : (x : Char) → Lexer
 is x = pred (==x)
 
 ||| Recognise anything but the given character.
 ||| /[\^`x`]/
 export
-isNot : (x : Char) -> Lexer
+isNot : (x : Char) → Lexer
 isNot x = pred (/=x)
 
 ||| Recognise a specific character (case-insensitive).
 ||| /[`x`]/i
 export
-like : (x : Char) -> Lexer
-like x = pred (\y => toUpper x == toUpper y)
+like : (x : Char) → Lexer
+like x = pred (\y ⇒ toUpper x == toUpper y)
 
 ||| Recognise anything but the given character (case-insensitive).
 ||| /[\^`x`]/i
 export
-notLike : (x : Char) -> Lexer
-notLike x = pred (\y => toUpper x /= toUpper y)
+notLike : (x : Char) → Lexer
+notLike x = pred (\y ⇒ toUpper x /= toUpper y)
 
 ||| Recognise a specific string.
 ||| Fails if the string is empty.
 ||| /`str`/
 export
-exact : (str : String) -> Lexer
+exact : (str : String) → Lexer
 exact str = case unpack str of
-                 [] => fail
-                 (x :: xs) => concatMap is (x :: xs)
+                 [] ⇒ fail
+                 (x :: xs) ⇒ concatMap is (x :: xs)
 
 ||| Recognise a specific string (case-insensitive).
 ||| Fails if the string is empty.
 ||| /`str`/i
 export
-approx : (str : String) -> Lexer
+approx : (str : String) → Lexer
 approx str = case unpack str of
-                  [] => fail
-                  (x :: xs) => concatMap like (x :: xs)
+                  [] ⇒ fail
+                  (x :: xs) ⇒ concatMap like (x :: xs)
 
 ||| Recognise any of the characters in the given string.
 ||| /[`chars`]/
 export
-oneOf : (chars : String) -> Lexer
-oneOf chars = pred (\x => x `elem` unpack chars)
+oneOf : (chars : String) → Lexer
+oneOf chars = pred (\x ⇒ x `elem` unpack chars)
 
 ||| Recognise a character range. Also works in reverse!
 ||| /[`start`-`end`]/
 export
-range : (start : Char) -> (end : Char) -> Lexer
-range start end = pred (\x => (x >= min start end)
+range : (start : Char) → (end : Char) → Lexer
+range start end = pred (\x ⇒ (x >= min start end)
                            && (x <= max start end))
 
 mutual
   ||| Recognise a sequence of at least one sub-lexers
   ||| /`l`+/
   export
-  some : Lexer -> Lexer
+  some : Lexer → Lexer
   some l = l <+> many l
 
   ||| Recognise a sequence of at zero or more sub-lexers. This is not
   ||| guaranteed to consume input
   ||| /`l`\*/
   export
-  many : Lexer -> Recognise False
+  many : Lexer → Recognise False
   many l = opt (some l)
 
 ||| Repeat the sub-lexer `l` zero or more times until the lexer
@@ -129,7 +129,7 @@ mutual
 ||| Not guaranteed to consume input.
 ||| /((?!`stopBefore`)`l`)\*/
 export
-manyUntil : (stopBefore : Recognise c) -> (l : Lexer) -> Recognise False
+manyUntil : (stopBefore : Recognise c) → (l : Lexer) → Recognise False
 manyUntil stopBefore l = many (reject stopBefore <+> l)
 
 ||| Repeat the sub-lexer `l` zero or more times until the lexer
@@ -137,7 +137,7 @@ manyUntil stopBefore l = many (reject stopBefore <+> l)
 ||| consume if `stopAfter` consumes.
 ||| /`l`\*?`stopAfter`/
 export
-manyThen : (stopAfter : Recognise c) -> (l : Lexer) -> Recognise c
+manyThen : (stopAfter : Recognise c) → (l : Lexer) → Recognise c
 manyThen stopAfter l = manyUntil stopAfter l <+> stopAfter
 
 ||| Recognise many instances of `l` until an instance of `end` is
@@ -145,14 +145,14 @@ manyThen stopAfter l = manyUntil stopAfter l <+> stopAfter
 |||
 ||| Useful for defining comments.
 export
-manyTill : (l : Lexer) -> (end : Lexer) -> Recognise False
+manyTill : (l : Lexer) → (end : Lexer) → Recognise False
 manyTill l end = end <|> opt (l <+> manyTill l end)
 
 ||| Recognise a sub-lexer repeated as specified by `q`. Fails if `q` has
 ||| `min` and `max` in the wrong order. Consumes input unless `min q` is zero.
 ||| /`l`{`q`}/
 export
-count : (q : Quantity) -> (l : Lexer) -> Recognise (isSucc (min q))
+count : (q : Quantity) → (l : Lexer) → Recognise (isSucc (min q))
 count (Qty Z Nothing) l = many l
 count (Qty Z (Just Z)) _ = empty
 count (Qty Z (Just (S max))) l = opt $ l <+> count (atMost max) l
@@ -273,7 +273,7 @@ newlines = some newline
 ||| /[\^\\sA-Za-z0-9]/
 export
 symbol : Lexer
-symbol = pred (\x => not (isSpace x || isAlphaNum x))
+symbol = pred (\x ⇒ not (isSpace x || isAlphaNum x))
 
 ||| Recognise one or more non-whitespace, non-alphanumeric characters
 ||| /[\^\\sA-Za-z0-9]+/
@@ -297,20 +297,20 @@ controls = some control
 ||| delimiting lexers
 ||| /`start`(`l`)\*?`end`/
 export
-surround : (start : Lexer) -> (end : Lexer) -> (l : Lexer) -> Lexer
+surround : (start : Lexer) → (end : Lexer) → (l : Lexer) → Lexer
 surround start end l = start <+> manyThen end l
 
 ||| Recognise zero or more occurrences of a sub-lexer surrounded
 ||| by the same quote lexer on both sides (useful for strings)
 ||| /`q`(`l`)\*?`q`/
 export
-quote : (q : Lexer) -> (l : Lexer) -> Lexer
+quote : (q : Lexer) → (l : Lexer) → Lexer
 quote q l = surround q q l
 
 ||| Recognise an escape character (often '\\') followed by a sub-lexer
 ||| /[`esc`]`l`/
 export
-escape : (esc : Char) -> Lexer -> Lexer
+escape : (esc : Char) → Lexer → Lexer
 escape esc l = is esc <+> l
 
 ||| Recognise a string literal, including escaped characters.
@@ -328,7 +328,7 @@ charLit : Lexer
 charLit = let q = '\'' in
               is q <+> (escape '\\' (control <|> any) <|> isNot q) <+> is q
   where
-    lexStr : List String -> Lexer
+    lexStr : List String → Lexer
     lexStr [] = fail
     lexStr (t :: ts) = exact t <|> lexStr ts
 
@@ -359,7 +359,7 @@ hexLit = approx "0x" <+> hexDigits
 ||| a newline.
 ||| /`start`[\^\\r\\n]+(\\r\\n|[\\r\\n])?/
 export
-lineComment : (start : Lexer) -> Lexer
+lineComment : (start : Lexer) → Lexer
 lineComment start = start <+> manyUntil newline any <+> opt newline
 
 ||| Recognise all input between `start` and `end` lexers.
@@ -368,7 +368,7 @@ lineComment start = start <+> manyUntil newline any <+> opt newline
 ||| For block comments that don't support nesting (such as C-style comments),
 ||| use `surround`
 export
-blockComment : (start : Lexer) -> (end : Lexer) -> Lexer
+blockComment : (start : Lexer) → (end : Lexer) → Lexer
 blockComment start end = start <+> middle <+> end
   where
     middle : Recognise False

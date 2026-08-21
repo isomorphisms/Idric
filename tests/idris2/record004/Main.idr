@@ -7,13 +7,13 @@ record Point where
 
 -- a record creates two projections:
 --
--- .x : Point -> Double
--- .y : Point -> Double
+-- .x : Point → Double
+-- .y : Point → Double
 --
 -- because %undotted_record_projections are on by default, we also get:
 --
--- x : Point -> Double
--- y : Point -> Double
+-- x : Point → Double
+-- y : Point → Double
 
 -- to prevent cluttering the ordinary name space with short identifiers
 %undotted_record_projections off
@@ -23,15 +23,15 @@ record Rect where
   topLeft : Point
   bottomRight : Point
 
--- .topLeft : Rect -> Point
--- .bottomRight : Rect -> Point
+-- .topLeft : Rect → Point
+-- .bottomRight : Rect → Point
 --
 -- For Rect, we don't get the undotted projections:
 --
 -- Main> :t topLeft
 -- (interactive):1:4--1:11:Undefined name topLeft
 -- Main> :t .topLeft
--- \{rec:0} => .topLeft rec : ?_ -> Point
+-- \{rec:0} ⇒ .topLeft rec : ?_ → Point
 
 
 pt : Point
@@ -67,11 +67,11 @@ rect =
 --
 -- New desugaring rules
 --
--- (.field1 .field2 .field3) desugars to (\x => .field3 (.field2 (.field1 x)))
+-- (.field1 .field2 .field3) desugars to (\x ⇒ .field3 (.field2 (.field1 x)))
 -- (simpleExpr .field1 .field2 .field3) desugars to ((.field .field2 .field3) simpleExpr).
 --
 -- There are more details such as namespacing; see below.
 
 -- user-defined projections work, too (should they?)
-(.squared) : Double -> Double
+(.squared) : Double → Double
 (.squared) x = x * x

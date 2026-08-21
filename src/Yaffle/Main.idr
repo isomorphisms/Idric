@@ -25,7 +25,7 @@ import System
 usage : String
 usage = "Usage: yaffle <input file> [--timing]"
 
-processArgs : List String -> Core Bool
+processArgs : List String → Core Bool
 processArgs [] = pure False
 processArgs ["--timing"] = pure True
 processArgs _
@@ -37,7 +37,7 @@ HasNames () where
   resolved _ _ = pure ()
 
 export
-yaffleMain : String -> List String -> Core ()
+yaffleMain : String → List String → Core ()
 yaffleMain fname args
     = do defs <- initDefs
          c <- newRef Ctxt defs
@@ -48,10 +48,10 @@ yaffleMain fname args
          setLogTimings t
          addPrimitives
          case span (/= '.') fname of
-              (_, ".ttc") => do coreLift $ putStrLn "Processing as TTC"
+              (_, ".ttc") ⇒ do coreLift $ putStrLn "Processing as TTC"
                                 readFromTTC {extra = ()} emptyFC True fname [] []
                                 coreLift $ putStrLn "Read TTC"
-              _ => do coreLift $ putStrLn "Processing as TTImp"
+              _ ⇒ do coreLift $ putStrLn "Processing as TTImp"
                       ok <- processTTImpFile fname
                       when ok $
                          do makeBuildDirectory (pathToNS (working_dir d) (source_dir d) fname)
@@ -65,9 +65,9 @@ yaffleMain fname args
 main : IO ()
 main
     = do (_ :: fname :: rest) <- getArgs
-             | _ => do putStrLn usage
+             | _ ⇒ do putStrLn usage
                        exitWith (ExitFailure 1)
          coreRun (yaffleMain fname rest)
-               (\err : Error => putStrLn ("Uncaught error: " ++ show err))
-               (\res => pure ())
+               (\err : Error ⇒ putStrLn ("Uncaught error: " ++ show err))
+               (\res ⇒ pure ())
 -}

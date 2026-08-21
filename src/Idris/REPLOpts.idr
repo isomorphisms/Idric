@@ -19,7 +19,7 @@ record REPLOpts where
   idemode : OutputMode
 
 export
-defaultOpts : Maybe String -> OutputMode -> REPLOpts
+defaultOpts : Maybe String → OutputMode → REPLOpts
 defaultOpts fname outmode
    = MkREPLOpts False NormaliseAll fname "" "vim" Nothing outmode
 
@@ -31,39 +31,39 @@ replFC : FC
 replFC = MkFC "(interactive)" (0, 0) (0, 0)
 
 export
-setOutput : {auto o : Ref ROpts REPLOpts} ->
-            OutputMode -> Core ()
+setOutput : {auto o : Ref ROpts REPLOpts} →
+            OutputMode → Core ()
 setOutput m
     = do opts <- get ROpts
          put ROpts (record { idemode = m } opts)
 
 export
-getOutput : {auto o : Ref ROpts REPLOpts} -> Core OutputMode
+getOutput : {auto o : Ref ROpts REPLOpts} → Core OutputMode
 getOutput = do opts <- get ROpts
                pure (idemode opts)
 
 export
-setSource : {auto o : Ref ROpts REPLOpts} ->
-            String -> Core ()
+setSource : {auto o : Ref ROpts REPLOpts} →
+            String → Core ()
 setSource src
     = do opts <- get ROpts
          put ROpts (record { source = src } opts)
 
 export
-getSource : {auto o : Ref ROpts REPLOpts} ->
+getSource : {auto o : Ref ROpts REPLOpts} →
             Core String
 getSource
     = do opts <- get ROpts
          pure (source opts)
 
 export
-getSourceLine : {auto o : Ref ROpts REPLOpts} ->
-                Int -> Core (Maybe String)
+getSourceLine : {auto o : Ref ROpts REPLOpts} →
+                Int → Core (Maybe String)
 getSourceLine l
     = do src <- getSource
          pure $ findLine (cast (l-1)) (lines src)
   where
-    findLine : Nat -> List String -> Maybe String
+    findLine : Nat → List String → Maybe String
     findLine Z (l :: ls) = Just l
     findLine (S k) (l :: ls) = findLine k ls
     findLine _ [] = Nothing

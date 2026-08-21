@@ -1,7 +1,7 @@
 import Data.List
 import Data.List.Views
 
-mergeSort : Ord a => List a -> List a
+mergeSort : Ord a ⇒ List a → List a
 mergeSort input with (splitRec input)
   mergeSort [] | SplitRecNil = []
   mergeSort [x] | SplitRecOne x = [x]

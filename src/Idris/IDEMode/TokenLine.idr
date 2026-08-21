@@ -20,7 +20,7 @@ holeIdent = is '?' <+> identNormal
 srcTokens : TokenMap SourcePart
 srcTokens =
     [(identNormal, Name),
-     (holeIdent, \x => HoleName (assert_total (strTail x))),
+     (holeIdent, \x ⇒ HoleName (assert_total (strTail x))),
      (space, Whitespace),
      (is '{', const LBrace),
      (is '}', const RBrace),
@@ -28,10 +28,10 @@ srcTokens =
      (any, Other)]
 
 export
-tokens : String -> List SourcePart
+tokens : String → List SourcePart
 tokens str
     = case lex srcTokens str of
            -- Add the EndInput token so that we'll have a line and column
            -- number to read when storing spans in the file
-           (srctoks, (l, c, rest)) =>
+           (srctoks, (l, c, rest)) ⇒
               map tok srctoks ++ (if rest == "" then [] else [Other rest])

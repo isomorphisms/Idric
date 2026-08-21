@@ -1,7 +1,7 @@
-showIfEq : (Eq a, Show a) => a -> a -> String
+showIfEq : (Eq a, Show a) ⇒ a → a → String
 showIfEq x y = if x == y then show x else "Nope"
 
-topeq : Eq a => a -> a -> Bool
+topeq : Eq a ⇒ a → a → Bool
 topeq x y = x == y
 
 data Foo = MkFoo | MkBar
@@ -11,7 +11,7 @@ data Foo = MkFoo | MkBar
 -- hard to achieve and this way is better than displaying the whole
 -- top level search when only part of it is relevant)
 
-test : Int -> String
+test : Int → String
 test x = showIfEq MkFoo MkBar
 
 Eq Foo where

@@ -20,7 +20,7 @@ record Dirs where
   data_dirs : List String -- places to look for data file
 
 public export
-toString : Dirs -> String
+toString : Dirs → String
 toString (MkDirs wdir sdir bdir edir dfix edirs ldirs ddirs) =
   unlines [ "+ Working Directory   :: " ++ show wdir
           , "+ Source Directory    :: " ++ show sdir
@@ -51,7 +51,7 @@ availableCGs
        ("gambit", Gambit)]
 
 export
-getCG : String -> Maybe CG
+getCG : String → Maybe CG
 getCG cg = lookup (toLower cg) availableCGs
 
 -- Name options, to be saved in TTC
@@ -165,7 +165,7 @@ defaults = MkOptions defaultDirs defaultPPrint defaultSession
 
 -- Reset the options which are set by source files
 export
-clearNames : Options -> Options
+clearNames : Options → Options
 clearNames = record { pairnames = Nothing,
                       rewritenames = Nothing,
                       primnames = MkPrimNs Nothing Nothing Nothing,
@@ -173,30 +173,30 @@ clearNames = record { pairnames = Nothing,
                     }
 
 export
-setPair : (pairType : Name) -> (fstn : Name) -> (sndn : Name) ->
-          Options -> Options
+setPair : (pairType : Name) → (fstn : Name) → (sndn : Name) →
+          Options → Options
 setPair ty f s = record { pairnames = Just (MkPairNs ty f s) }
 
 export
-setRewrite : (eq : Name) -> (rwlemma : Name) -> Options -> Options
+setRewrite : (eq : Name) → (rwlemma : Name) → Options → Options
 setRewrite eq rw = record { rewritenames = Just (MkRewriteNs eq rw) }
 
 export
-setFromInteger : Name -> Options -> Options
-setFromInteger n = record { primnames->fromIntegerName = Just n }
+setFromInteger : Name → Options → Options
+setFromInteger n = record { primnames→fromIntegerName = Just n }
 
 export
-setFromString : Name -> Options -> Options
-setFromString n = record { primnames->fromStringName = Just n }
+setFromString : Name → Options → Options
+setFromString n = record { primnames→fromStringName = Just n }
 
 export
-setFromChar : Name -> Options -> Options
-setFromChar n = record { primnames->fromCharName = Just n }
+setFromChar : Name → Options → Options
+setFromChar n = record { primnames→fromCharName = Just n }
 
 export
-setExtension : LangExt -> Options -> Options
+setExtension : LangExt → Options → Options
 setExtension e = record { extensions $= (e ::) }
 
 export
-isExtension : LangExt -> Options -> Bool
+isExtension : LangExt → Options → Bool
 isExtension e opts = e `elem` extensions opts

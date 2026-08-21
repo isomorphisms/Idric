@@ -13,26 +13,26 @@ import Parser.Support
 
 %default covering
 
-pshow : {auto c : Ref Ctxt Defs} ->
-        {auto s : Ref Syn SyntaxInfo} ->
-        Env Term vars -> Term vars -> Core String
+pshow : {auto c : Ref Ctxt Defs} →
+        {auto s : Ref Syn SyntaxInfo} →
+        Env Term vars → Term vars → Core String
 pshow env tm
     = do defs <- get Ctxt
          itm <- resugar env !(normaliseHoles defs env tm)
          pure (show itm)
 
-pshowNoNorm : {auto c : Ref Ctxt Defs} ->
-        {auto s : Ref Syn SyntaxInfo} ->
-        Env Term vars -> Term vars -> Core String
+pshowNoNorm : {auto c : Ref Ctxt Defs} →
+        {auto s : Ref Syn SyntaxInfo} →
+        Env Term vars → Term vars → Core String
 pshowNoNorm env tm
     = do defs <- get Ctxt
          itm <- resugar env tm
          pure (show itm)
 
 export
-perror : {auto c : Ref Ctxt Defs} ->
-         {auto s : Ref Syn SyntaxInfo} ->
-         Error -> Core String
+perror : {auto c : Ref Ctxt Defs} →
+         {auto s : Ref Syn SyntaxInfo} →
+         Error → Core String
 perror (Fatal err) = perror err
 perror (CantConvert _ env l r)
     = pure $ "Mismatch between:\n\t" ++ !(pshow env l) ++ "\nand\n\t" ++ !(pshow env r)
@@ -43,7 +43,7 @@ perror (PatternVariableUnifies _ env n tm)
     = pure $ "Pattern variable " ++ showPVar n ++
       " unifies with:\n\t" ++ !(pshow env tm)
   where
-    showPVar : Name -> String
+    showPVar : Name → String
     showPVar (PV n _) = showPVar n
     showPVar n = show n
 perror (CyclicMeta _ env n tm)
@@ -76,8 +76,8 @@ perror (NotCovering fc n (NonCoveringCall ns))
     = pure $ !(prettyName n) ++ " is not covering:\n\t" ++
                 "Calls non covering function"
                    ++ case ns of
-                           [fn] => " " ++ show fn
-                           _ => "s: " ++ showSep ", " (map show ns)
+                           [fn] ⇒ " " ++ show fn
+                           _ ⇒ "s: " ++ showSep ", " (map show ns)
 perror (NotTotal fc n r)
     = pure $ !(prettyName n) ++ " is not total"
 perror (LinearUsed fc count n)
@@ -88,12 +88,12 @@ perror (LinearMisuse fc n exp ctx)
          else "Trying to use " ++ showRig exp ++ " name " ++ sugarName n ++
                  " in " ++ showRel ctx ++ " context"
   where
-    showRig : RigCount -> String
+    showRig : RigCount → String
     showRig = elimSemi "irrelevant"
                        "linear"
                        (const "unrestricted")
 
-    showRel : RigCount -> String
+    showRel : RigCount → String
     showRel = elimSemi "irrelevant"
                        "relevant"
                        (const "non-linear")
@@ -120,17 +120,17 @@ perror (AmbiguityTooDeep fc n ns)
              ++ ": " ++ showSep " --> " (map show !(traverse getFullName ns))
 perror (AllFailed ts)
     = case allUndefined ts of
-           Just e => perror e
-           _ => pure $ "Sorry, I can't find any elaboration which works. All errors:\n" ++
+           Just e ⇒ perror e
+           _ ⇒ pure $ "Sorry, I can't find any elaboration which works. All errors:\n" ++
                      showSep "\n" !(traverse pAlterror ts)
   where
-    pAlterror : (Maybe Name, Error) -> Core String
+    pAlterror : (Maybe Name, Error) → Core String
     pAlterror (Just n, err)
        = pure $ "If " ++ show !(getFullName n) ++ ": " ++ !(perror err) ++ "\n"
     pAlterror (Nothing, err)
        = pure $ "Possible error:\n\t" ++ !(perror err)
 
-    allUndefined : List (Maybe Name, Error) -> Maybe Error
+    allUndefined : List (Maybe Name, Error) → Maybe Error
     allUndefined [] = Nothing
     allUndefined [(_, UndefinedName loc e)] = Just (UndefinedName loc e)
     allUndefined ((_, UndefinedName _ e) :: es) = allUndefined es
@@ -155,7 +155,7 @@ perror (TryWithImplicits _ env imps)
     = pure $ "Need to bind implicits "
              ++ showSep ", " !(traverse (tshow env) imps)
   where
-    tshow : Env Term vars -> (Name, Term vars) -> Core String
+    tshow : Env Term vars → (Name, Term vars) → Core String
     tshow env (n, ty) = pure $ show n ++ " : " ++ !(pshow env ty)
 perror (BadUnboundImplicit _ env n ty)
     = pure $ "Can't bind name " ++ nameRoot n ++ " with type " ++ !(pshow env ty)
@@ -166,7 +166,7 @@ perror (CantSolveGoal _ env g)
   where
     -- For display, we don't want to see the full top level type; just the
     -- return type
-    dropPis : Env Term vars -> Term vars ->
+    dropPis : Env Term vars → Term vars →
               (ns ** (Env Term ns, Term ns))
     dropPis env (Bind _ n b@(Pi _ _ _) sc) = dropPis (b :: env) sc
     dropPis env tm = (_ ** (env, tm))
@@ -233,7 +233,7 @@ perror (ModuleNotFound _ ns)
 perror (CyclicImports ns)
     = pure $ "Module imports form a cycle: " ++ showSep " -> " (map showMod ns)
   where
-    showMod : List String -> String
+    showMod : List String → String
     showMod ns = showSep "." (reverse ns)
 perror ForceNeeded = pure "Internal error when resolving implicit laziness"
 perror (InternalError str) = pure $ "INTERNAL ERROR: " ++ str
@@ -252,9 +252,9 @@ perror (InRHS fc n err)
              " at " ++ show fc ++ ":\n" ++ !(perror err)
 
 export
-display : {auto c : Ref Ctxt Defs} ->
-          {auto s : Ref Syn SyntaxInfo} ->
-          Error -> Core String
+display : {auto c : Ref Ctxt Defs} →
+          {auto s : Ref Syn SyntaxInfo} →
+          Error → Core String
 display err
-    = pure $ maybe "" (\f => show f ++ ":") (getErrorLoc err) ++
+    = pure $ maybe "" (\f ⇒ show f ++ ":") (getErrorLoc err) ++
                    !(perror err)

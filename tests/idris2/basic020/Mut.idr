@@ -1,28 +1,28 @@
 mutual
   data MyBool = MyFalse | MyTrue
 
-  even : Nat -> MyBool
+  even : Nat → MyBool
   even (S k) = odd k
   even Z = MyTrue
 
-  odd : Nat -> MyBool
+  odd : Nat → MyBool
   odd (S k) = even k
   odd Z = MyFalse
 
-eodd : Nat -> (Bool, Bool)
+eodd : Nat → (Bool, Bool)
 eodd num = (isEven num, isOdd num)
   where
     mutual
-      isEven : Nat -> Bool
+      isEven : Nat → Bool
       isEven (S k) = isOdd k
       isEven Z = True
 
-      isOdd : Nat -> Bool
+      isOdd : Nat → Bool
       isOdd (S k) = isEven k
       isOdd Z = False
 
-data Box : Type -> Type where
-     MkBox : a -> Box a
+data Box : Type → Type where
+     MkBox : a → Box a
 
 mutual
   Functor Box where

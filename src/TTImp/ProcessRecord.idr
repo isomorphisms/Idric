@@ -15,36 +15,36 @@ import TTImp.TTImp
 import TTImp.Unelab
 import TTImp.Utils
 
-mkDataTy : FC -> List (Name, RigCount, PiInfo RawImp, RawImp) -> RawImp
+mkDataTy : FC → List (Name, RigCount, PiInfo RawImp, RawImp) → RawImp
 mkDataTy fc [] = IType fc
 mkDataTy fc ((n, c, p, ty) :: ps)
     = IPi fc c p (Just n) ty (mkDataTy fc ps)
 
-elabRecord : {vars : _} ->
-             {auto c : Ref Ctxt Defs} ->
-             {auto m : Ref MD Metadata} ->
-             {auto u : Ref UST UState} ->
-             List ElabOpt -> FC -> Env Term vars ->
-             NestedNames vars -> Maybe String ->
-             Visibility -> Name ->
-             (params : List (Name, RigCount, PiInfo RawImp, RawImp)) ->
-             (conName : Name) ->
-             List IField ->
+elabRecord : {vars : _} →
+             {auto c : Ref Ctxt Defs} →
+             {auto m : Ref MD Metadata} →
+             {auto u : Ref UST UState} →
+             List ElabOpt → FC → Env Term vars →
+             NestedNames vars → Maybe String →
+             Visibility → Name →
+             (params : List (Name, RigCount, PiInfo RawImp, RawImp)) →
+             (conName : Name) →
+             List IField →
              Core ()
 elabRecord {vars} eopts fc env nest newns vis tn params conName_in fields
     = do conName <- inCurrentNS conName_in
          elabAsData conName
          defs <- get Ctxt
          Just conty <- lookupTyExact conName (gamma defs)
-             | Nothing => throw (InternalError ("Adding " ++ show tn ++ "failed"))
+             | Nothing ⇒ throw (InternalError ("Adding " ++ show tn ++ "failed"))
          addUndotted <- isUndottedRecordProjections
          -- Go into new namespace, if there is one, for getters
          case newns of
-              Nothing =>
+              Nothing ⇒
                    do elabGetters conName 0 [] RF [] conty -- make dotted projections
                       when addUndotted $
                         elabGetters conName 0 [] UN [] conty -- make undotted projections
-              Just ns =>
+              Just ns ⇒
                    do let cns = currentNS defs
                       let nns = nestedNS defs
                       extendNS [ns]
@@ -62,34 +62,34 @@ elabRecord {vars} eopts fc env nest newns vis tn params conName_in fields
     paramTelescope = map jname params
       where
         jname : (Name, RigCount, PiInfo RawImp, RawImp)
-             -> (Maybe Name, RigCount, PiInfo RawImp, RawImp)
+             → (Maybe Name, RigCount, PiInfo RawImp, RawImp)
         -- Record type parameters are implicit in the constructor
         -- and projections
         jname (n, _, _, t) = (Just n, erased, Implicit, t)
 
-    fname : IField -> Name
+    fname : IField → Name
     fname (MkIField fc c p n ty) = n
 
-    farg : IField ->
+    farg : IField →
            (Maybe Name, RigCount, PiInfo RawImp, RawImp)
     farg (MkIField fc c p n ty) = (Just n, c, p, ty)
 
-    mkTy : List (Maybe Name, RigCount, PiInfo RawImp, RawImp) ->
-           RawImp -> RawImp
+    mkTy : List (Maybe Name, RigCount, PiInfo RawImp, RawImp) →
+           RawImp → RawImp
     mkTy [] ret = ret
     mkTy ((n, c, imp, argty) :: args) ret
         = IPi fc c imp n argty (mkTy args ret)
 
     recTy : RawImp
-    recTy = apply (IVar fc tn) (map (\(n, c, p, tm) => (n, IVar fc n, p)) params)
+    recTy = apply (IVar fc tn) (map (\(n, c, p, tm) ⇒ (n, IVar fc n, p)) params)
       where
         ||| Apply argument to list of explicit or implicit named arguments
-        apply : RawImp -> List (Name, RawImp, PiInfo RawImp) -> RawImp
+        apply : RawImp → List (Name, RawImp, PiInfo RawImp) → RawImp
         apply f [] = f
         apply f ((n, arg, Explicit) :: xs) = apply (IApp         (getFC f) f          arg) xs
         apply f ((n, arg, _       ) :: xs) = apply (IImplicitApp (getFC f) f (Just n) arg) xs
 
-    elabAsData : Name -> Core ()
+    elabAsData : Name → Core ()
     elabAsData cname
         = do let conty = mkTy paramTelescope $
                          mkTy (map farg fields) recTy
@@ -101,7 +101,7 @@ elabRecord {vars} eopts fc env nest newns vis tn params conName_in fields
              log 5 $ "Record data type " ++ show dt
              processDecl [] nest env (IData fc vis dt)
 
-    countExp : Term vs -> Nat
+    countExp : Term vs → Nat
     countExp (Bind _ n (Pi c Explicit _) sc) = S (countExp sc)
     countExp (Bind _ n (Pi c _ _) sc) = countExp sc
     countExp _ = 0
@@ -111,14 +111,14 @@ elabRecord {vars} eopts fc env nest newns vis tn params conName_in fields
     -- WARNING: if you alter the names of the getters,
     --          you probably will have to adjust TTImp.TTImp.definedInBlock.
     --
-    elabGetters : {vs : _} ->
-                  Name ->
-                  (done : Nat) -> -- number of explicit fields processed
-                  List (Name, RawImp) -> -- names to update in types
+    elabGetters : {vs : _} →
+                  Name →
+                  (done : Nat) → -- number of explicit fields processed
+                  List (Name, RawImp) → -- names to update in types
                     -- (for dependent records, where a field's type may depend
                     -- on an earlier projection)
-                  (String -> Name) ->
-                  Env Term vs -> Term vs ->
+                  (String → Name) →
+                  Env Term vs → Term vs →
                   Core ()
     elabGetters con done upds mkProjName tyenv (Bind bfc n b@(Pi rc imp ty_chk) sc)
         = if (n `elem` map fst params) || (n `elem` vars)
@@ -174,12 +174,12 @@ elabRecord {vars} eopts fc env nest newns vis tn params conName_in fields
     elabGetters con done upds _ _ _ = pure ()
 
 export
-processRecord : {auto c : Ref Ctxt Defs} ->
-                {auto m : Ref MD Metadata} ->
-                {auto u : Ref UST UState} ->
-                List ElabOpt -> NestedNames vars ->
-                Env Term vars -> Maybe String ->
-                Visibility -> ImpRecord -> Core ()
+processRecord : {auto c : Ref Ctxt Defs} →
+                {auto m : Ref MD Metadata} →
+                {auto u : Ref UST UState} →
+                List ElabOpt → NestedNames vars →
+                Env Term vars → Maybe String →
+                Visibility → ImpRecord → Core ()
 processRecord eopts nest env newns vis (MkImpRecord fc n ps cons fs)
     = elabRecord eopts fc env nest newns vis n ps cons fs
 

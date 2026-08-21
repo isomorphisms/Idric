@@ -3,25 +3,25 @@ module Data.Strings
 import Data.List
 
 export
-singleton : Char -> String
+singleton : Char → String
 singleton c = strCons c ""
 
 partial
-foldr1 : (a -> a -> a) -> List a -> a
+foldr1 : (a → a → a) → List a → a
 foldr1 _ [x] = x
 foldr1 f (x::xs) = f x (foldr1 f xs)
 
 partial
-foldl1 : (a -> a -> a) -> List a -> a
+foldl1 : (a → a → a) → List a → a
 foldl1 f (x::xs) = foldl f x xs
 
 -- This works quickly because when string-append builds the result, it allocates
 -- enough room in advance so there's only one allocation, rather than lots!
 export
-fastAppend : List String -> String
+fastAppend : List String → String
 fastAppend xs = unsafePerformIO (schemeCall String "string-append" (toFArgs xs))
   where
-    toFArgs : List String -> FArgList
+    toFArgs : List String → FArgList
     toFArgs [] = []
     toFArgs (x :: xs) = x :: toFArgs xs
 
@@ -30,10 +30,10 @@ fastAppend xs = unsafePerformIO (schemeCall String "string-append" (toFArgs xs))
 ||| ```idris example
 ||| words' (unpack " A B C  D E   ")
 ||| ```
-words' : List Char -> List (List Char)
+words' : List Char → List (List Char)
 words' s = case dropWhile isSpace s of
-            [] => []
-            s' => let (w, s'') = break isSpace s'
+            [] ⇒ []
+            s' ⇒ let (w, s'') = break isSpace s'
                   in w :: words' s''
 
 ||| Splits a string into a list of whitespace separated strings.
@@ -42,7 +42,7 @@ words' s = case dropWhile isSpace s of
 ||| words " A B C  D E   "
 ||| ```
 export
-words : String -> List String
+words : String → List String
 words s = map pack (words' (unpack s))
 
 ||| Joins the character lists by spaces into a single character list.
@@ -50,10 +50,10 @@ words s = map pack (words' (unpack s))
 ||| ```idris example
 ||| unwords' [['A'], ['B', 'C'], ['D'], ['E']]
 ||| ```
-unwords' : List (List Char) -> List Char
+unwords' : List (List Char) → List Char
 unwords' [] = []
 unwords' ws = assert_total (foldr1 addSpace ws) where
-  addSpace : List Char -> List Char -> List Char
+  addSpace : List Char → List Char → List Char
   addSpace w s = w ++ (' ' :: s)
 
 ||| Joins the strings by spaces into a single string.
@@ -62,7 +62,7 @@ unwords' ws = assert_total (foldr1 addSpace ws) where
 ||| unwords ["A", "BC", "D", "E"]
 ||| ```
 export
-unwords : List String -> String
+unwords : List String → String
 unwords = pack . unwords' . map unpack
 
 ||| Splits a character list into a list of newline separated character lists.
@@ -70,12 +70,12 @@ unwords = pack . unwords' . map unpack
 ||| ```idris example
 ||| lines' (unpack "\rA BC\nD\r\nE\n")
 ||| ```
-lines' : List Char -> List (List Char)
+lines' : List Char → List (List Char)
 lines' [] = []
 lines' s  = case break isNL s of
-              (l, s') => l :: case s' of
-                                []       => []
-                                _ :: s'' => lines' (assert_smaller s s'')
+              (l, s') ⇒ l :: case s' of
+                                []       ⇒ []
+                                _ :: s'' ⇒ lines' (assert_smaller s s'')
 
 
 
@@ -85,7 +85,7 @@ lines' s  = case break isNL s of
 ||| lines  "\rA BC\nD\r\nE\n"
 ||| ```
 export
-lines : String -> List String
+lines : String → List String
 lines s = map pack (lines' (unpack s))
 
 ||| Joins the character lists by newlines into a single character list.
@@ -93,7 +93,7 @@ lines s = map pack (lines' (unpack s))
 ||| ```idris example
 ||| unlines' [['l','i','n','e'], ['l','i','n','e','2'], ['l','n','3'], ['D']]
 ||| ```
-unlines' : List (List Char) -> List Char
+unlines' : List (List Char) → List Char
 unlines' [] = []
 unlines' (l::ls) = l ++ '\n' :: unlines' ls
 
@@ -103,19 +103,19 @@ unlines' (l::ls) = l ++ '\n' :: unlines' ls
 ||| unlines ["line", "line2", "ln3", "D"]
 ||| ```
 export
-unlines : List String -> String
+unlines : List String → String
 unlines = pack . unlines' . map unpack
 
 export
-ltrim : String -> String
+ltrim : String → String
 ltrim xs = pack (ltrimChars (unpack xs))
   where
-    ltrimChars : List Char -> List Char
+    ltrimChars : List Char → List Char
     ltrimChars [] = []
     ltrimChars (x :: xs) = if isSpace x then ltrimChars xs else (x :: xs)
 
 export
-trim : String -> String
+trim : String → String
 trim = ltrim . reverse . ltrim . reverse
 
 ||| Splits the string into a part before the predicate
@@ -128,10 +128,10 @@ trim = ltrim . reverse . ltrim . reverse
 ||| span (/= 'C') "EFGH"
 ||| ```
 export
-span : (Char -> Bool) -> String -> (String, String)
+span : (Char → Bool) → String → (String, String)
 span p xs
     = case span p (unpack xs) of
-           (x, y) => (pack x, pack y)
+           (x, y) ⇒ (pack x, pack y)
 
 ||| Splits the string into a part before the predicate
 ||| returns True and the rest of the string.
@@ -143,7 +143,7 @@ span p xs
 ||| break (== 'C') "EFGH"
 ||| ```
 public export
-break : (Char -> Bool) -> String -> (String, String)
+break : (Char → Bool) → String → (String, String)
 break p = span (not . p)
 
 
@@ -154,54 +154,54 @@ break p = span (not . p)
 ||| split (== '.') ".AB.C..D"
 ||| ```
 public export
-split : (Char -> Bool) -> String -> List1 String
+split : (Char → Bool) → String → List1 String
 split p xs = map pack (split p (unpack xs))
 
 export
-stringToNatOrZ : String -> Nat
+stringToNatOrZ : String → Nat
 stringToNatOrZ = fromInteger . prim__cast_StringInteger
 
 export
-toUpper : String -> String
+toUpper : String → String
 toUpper str = pack (map toUpper (unpack str))
 
 export
-toLower : String -> String
+toLower : String → String
 toLower str = pack (map toLower (unpack str))
 
 export
-strIndex : String -> Int -> Char
+strIndex : String → Int → Char
 strIndex = prim__strIndex
 
 export
-strTail : String -> String
+strTail : String → String
 strTail = prim__strTail
 
 export
-isPrefixOf : String -> String -> Bool
+isPrefixOf : String → String → Bool
 isPrefixOf a b = isPrefixOf (unpack a) (unpack b)
 
 export
-isSuffixOf : String -> String -> Bool
+isSuffixOf : String → String → Bool
 isSuffixOf a b = isSuffixOf (unpack a) (unpack b)
 
 export
-isInfixOf : String -> String -> Bool
+isInfixOf : String → String → Bool
 isInfixOf a b = isInfixOf (unpack a) (unpack b)
 
 public export
-data StrM : String -> Type where
+data StrM : String → Type where
     StrNil : StrM ""
-    StrCons : (x : Char) -> (xs : String) -> StrM (strCons x xs)
+    StrCons : (x : Char) → (xs : String) → StrM (strCons x xs)
 
 public export -- primitives, so assert_total and believe_me needed
-strM : (x : String) -> StrM x
+strM : (x : String) → StrM x
 strM "" = StrNil
 strM x
     = assert_total $ believe_me $
         StrCons (prim__strHead x) (prim__strTail x)
 
-parseNumWithoutSign : List Char -> Integer -> Maybe Integer
+parseNumWithoutSign : List Char → Integer → Maybe Integer
 parseNumWithoutSign []        acc = Just acc
 parseNumWithoutSign (c :: cs) acc =
   if (c >= '0' && c <= '9')
@@ -217,10 +217,10 @@ parseNumWithoutSign (c :: cs) acc =
 ||| parsePositive {a=Int} " +123"
 ||| ```
 public export
-parsePositive : Num a => String -> Maybe a
+parsePositive : Num a ⇒ String → Maybe a
 parsePositive s = parsePosTrimmed (trim s)
   where
-    parsePosTrimmed : String -> Maybe a
+    parsePosTrimmed : String → Maybe a
     parsePosTrimmed s with (strM s)
       parsePosTrimmed ""             | StrNil         = Nothing
       parsePosTrimmed (strCons '+' xs) | (StrCons '+' xs) =
@@ -239,15 +239,15 @@ parsePositive s = parsePosTrimmed (trim s)
 ||| parseInteger {a=Int} " -123"
 ||| ```
 public export
-parseInteger : (Num a, Neg a) => String -> Maybe a
+parseInteger : (Num a, Neg a) ⇒ String → Maybe a
 parseInteger s = parseIntTrimmed (trim s)
   where
-    parseIntTrimmed : String -> Maybe a
+    parseIntTrimmed : String → Maybe a
     parseIntTrimmed s with (strM s)
       parseIntTrimmed ""             | StrNil         = Nothing
       parseIntTrimmed (strCons x xs) | (StrCons x xs) =
         if (x == '-')
-          then map (\y => negate (fromInteger y)) (parseNumWithoutSign (unpack xs) 0)
+          then map (\y ⇒ negate (fromInteger y)) (parseNumWithoutSign (unpack xs) 0)
           else if (x == '+')
             then map fromInteger (parseNumWithoutSign (unpack xs) (cast {from=Int} 0))
             else if (x >= '0' && x <= '9')
@@ -267,56 +267,56 @@ parseInteger s = parseIntTrimmed (trim s)
 ||| parseDouble {a=Int} " +123.123"
 ||| ```
 export -- it's a bit too slow at compile time
-parseDouble : String -> Maybe Double
+parseDouble : String → Maybe Double
 parseDouble = mkDouble . wfe . trim
   where
-    intPow : Integer -> Integer -> Double
+    intPow : Integer → Integer → Double
     intPow base exp = assert_total $ if exp > 0 then (num base exp) else 1 / (num base exp)
       where
-        num : Integer -> Integer -> Double
+        num : Integer → Integer → Double
         num base 0 = 1
         num base e = if e < 0
                      then cast base * num base (e + 1)
                      else cast base * num base (e - 1)
 
-    natpow : Double -> Nat -> Double
+    natpow : Double → Nat → Double
     natpow x Z = 1
     natpow x (S n) = x * (natpow x n)
 
-    mkDouble : Maybe (Double, Double, Integer) -> Maybe Double
+    mkDouble : Maybe (Double, Double, Integer) → Maybe Double
     mkDouble (Just (w, f, e)) = let ex = intPow 10 e in
                                 Just $ (w * ex + f * ex)
     mkDouble Nothing = Nothing
 
-    wfe : String -> Maybe (Double, Double, Integer)
+    wfe : String → Maybe (Double, Double, Integer)
     wfe cs = case split (== '.') cs of
-               (wholeAndExp :: []) =>
-                 case split (\c => c == 'e' || c == 'E') wholeAndExp of
-                   (whole::exp::[]) =>
+               (wholeAndExp :: []) ⇒
+                 case split (\c ⇒ c == 'e' || c == 'E') wholeAndExp of
+                   (whole::exp::[]) ⇒
                      do
                        w <- cast {from=Integer} <$> parseInteger whole
                        e <- parseInteger exp
                        pure (w, 0, e)
-                   (whole::[]) =>
+                   (whole::[]) ⇒
                      do
                        w <- cast {from=Integer} <$> parseInteger whole
                        pure (w, 0, 0)
-                   _ => Nothing
-               (whole::fracAndExp::[]) =>
-                 case split (\c => c == 'e' || c == 'E') fracAndExp of
-                   (""::exp::[]) => Nothing
-                   (frac::exp::[]) =>
+                   _ ⇒ Nothing
+               (whole::fracAndExp::[]) ⇒
+                 case split (\c ⇒ c == 'e' || c == 'E') fracAndExp of
+                   (""::exp::[]) ⇒ Nothing
+                   (frac::exp::[]) ⇒
                      do
                        w <- cast {from=Integer} <$> parseInteger whole
                        f <- (/ (natpow 10 (length frac))) <$>
                             (cast <$> parseNumWithoutSign (unpack frac) 0)
                        e <- parseInteger exp
                        pure (w, if w < 0 then (-f) else f, e)
-                   (frac::[]) =>
+                   (frac::[]) ⇒
                      do
                        w <- cast {from=Integer} <$> parseInteger whole
                        f <- (/ (natpow 10 (length frac))) <$>
                             (cast <$> parseNumWithoutSign (unpack frac) 0)
                        pure (w, if w < 0 then (-f) else f, 0)
-                   _ => Nothing
-               _ => Nothing
+                   _ ⇒ Nothing
+               _ ⇒ Nothing

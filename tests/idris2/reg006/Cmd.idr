@@ -1,11 +1,11 @@
-data MyCmd : Type -> Type where
-  Display : String -> MyCmd ()
+data MyCmd : Type → Type where
+  Display : String → MyCmd ()
   Input : MyCmd String
 
-  Pure : ty -> MyCmd ty
-  (>>=) : MyCmd a -> (a -> MyCmd b) -> MyCmd b
+  Pure : ty → MyCmd ty
+  (>>=) : MyCmd a → (a → MyCmd b) → MyCmd b
 
-runMyCmd : MyCmd a -> IO a
+runMyCmd : MyCmd a → IO a
 runMyCmd (Display str) = putStrLn str
 runMyCmd Input = do str <- getLine
                     pure str

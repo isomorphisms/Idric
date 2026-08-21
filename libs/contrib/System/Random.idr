@@ -11,9 +11,9 @@ interface Random a where
   -- Takes a range (lo, hi), and returns a random value uniformly
   -- distributed in the closed interval [lo, hi]. It is unspecified what
   -- happens if lo > hi.
-  randomRIO : (a, a) -> IO a
+  randomRIO : (a, a) → IO a
 
-prim_randomInt : Int -> IO Int
+prim_randomInt : Int → IO Int
 prim_randomInt upperBound = schemeCall Int "blodwen-random" [upperBound]
 
 public export
@@ -43,14 +43,14 @@ Random Double where
 
 ||| Sets the random seed
 export
-srand : Integer -> IO ()
+srand : Integer → IO ()
 srand n = schemeCall () "blodwen-random-seed" [n]
 
 ||| Generate a random number in Fin (S `k`)
 |||
 ||| Note that rndFin k takes values 0, 1, ..., k.
 public export
-rndFin : (n : Nat) -> IO (Fin (S n))
+rndFin : (n : Nat) → IO (Fin (S n))
 rndFin 0 = pure FZ
 rndFin (S k) = do
   let intBound = the Int (cast (S k))
@@ -59,10 +59,10 @@ rndFin (S k) = do
 
 ||| Select a random element from a vector
 public export
-rndSelect' : {k : Nat} -> Vect (S k) a -> IO a
+rndSelect' : {k : Nat} → Vect (S k) a → IO a
 rndSelect' {k} xs = pure $ Vect.index !(rndFin k) xs
 
 ||| Select a random element from a non-empty list
 public export
-rndSelect : (elems : List a) -> {auto prf : NonEmpty elems} -> IO a
+rndSelect : (elems : List a) → {auto prf : NonEmpty elems} → IO a
 rndSelect (x :: xs) {prf = IsNonEmpty} = rndSelect' $ fromList (x :: xs)

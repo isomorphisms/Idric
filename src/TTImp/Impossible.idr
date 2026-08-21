@@ -16,14 +16,14 @@ import TTImp.TTImp
 -- Constants (fromInteger/fromString etc) won't be supported, because in general
 -- they involve resoling interfaces - they'll just become unmatchable patterns.
 
-match : {auto c : Ref Ctxt Defs} ->
-        NF [] -> (Name, Int, ClosedTerm) -> Core Bool
+match : {auto c : Ref Ctxt Defs} →
+        NF [] → (Name, Int, ClosedTerm) → Core Bool
 match nty (n, i, rty)
     = do defs <- get Ctxt
          rtynf <- nf defs [] rty
          sameRet nty rtynf
   where
-    sameRet : NF [] -> NF [] -> Core Bool
+    sameRet : NF [] → NF [] → Core Bool
     sameRet _ (NApp _ _ _) = pure True
     sameRet _ (NErased _ _) = pure True
     sameRet (NApp _ _ _) _ = pure True
@@ -37,8 +37,8 @@ match nty (n, i, rty)
              sameRet nf sc'
     sameRet _ _ = pure False
 
-dropNoMatch : {auto c : Ref Ctxt Defs} ->
-              Maybe (NF []) -> List (Name, Int, ClosedTerm) ->
+dropNoMatch : {auto c : Ref Ctxt Defs} →
+              Maybe (NF []) → List (Name, Int, ClosedTerm) →
               Core (List (Name, Int, ClosedTerm))
 dropNoMatch _ [t] = pure [t]
 dropNoMatch Nothing ts = pure ts
@@ -46,18 +46,18 @@ dropNoMatch (Just nty) ts
     = -- if the return type of a thing in ts doesn't match nty, drop it
       filterM (match nty) ts
 
-nextVar : {auto q : Ref QVar Int} ->
-          FC -> Core (Term [])
+nextVar : {auto q : Ref QVar Int} →
+          FC → Core (Term [])
 nextVar fc
     = do i <- get QVar
          put QVar (i + 1)
          pure (Ref fc Bound (MN "imp" i))
 
 mutual
-  processArgs : {auto c : Ref Ctxt Defs} ->
-                {auto q : Ref QVar Int} ->
-                Term [] -> NF [] ->
-                (expargs : List RawImp) -> (impargs : List (Maybe Name, RawImp)) ->
+  processArgs : {auto c : Ref Ctxt Defs} →
+                {auto q : Ref QVar Int} →
+                Term [] → NF [] →
+                (expargs : List RawImp) → (impargs : List (Maybe Name, RawImp)) →
                 Core ClosedTerm
   processArgs fn (NBind fc x (Pi r Explicit ty) sc) (e :: exp) imp
      = do e' <- mkTerm e (Just ty) [] []
@@ -67,16 +67,16 @@ mutual
   processArgs fn (NBind fc x (Pi r Implicit ty) sc) exp imp
      = do defs <- get Ctxt
           case useImp [] imp of
-            Nothing => do e' <- nextVar fc
+            Nothing ⇒ do e' <- nextVar fc
                           processArgs (App fc fn e')
                                       !(sc defs (toClosure defaultOpts [] e'))
                                       exp imp
-            Just (e, impargs') =>
+            Just (e, impargs') ⇒
                do e' <- mkTerm e (Just ty) [] []
                   processArgs (App fc fn e') !(sc defs (toClosure defaultOpts [] e'))
                               exp impargs'
     where
-      useImp : List (Maybe Name, RawImp) -> List (Maybe Name, RawImp) ->
+      useImp : List (Maybe Name, RawImp) → List (Maybe Name, RawImp) →
                Maybe (RawImp, List (Maybe Name, RawImp))
       useImp acc [] = Nothing
       useImp acc ((Just x', xtm) :: rest)
@@ -88,16 +88,16 @@ mutual
   processArgs fn (NBind fc x (Pi r AutoImplicit ty) sc) exp imp
      = do defs <- get Ctxt
           case useAutoImp [] imp of
-            Nothing => do e' <- nextVar fc
+            Nothing ⇒ do e' <- nextVar fc
                           processArgs (App fc fn e')
                                       !(sc defs (toClosure defaultOpts [] e'))
                                       exp imp
-            Just (e, impargs') =>
+            Just (e, impargs') ⇒
                do e' <- mkTerm e (Just ty) [] []
                   processArgs (App fc fn e') !(sc defs (toClosure defaultOpts [] e'))
                               exp impargs'
     where
-      useAutoImp : List (Maybe Name, RawImp) -> List (Maybe Name, RawImp) ->
+      useAutoImp : List (Maybe Name, RawImp) → List (Maybe Name, RawImp) →
                    Maybe (RawImp, List (Maybe Name, RawImp))
       useAutoImp acc [] = Nothing
       useAutoImp acc ((Nothing, xtm) :: rest)
@@ -114,10 +114,10 @@ mutual
                 ("Badly formed impossible clause "
                      ++ show (fn, exp, imp)))
 
-  buildApp : {auto c : Ref Ctxt Defs} ->
-             {auto q : Ref QVar Int} ->
-             FC -> Name -> Maybe (NF []) ->
-             (expargs : List RawImp) -> (impargs : List (Maybe Name, RawImp)) ->
+  buildApp : {auto c : Ref Ctxt Defs} →
+             {auto q : Ref QVar Int} →
+             FC → Name → Maybe (NF []) →
+             (expargs : List RawImp) → (impargs : List (Maybe Name, RawImp)) →
              Core ClosedTerm
   buildApp fc n mty exp imp
       = do defs <- get Ctxt
@@ -129,15 +129,15 @@ mutual
 
            tys <- lookupTyName n (gamma defs)
            [(n', _, ty)] <- dropNoMatch mty tys
-              | [] => throw (UndefinedName fc n)
-              | ts => throw (AmbiguousName fc (map fst ts))
+              | [] ⇒ throw (UndefinedName fc n)
+              | ts ⇒ throw (AmbiguousName fc (map fst ts))
            tynf <- nf defs [] ty
            processArgs (Ref fc Func n') tynf exp imp
 
-  mkTerm : {auto c : Ref Ctxt Defs} -> 
-           {auto q : Ref QVar Int} ->
-           RawImp -> Maybe (NF []) ->
-           (expargs : List RawImp) -> (impargs : List (Maybe Name, RawImp)) ->
+  mkTerm : {auto c : Ref Ctxt Defs} →
+           {auto q : Ref QVar Int} →
+           RawImp → Maybe (NF []) →
+           (expargs : List RawImp) → (impargs : List (Maybe Name, RawImp)) →
            Core ClosedTerm
   mkTerm (IVar fc n) mty exp imp
      = buildApp fc n mty exp imp
@@ -152,17 +152,17 @@ mutual
 -- so that when we build the case tree for checking coverage, we take into
 -- account the impossible clauses
 export
-getImpossibleTerm : {auto c : Ref Ctxt Defs} ->
-                    Env Term vars -> RawImp -> Core ClosedTerm
+getImpossibleTerm : {auto c : Ref Ctxt Defs} →
+                    Env Term vars → RawImp → Core ClosedTerm
 getImpossibleTerm env tm
     = do q <- newRef QVar (the Int 0)
          mkTerm (applyEnv tm) Nothing [] []
   where
-    isLet : Binder (Term vars) -> Bool
+    isLet : Binder (Term vars) → Bool
     isLet (Let _ _ _) = True
     isLet _ = False
 
-    addEnv : FC -> Env Term vars -> List RawImp
+    addEnv : FC → Env Term vars → List RawImp
     addEnv fc [] = []
     addEnv fc (b :: env) =
        if isLet b
@@ -170,7 +170,7 @@ getImpossibleTerm env tm
           else Implicit fc False :: addEnv fc env
 
     -- Need to apply the function to the surrounding environment
-    applyEnv : RawImp -> RawImp
+    applyEnv : RawImp → RawImp
     applyEnv (IApp fc fn arg) = IApp fc (applyEnv fn) arg
     applyEnv (IImplicitApp fc fn n arg)
         = IImplicitApp fc (applyEnv fn) n arg

@@ -1,10 +1,10 @@
 module Using
 
 interface MagmaT a where
-  op: a -> a -> a
+  op: a → a → a
 
-interface MagmaT a => SemigroupT a where
-  assoc: (x, y, z: a) -> (x `op` y) `op` z = x `op` (y `op` z)
+interface MagmaT a ⇒ SemigroupT a where
+  assoc: (x, y, z: a) → (x `op` y) `op` z = x `op` (y `op` z)
 
 [NamedMagma1] MagmaT Bool where
   False `op` False = False

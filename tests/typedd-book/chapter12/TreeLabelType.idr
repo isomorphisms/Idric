@@ -6,20 +6,20 @@ testTree = Node (Node (Node Empty "Jim" Empty) "Fred"
                       (Node Empty "Sheila" Empty)) "Alice"
                 (Node Empty "Bob" (Node Empty "Eve" Empty))
 
-flatten : Tree a -> List a
+flatten : Tree a → List a
 flatten Empty = []
 flatten (Node left val right) = flatten left ++ val :: flatten right
 
-data State : (stateType : Type) -> Type -> Type where
+data State : (stateType : Type) → Type → Type where
      Get : State stateType stateType
-     Put : stateType -> State stateType ()
+     Put : stateType → State stateType ()
 
-     Pure : ty -> State stateType ty
-     Bind : State stateType a -> (a -> State stateType b) ->
+     Pure : ty → State stateType ty
+     Bind : State stateType a → (a → State stateType b) →
              State stateType b
 
 {-
-(>>=) : State stateType a -> (a -> State stateType b) ->
+(>>=) : State stateType a → (a → State stateType b) →
         State stateType b
 (>>=) = Bind
 -}
@@ -38,7 +38,7 @@ mutual
   Monad (State stateType) where
       (>>=) = Bind
 
-runState : State stateType a -> (st : stateType) -> (a, stateType)
+runState : State stateType a → (st : stateType) → (a, stateType)
 runState Get st = (st, st)
 runState (Put newState) st = ((), newState)
 
@@ -46,7 +46,7 @@ runState (Pure x) st = (x, st)
 runState (Bind cmd prog) st = let (val, nextState) = runState cmd st in
                                   runState (prog val) nextState
 
-treeLabelWith : Tree a -> State (Stream labelType) (Tree (labelType, a))
+treeLabelWith : Tree a → State (Stream labelType) (Tree (labelType, a))
 treeLabelWith Empty = Pure Empty
 treeLabelWith (Node left val right)
      = do left_labelled <- treeLabelWith left
@@ -55,6 +55,6 @@ treeLabelWith (Node left val right)
           right_labelled <- treeLabelWith right
           Pure (Node left_labelled (this, val) right_labelled)
 
-treeLabel : Tree a -> Tree (Integer, a)
+treeLabel : Tree a → Tree (Integer, a)
 treeLabel tree = fst (runState (treeLabelWith tree) [1..])
 

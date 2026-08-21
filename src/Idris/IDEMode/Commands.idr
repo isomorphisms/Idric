@@ -29,7 +29,7 @@ data IDECommand
      | Version
      | GetOptions
 
-readHints : List SExp -> Maybe (List String)
+readHints : List SExp → Maybe (List String)
 readHints [] = Just []
 readHints (StringAtom s :: rest)
     = do rest' <- readHints rest
@@ -37,7 +37,7 @@ readHints (StringAtom s :: rest)
 readHints _ = Nothing
 
 export
-getIDECommand : SExp -> Maybe IDECommand
+getIDECommand : SExp → Maybe IDECommand
 getIDECommand (SExpList [SymbolAtom "interpret", StringAtom cmd])
     = Just $ Interpret cmd
 getIDECommand (SExpList [SymbolAtom "load-file", StringAtom fname])
@@ -60,14 +60,14 @@ getIDECommand (SExpList [SymbolAtom "proof-search", IntegerAtom l, StringAtom n]
     = Just $ ExprSearch l n [] False
 getIDECommand (SExpList [SymbolAtom "proof-search", IntegerAtom l, StringAtom n, SExpList hs])
     = case readHints hs of
-           Just hs' => Just $ ExprSearch l n hs' False
-           _ => Nothing
+           Just hs' ⇒ Just $ ExprSearch l n hs' False
+           _ ⇒ Nothing
 getIDECommand (SExpList [SymbolAtom "proof-search", IntegerAtom l, StringAtom n, SExpList hs, SymbolAtom mode])
     = case readHints hs of
-           Just hs' => Just $ ExprSearch l n hs' (getMode mode)
-           _ => Nothing
+           Just hs' ⇒ Just $ ExprSearch l n hs' (getMode mode)
+           _ ⇒ Nothing
   where
-    getMode : String -> Bool
+    getMode : String → Bool
     getMode m = m == "all"
 getIDECommand (SExpList [SymbolAtom "generate-def", IntegerAtom l, StringAtom n])
     = Just $ GenerateDef l n
@@ -84,7 +84,7 @@ getIDECommand (SExpList [SymbolAtom "get-options"]) = Just GetOptions
 getIDECommand _ = Nothing
 
 export
-putIDECommand : IDECommand -> SExp
+putIDECommand : IDECommand → SExp
 putIDECommand (Interpret cmd)                 = (SExpList [SymbolAtom "interpret", StringAtom cmd])
 putIDECommand (LoadFile fname Nothing)        = (SExpList [SymbolAtom "load-file", StringAtom fname])
 putIDECommand (LoadFile fname (Just line))    = (SExpList [SymbolAtom "load-file", StringAtom fname, IntegerAtom line])
@@ -94,7 +94,7 @@ putIDECommand (CaseSplit line col n)          = (SExpList [SymbolAtom "case-spli
 putIDECommand (AddClause line n)              = (SExpList [SymbolAtom "add-clause", IntegerAtom line, StringAtom n])
 putIDECommand (ExprSearch line n exprs mode)  = (SExpList [SymbolAtom "proof-search", IntegerAtom line, StringAtom n, SExpList $ map StringAtom exprs, getMode mode])
   where
-  getMode : Bool -> SExp
+  getMode : Bool → SExp
   getMode True  = SymbolAtom "all"
   getMode False = SymbolAtom "other"
 putIDECommand (GenerateDef line n)            = (SExpList [SymbolAtom "generate-def", IntegerAtom line, StringAtom n])
@@ -106,16 +106,16 @@ putIDECommand GetOptions                      = (SExpList [SymbolAtom "get-optio
 putIDECommand Version                         = SymbolAtom "version"
 
 export
-getMsg : SExp -> Maybe (IDECommand, Integer)
+getMsg : SExp → Maybe (IDECommand, Integer)
 getMsg (SExpList [cmdexp, IntegerAtom num])
    = do cmd <- getIDECommand cmdexp
         pure (cmd, num)
 getMsg _ = Nothing
 
-escape : String -> String
+escape : String → String
 escape = pack . concatMap escapeChar . unpack
   where
-    escapeChar : Char -> List Char
+    escapeChar : Char → List Char
     escapeChar '\\' = ['\\', '\\']
     escapeChar '"'  = ['\\', '\"']
     escapeChar c    = [c]
@@ -130,7 +130,7 @@ Show SExp where
 
 public export
 interface SExpable a where
-  toSExp : a -> SExp
+  toSExp : a → SExp
 
 export
 SExpable IDECommand where
@@ -165,39 +165,39 @@ SExpable Name where
   toSExp = SymbolAtom . show
 
 export
-(SExpable a, SExpable b) => SExpable (a, b) where
+(SExpable a, SExpable b) ⇒ SExpable (a, b) where
   toSExp (x, y)
       = case toSExp y of
-             SExpList xs => SExpList (toSExp x :: xs)
-             y' => SExpList [toSExp x, y']
+             SExpList xs ⇒ SExpList (toSExp x :: xs)
+             y' ⇒ SExpList [toSExp x, y']
 
 export
-SExpable a => SExpable (List a) where
+SExpable a ⇒ SExpable (List a) where
   toSExp xs
       = SExpList (map toSExp xs)
 
 export
-SExpable a => SExpable (Maybe a) where
+SExpable a ⇒ SExpable (Maybe a) where
   toSExp Nothing = SExpList []
   toSExp (Just x) = toSExp x
 
 export
-sym : String -> Name
+sym : String → Name
 sym = UN
 
 export
-version : Int -> Int -> SExp
+version : Int → Int → SExp
 version maj min = toSExp (SymbolAtom "protocol-version", maj, min)
 
-hex : File -> Int -> IO ()
-hex (FHandle h) num = foreign FFI_C "fprintf" (Ptr -> String -> Int -> IO ()) h "%06x" num
+hex : File → Int → IO ()
+hex (FHandle h) num = foreign FFI_C "fprintf" (Ptr → String → Int → IO ()) h "%06x" num
 
-sendLine : File -> String -> IO ()
+sendLine : File → String → IO ()
 sendLine (FHandle h) st =
   map (const ()) (prim_fwrite h st)
 
 export
-send : SExpable a => File -> a -> Core ()
+send : SExpable a ⇒ File → a → Core ()
 send f resp
     = do let r = show (toSExp resp) ++ "\n"
          coreLift $ hex f (cast (length r))

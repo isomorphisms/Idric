@@ -42,12 +42,12 @@ EAGAIN : Int
 EAGAIN =
   -- I'm sorry
   -- maybe
-  unsafePerformIO $ foreign FFI_C "idrnet_geteagain" (() -> IO Int) ()
+  unsafePerformIO $ foreign FFI_C "idrnet_geteagain" (() → IO Int) ()
 
 -- -------------------------------------------------------------- [ Interfaces ]
 
 interface ToCode a where
-  toCode : a -> Int
+  toCode : a → Int
 
 -- --------------------------------------------------------- [ Socket Families ]
 
@@ -75,7 +75,7 @@ ToCode SocketFamily where
   toCode AF_INET   = 2
   toCode AF_INET6  = 10
 
-getSocketFamily : Int -> Maybe SocketFamily
+getSocketFamily : Int → Maybe SocketFamily
 getSocketFamily i =
     Prelude.List.lookup i [ (0, AF_UNSPEC)
                           , (2, AF_INET)
@@ -114,12 +114,12 @@ ToCode SocketType where
 
 ||| Network Addresses
 data SocketAddress : Type where
-  IPv4Addr : Int -> Int -> Int -> Int -> SocketAddress
+  IPv4Addr : Int → Int → Int → Int → SocketAddress
 
   ||| Not implemented (yet)
   IPv6Addr : SocketAddress
 
-  Hostname : String -> SocketAddress
+  Hostname : String → SocketAddress
 
   ||| Used when there's a parse error
   InvalidAddress : SocketAddress
@@ -131,20 +131,20 @@ Show SocketAddress where
   show InvalidAddress         = "Invalid"
 
 ||| Parses a textual representation of an IPv4 address into a SocketAddress
-parseIPv4 : String -> SocketAddress
+parseIPv4 : String → SocketAddress
 parseIPv4 str =
     case splitted of
-      (i1 :: i2 :: i3 :: i4 :: _) => IPv4Addr i1 i2 i3 i4
-      otherwise                   => InvalidAddress
+      (i1 :: i2 :: i3 :: i4 :: _) ⇒ IPv4Addr i1 i2 i3 i4
+      otherwise                   ⇒ InvalidAddress
   where
-    toInt' : String -> Integer
+    toInt' : String → Integer
     toInt' = cast
 
-    toInt : String -> Int
+    toInt : String → Int
     toInt s = fromInteger $ toInt' s
 
     splitted : List Int
-    splitted = map toInt (Prelude.Strings.split (\c => c == '.') str)
+    splitted = map toInt (Prelude.Strings.split (\c ⇒ c == '.') str)
 
 -- --------------------------------------------------------- [ UDP Information ]
 

@@ -69,9 +69,9 @@ TTC Metadata where
            pure (MkMetadata apps ns tys Nothing hlhs)
 
 export
-addLHS : {auto c : Ref Ctxt Defs} ->
-         {auto m : Ref MD Metadata} ->
-         FC -> Nat -> Env Term vars -> Term vars -> Core ()
+addLHS : {auto c : Ref Ctxt Defs} →
+         {auto m : Ref MD Metadata} →
+         FC → Nat → Env Term vars → Term vars → Core ()
 addLHS loc outerenvlen env tm
     = do meta <- get MD
          tm' <- toFullNames (bindEnv loc (toPat env) tm)
@@ -79,7 +79,7 @@ addLHS loc outerenvlen env tm
                       lhsApps $= ((loc, outerenvlen, tm') ::)
                     } meta)
   where
-    toPat : Env Term vs -> Env Term vs
+    toPat : Env Term vs → Env Term vs
     toPat (Lam c p ty :: bs) = PVar c p ty :: toPat bs
     toPat (b :: bs) = b :: toPat bs
     toPat [] = []
@@ -92,16 +92,16 @@ addLHS loc outerenvlen env tm
 -- along with its source span?
 -- In any case, one could always look at the other names to get their
 -- types directly!
-substEnv : {vars : _} ->
-           FC -> Env Term vars -> (tm : Term vars) -> ClosedTerm
+substEnv : {vars : _} →
+           FC → Env Term vars → (tm : Term vars) → ClosedTerm
 substEnv loc [] tm = tm
 substEnv {vars = x :: _} loc (b :: env) tm
     = substEnv loc env (subst (Ref loc Bound x) tm)
 
 export
-addNameType : {auto c : Ref Ctxt Defs} ->
-              {auto m : Ref MD Metadata} ->
-              FC -> Name -> Env Term vars -> Term vars -> Core ()
+addNameType : {auto c : Ref Ctxt Defs} →
+              {auto m : Ref MD Metadata} →
+              FC → Name → Env Term vars → Term vars → Core ()
 addNameType loc n env tm
     = do meta <- get MD
          n' <- getFullName n
@@ -110,9 +110,9 @@ addNameType loc n env tm
                     } meta)
 
 export
-addTyDecl : {auto c : Ref Ctxt Defs} ->
-            {auto m : Ref MD Metadata} ->
-            FC -> Name -> Env Term vars -> Term vars -> Core ()
+addTyDecl : {auto c : Ref Ctxt Defs} →
+            {auto m : Ref MD Metadata} →
+            FC → Name → Env Term vars → Term vars → Core ()
 addTyDecl loc n env tm
     = do meta <- get MD
          n' <- getFullName n
@@ -121,31 +121,31 @@ addTyDecl loc n env tm
                     } meta)
 
 export
-setHoleLHS : {auto m : Ref MD Metadata} ->
-             ClosedTerm -> Core ()
+setHoleLHS : {auto m : Ref MD Metadata} →
+             ClosedTerm → Core ()
 setHoleLHS tm
     = do meta <- get MD
          put MD (record { currentLHS = Just tm } meta)
 
 export
-clearHoleLHS : {auto m : Ref MD Metadata} ->
+clearHoleLHS : {auto m : Ref MD Metadata} →
                Core ()
 clearHoleLHS
     = do meta <- get MD
          put MD (record { currentLHS = Nothing } meta)
 
 export
-withCurrentLHS : {auto c : Ref Ctxt Defs} ->
-                 {auto m : Ref MD Metadata} ->
-                 Name -> Core ()
+withCurrentLHS : {auto c : Ref Ctxt Defs} →
+                 {auto m : Ref MD Metadata} →
+                 Name → Core ()
 withCurrentLHS n
     = do meta <- get MD
          n' <- getFullName n
          maybe (pure ())
-               (\lhs => put MD (record { holeLHS $= ((n', lhs) ::) } meta))
+               (\lhs ⇒ put MD (record { holeLHS $= ((n', lhs) ::) } meta))
                (currentLHS meta)
 
-findEntryWith : (FC -> a -> Bool) -> List (FC, a) -> Maybe (FC, a)
+findEntryWith : (FC → a → Bool) → List (FC, a) → Maybe (FC, a)
 findEntryWith p [] = Nothing
 findEntryWith p ((l, x) :: xs)
     = if p l x
@@ -153,40 +153,40 @@ findEntryWith p ((l, x) :: xs)
          else findEntryWith p xs
 
 export
-findLHSAt : {auto m : Ref MD Metadata} ->
-            (FC -> ClosedTerm -> Bool) ->
+findLHSAt : {auto m : Ref MD Metadata} →
+            (FC → ClosedTerm → Bool) →
             Core (Maybe (FC, Nat, ClosedTerm))
 findLHSAt p
     = do meta <- get MD
-         pure (findEntryWith (\ loc, tm => p loc (snd tm)) (lhsApps meta))
+         pure (findEntryWith (\ loc, tm ⇒ p loc (snd tm)) (lhsApps meta))
 
 export
-findTypeAt : {auto m : Ref MD Metadata} ->
-             (FC -> (Name, Nat, ClosedTerm) -> Bool) ->
+findTypeAt : {auto m : Ref MD Metadata} →
+             (FC → (Name, Nat, ClosedTerm) → Bool) →
              Core (Maybe (Name, Nat, ClosedTerm))
 findTypeAt p
     = do meta <- get MD
          pure (map snd (findEntryWith p (names meta)))
 
 export
-findTyDeclAt : {auto m : Ref MD Metadata} ->
-               (FC -> (Name, Nat, ClosedTerm) -> Bool) ->
+findTyDeclAt : {auto m : Ref MD Metadata} →
+               (FC → (Name, Nat, ClosedTerm) → Bool) →
                Core (Maybe (FC, Name, Nat, ClosedTerm))
 findTyDeclAt p
     = do meta <- get MD
          pure (findEntryWith p (tydecls meta))
 
 export
-findHoleLHS : {auto m : Ref MD Metadata} ->
-              Name -> Core (Maybe ClosedTerm)
+findHoleLHS : {auto m : Ref MD Metadata} →
+              Name → Core (Maybe ClosedTerm)
 findHoleLHS hn
     = do meta <- get MD
-         pure (lookupBy (\x, y => dropNS x == dropNS y) hn (holeLHS meta))
+         pure (lookupBy (\x, y ⇒ dropNS x == dropNS y) hn (holeLHS meta))
 
 -- Normalise all the types of the names, since they might have had holes
 -- when added and the holes won't necessarily get saved
-normaliseTypes : {auto m : Ref MD Metadata} ->
-                 {auto c : Ref Ctxt Defs} ->
+normaliseTypes : {auto m : Ref MD Metadata} →
+                 {auto c : Ref Ctxt Defs} →
                  Core ()
 normaliseTypes
     = do meta <- get MD
@@ -194,7 +194,7 @@ normaliseTypes
          ns' <- traverse (nfType defs) (names meta)
          put MD (record { names = ns' } meta)
   where
-    nfType : Defs -> (FC, (Name, Nat, ClosedTerm)) ->
+    nfType : Defs → (FC, (Name, Nat, ClosedTerm)) →
              Core (FC, (Name, Nat, ClosedTerm))
     nfType defs (loc, (n, len, ty))
        = pure (loc, (n, len, !(normaliseArgHoles defs [] ty)))
@@ -226,13 +226,13 @@ HasNames Metadata where
                           Nothing
                           !(traverse fullHLHS hlhs)
     where
-      fullLHS : (FC, (Nat, ClosedTerm)) -> Core (FC, (Nat, ClosedTerm))
+      fullLHS : (FC, (Nat, ClosedTerm)) → Core (FC, (Nat, ClosedTerm))
       fullLHS (fc, (i, tm)) = pure (fc, (i, !(full gam tm)))
 
-      fullTy : (FC, (Name, Nat, ClosedTerm)) -> Core (FC, (Name, Nat, ClosedTerm))
+      fullTy : (FC, (Name, Nat, ClosedTerm)) → Core (FC, (Name, Nat, ClosedTerm))
       fullTy (fc, (n, i, tm)) = pure (fc, (!(full gam n), i, !(full gam tm)))
 
-      fullHLHS : (Name, ClosedTerm) -> Core (Name, ClosedTerm)
+      fullHLHS : (Name, ClosedTerm) → Core (Name, ClosedTerm)
       fullHLHS (n, tm) = pure (!(full gam n), !(full gam tm))
 
   resolved gam (MkMetadata lhs ns tys clhs hlhs)
@@ -242,19 +242,19 @@ HasNames Metadata where
                           Nothing
                           !(traverse resolvedHLHS hlhs)
     where
-      resolvedLHS : (FC, (Nat, ClosedTerm)) -> Core (FC, (Nat, ClosedTerm))
+      resolvedLHS : (FC, (Nat, ClosedTerm)) → Core (FC, (Nat, ClosedTerm))
       resolvedLHS (fc, (i, tm)) = pure (fc, (i, !(resolved gam tm)))
 
-      resolvedTy : (FC, (Name, Nat, ClosedTerm)) -> Core (FC, (Name, Nat, ClosedTerm))
+      resolvedTy : (FC, (Name, Nat, ClosedTerm)) → Core (FC, (Name, Nat, ClosedTerm))
       resolvedTy (fc, (n, i, tm)) = pure (fc, (!(resolved gam n), i, !(resolved gam tm)))
 
-      resolvedHLHS : (Name, ClosedTerm) -> Core (Name, ClosedTerm)
+      resolvedHLHS : (Name, ClosedTerm) → Core (Name, ClosedTerm)
       resolvedHLHS (n, tm) = pure (!(resolved gam n), !(resolved gam tm))
 
 export
-writeToTTM : {auto c : Ref Ctxt Defs} ->
-             {auto m : Ref MD Metadata} ->
-             (fname : String) ->
+writeToTTM : {auto c : Ref Ctxt Defs} →
+             {auto m : Ref MD Metadata} →
+             (fname : String) →
              Core ()
 writeToTTM fname
     = do normaliseTypes
@@ -263,33 +263,33 @@ writeToTTM fname
          defs <- get Ctxt
          toBuf buf (MkTTMFile ttcVersion !(full (gamma defs) meta))
          Right ok <- coreLift $ writeToFile fname !(get Bin)
-             | Left err => throw (InternalError (fname ++ ": " ++ show err))
+             | Left err ⇒ throw (InternalError (fname ++ ": " ++ show err))
          pure ()
 
 export
-readFromTTM : {auto m : Ref MD Metadata} ->
-              (fname : String) ->
+readFromTTM : {auto m : Ref MD Metadata} →
+              (fname : String) →
               Core ()
 readFromTTM fname
     = do Right buf <- coreLift $ readFromFile fname
-             | Left err => throw (InternalError (fname ++ ": " ++ show err))
+             | Left err ⇒ throw (InternalError (fname ++ ": " ++ show err))
          bin <- newRef Bin buf
          ttm <- fromBuf bin
          put MD (metadata ttm)
 
 ||| Read Metadata from given file
 export
-readMetadata : (fname : String) -> Core Metadata
+readMetadata : (fname : String) → Core Metadata
 readMetadata fname
   = do Right buf <- coreLift $ readFromFile fname
-             | Left err => throw (InternalError (fname ++ ": " ++ show err))
+             | Left err ⇒ throw (InternalError (fname ++ ": " ++ show err))
        bin <- newRef Bin buf
        MkTTMFile _ md <- fromBuf bin
        pure md
 
 ||| Dump content of a .ttm file in human-readable format
 export
-dumpTTM : (filename : String) -> Core ()
+dumpTTM : (filename : String) → Core ()
 dumpTTM fname
     = do md <- readMetadata fname
          coreLift $ putStrLn $ show md

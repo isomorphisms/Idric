@@ -1,20 +1,20 @@
 import Data.Vect
 
-data StackCmd : Type -> Nat -> Nat -> Type where
-  Push : Integer -> StackCmd ()      height     (S height)
+data StackCmd : Type → Nat → Nat → Type where
+  Push : Integer → StackCmd ()      height     (S height)
   Pop :             StackCmd Integer (S height) height
   Top :             StackCmd Integer (S height) (S height)
 
   GetStr : StackCmd String height height
-  PutStr : String -> StackCmd () height height
+  PutStr : String → StackCmd () height height
 
-  Pure : ty -> StackCmd ty height height
-  (>>=) : StackCmd a height1 height2 ->
-          (a -> StackCmd b height2 height3) ->
+  Pure : ty → StackCmd ty height height
+  (>>=) : StackCmd a height1 height2 →
+          (a → StackCmd b height2 height3) →
           StackCmd b height1 height3
 
-runStack : (stk : Vect inHeight Integer) ->
-           StackCmd ty inHeight outHeight ->
+runStack : (stk : Vect inHeight Integer) →
+           StackCmd ty inHeight outHeight →
            IO (ty, Vect outHeight Integer)
 runStack stk (Push val) = pure ((), val :: stk)
 runStack (val :: stk) Pop = pure (val, stk)
@@ -35,14 +35,14 @@ testAdd = do Push 10
              val2 <- Pop
              PutStr (show (val1 + val2) ++ "\n")
 
-data StackIO : Nat -> Type where
-  Do : StackCmd a height1 height2 ->
-       (a -> Inf (StackIO height2)) -> StackIO height1
+data StackIO : Nat → Type where
+  Do : StackCmd a height1 height2 →
+       (a → Inf (StackIO height2)) → StackIO height1
 
 namespace StackDo
   export
-  (>>=) : StackCmd a height1 height2 ->
-          (a -> Inf (StackIO height2)) -> StackIO height1
+  (>>=) : StackCmd a height1 height2 →
+          (a → Inf (StackIO height2)) → StackIO height1
   (>>=) = Do
 
 data Fuel = Dry | More (Lazy Fuel)
@@ -51,7 +51,7 @@ partial
 forever : Fuel
 forever = More forever
 
-run : Fuel -> Vect height Integer -> StackIO height -> IO ()
+run : Fuel → Vect height Integer → StackIO height → IO ()
 run Dry _ _ = pure ()
 run (More fuel) stk (Do c f) = do (res, newStk) <- runStack stk c
                                   run fuel newStk (f res)
@@ -64,7 +64,7 @@ doAdd = do val1 <- Pop
 data StkInput = Number Integer
               | Add
 
-strToInput : String -> Maybe StkInput
+strToInput : String → Maybe StkInput
 strToInput "" = Nothing
 strToInput "add" = Just Add
 strToInput x = if all isDigit (unpack x)
@@ -72,7 +72,7 @@ strToInput x = if all isDigit (unpack x)
                   else Nothing
 
 mutual
-  tryAdd : {height : _} -> StackIO height
+  tryAdd : {height : _} → StackIO height
   tryAdd {height = S (S h)} = do doAdd
                                  result <- Top
                                  PutStr (show result ++ "\n")
@@ -80,15 +80,15 @@ mutual
   tryAdd = do PutStr "Fewer than two items on the stack\n"
               stackCalc
 
-  stackCalc : {height : _} -> StackIO height
+  stackCalc : {height : _} → StackIO height
   stackCalc = do PutStr "> "
                  input <- GetStr
                  case strToInput input of
-                      Nothing => do PutStr "Invalid input\n"
+                      Nothing ⇒ do PutStr "Invalid input\n"
                                     stackCalc
-                      Just (Number x) => do Push x
+                      Just (Number x) ⇒ do Push x
                                             stackCalc
-                      Just Add => tryAdd
+                      Just Add ⇒ tryAdd
 
 main : IO ()
 main = run forever [] stackCalc

@@ -4,7 +4,7 @@ import System.File
 main : IO ()
 main
     = do Just buf <- newBuffer 100
-              | Nothing => putStrLn "Buffer creation failed"
+              | Nothing ⇒ putStrLn "Buffer creation failed"
          s <- rawSize buf
          printLn s
 
@@ -28,9 +28,9 @@ main
          printLn ds
 
          Right _ <- writeBufferToFile "test.buf" buf 100
-             | Left err => putStrLn "Buffer write fail"
+             | Left err ⇒ putStrLn "Buffer write fail"
          Right buf2 <- createBufferFromFile "test.buf"
-             | Left err => putStrLn "Buffer read fail"
+             | Left err ⇒ putStrLn "Buffer read fail"
 
          ds <- bufferData buf2
          printLn ds
@@ -40,11 +40,11 @@ main
 
 -- Put back when the File API is moved to C and these can work again
 --          Right f <- openBinaryFile "test.buf" Read
---              | Left err => putStrLn "File error on read"
+--              | Left err ⇒ putStrLn "File error on read"
 --          Just buf3 <- newBuffer 99
---               | Nothing => putStrLn "Buffer creation failed"
+--               | Nothing ⇒ putStrLn "Buffer creation failed"
 --          Right _ <- readBufferFromFile f buf3 100
---              | Left err => do putStrLn "Buffer read fail"
+--              | Left err ⇒ do putStrLn "Buffer read fail"
 --                               closeFile f
 --          closeFile f
 

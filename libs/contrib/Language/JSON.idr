@@ -10,5 +10,5 @@ import public Language.JSON.Data
 
 ||| Parse a JSON string.
 export
-parse : String -> Maybe JSON
+parse : String → Maybe JSON
 parse x = parseJSON !(lexJSON x)

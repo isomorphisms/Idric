@@ -18,27 +18,27 @@ import TTImp.Unelab
 import Data.IntMap
 import Data.NameMap
 
-findPLetRenames : Term vars -> List (Name, (RigCount, Name))
+findPLetRenames : Term vars → List (Name, (RigCount, Name))
 findPLetRenames (Bind fc n (PLet c (Local {name = x@(MN _ _)} _ _ _ p) ty) sc)
     = (x, (c, n)) :: findPLetRenames sc
 findPLetRenames (Bind fc n _ sc) = findPLetRenames sc
 findPLetRenames tm = []
 
-doPLetRenames : List (Name, (RigCount, Name)) ->
-                List Name -> Term vars -> Term vars
+doPLetRenames : List (Name, (RigCount, Name)) →
+                List Name → Term vars → Term vars
 doPLetRenames ns drops (Bind fc n b@(PLet _ _ _) sc)
     = if n `elem` drops
          then subst (Erased fc False) (doPLetRenames ns drops sc)
          else Bind fc n b (doPLetRenames ns drops sc)
 doPLetRenames ns drops (Bind fc n b sc)
     = case lookup n ns of
-           Just (c, n') =>
+           Just (c, n') ⇒
            Bind fc n' (setMultiplicity b (c `lub` (multiplicity b)))
                    (doPLetRenames ns (n' :: drops) (renameTop n' sc))
-           Nothing => Bind fc n b (doPLetRenames ns drops sc)
+           Nothing ⇒ Bind fc n b (doPLetRenames ns drops sc)
 doPLetRenames ns drops sc = sc
 
-getRigNeeded : ElabMode -> RigCount
+getRigNeeded : ElabMode → RigCount
 getRigNeeded InType = erased -- unrestricted usage in types
 getRigNeeded (InLHS r) = if isErased r then erased
                                      else linear
@@ -47,8 +47,8 @@ getRigNeeded _ = linear
 -- Make sure the types of holes have the references to solved holes normalised
 -- away (since solved holes don't get written to .tti)
 export
-normaliseHoleTypes : {auto c : Ref Ctxt Defs} ->
-                     {auto u : Ref UST UState} ->
+normaliseHoleTypes : {auto c : Ref Ctxt Defs} →
+                     {auto u : Ref UST UState} →
                      Core ()
 normaliseHoleTypes
     = do ust <- get UST
@@ -57,41 +57,41 @@ normaliseHoleTypes
          traverse (normaliseH defs) hs
          pure ()
   where
-    updateType : Defs -> Int -> GlobalDef -> Core ()
+    updateType : Defs → Int → GlobalDef → Core ()
     updateType defs i def
         = do ty' <- normaliseHoles defs [] (type def)
              addDef (Resolved i) (record { type = ty' } def)
              pure ()
 
-    normaliseH : Defs -> Int -> Core ()
+    normaliseH : Defs → Int → Core ()
     normaliseH defs i
         = case !(lookupCtxtExact (Resolved i) (gamma defs)) of
-               Just gdef =>
+               Just gdef ⇒
                   case definition gdef of
-                       Hole _ _ => updateType defs i gdef
-                       _ => pure ()
-               Nothing => pure ()
+                       Hole _ _ ⇒ updateType defs i gdef
+                       _ ⇒ pure ()
+               Nothing ⇒ pure ()
 
 export
-addHoleToSave : {auto c : Ref Ctxt Defs} ->
-                Name -> Core ()
+addHoleToSave : {auto c : Ref Ctxt Defs} →
+                Name → Core ()
 addHoleToSave n
     = do defs <- get Ctxt
          Just ty <- lookupTyExact n (gamma defs)
-              | Nothing => pure ()
+              | Nothing ⇒ pure ()
          let ms = keys (getMetas ty)
          addToSave n
          traverse_ addToSave ms
 
 export
-elabTermSub : {vars : _} ->
-              {auto c : Ref Ctxt Defs} ->
-              {auto m : Ref MD Metadata} ->
-              {auto u : Ref UST UState} ->
-              Int -> ElabMode -> List ElabOpt ->
-              NestedNames vars -> Env Term vars ->
-              Env Term inner -> SubVars inner vars ->
-              RawImp -> Maybe (Glued vars) ->
+elabTermSub : {vars : _} →
+              {auto c : Ref Ctxt Defs} →
+              {auto m : Ref MD Metadata} →
+              {auto u : Ref UST UState} →
+              Int → ElabMode → List ElabOpt →
+              NestedNames vars → Env Term vars →
+              Env Term inner → SubVars inner vars →
+              RawImp → Maybe (Glued vars) →
               Core (Term vars, Glued vars)
 elabTermSub {vars} defining mode opts nest env env' sub tm ty
     = do let incase = elem InCase opts
@@ -118,14 +118,14 @@ elabTermSub {vars} defining mode opts nest env env' sub tm ty
          -- - Finally, last attempts at solving constraints, but this
          --   is most likely just to be able to display helpful errors
          let solvemode = case mode of
-                              InLHS _ => inLHS
-                              _ => inTermP False
+                              InLHS _ ⇒ inLHS
+                              _ ⇒ inTermP False
          solveConstraints solvemode Normal
          logTerm 5 "Looking for delayed in " chktm
          ust <- get UST
-         catch (retryDelayed (sortBy (\x, y => compare (fst x) (fst y))
+         catch (retryDelayed (sortBy (\x, y ⇒ compare (fst x) (fst y))
                                      (delayedElab ust)))
-               (\err =>
+               (\err ⇒
                   do ust <- get UST
                      put UST (record { delayedElab = olddelayed } ust)
                      throw err)
@@ -153,14 +153,14 @@ elabTermSub {vars} defining mode opts nest env env' sub tm ty
          -- Linearity and hole checking.
          -- on the LHS, all holes need to have been solved
          chktm <- the (Core (Term vars)) $ case mode of
-              InLHS _ => do when (not incase) $ checkUserHoles True
+              InLHS _ ⇒ do when (not incase) $ checkUserHoles True
                             pure chktm
-              InTransform => do when (not incase) $ checkUserHoles True
+              InTransform ⇒ do when (not incase) $ checkUserHoles True
                                 pure chktm
               -- elsewhere, all unification problems must be
               -- solved, though we defer that if it's a case block since we
               -- might learn a bit more later.
-              _ => if (not incase)
+              _ ⇒ if (not incase)
                       then do checkUserHoles (inTrans || inPE)
                               linearCheck (getFC tm) rigc False env chktm
                           -- Linearity checking looks in case blocks, so no
@@ -182,69 +182,69 @@ elabTermSub {vars} defining mode opts nest env env' sub tm ty
          -- were of the form x@_, where the _ is inferred to be a variable,
          -- to just x)
          case mode of
-              InLHS _ =>
+              InLHS _ ⇒
                  do let vs = findPLetRenames chktm
                     let ret = doPLetRenames vs [] chktm
                     pure (ret, gnf env (doPLetRenames vs [] !(getTerm chkty)))
-              _ => do dumpConstraints 2 False
+              _ ⇒ do dumpConstraints 2 False
                       pure (chktm, chkty)
   where
-    addHoles : (acc : IntMap (FC, Name)) ->
-               (allHoles : IntMap (FC, Name)) ->
-               List (Int, (FC, Name)) ->
+    addHoles : (acc : IntMap (FC, Name)) →
+               (allHoles : IntMap (FC, Name)) →
+               List (Int, (FC, Name)) →
                IntMap (FC, Name)
     addHoles acc allhs [] = acc
     addHoles acc allhs ((n, x) :: hs)
         = case lookup n allhs of
-               Nothing => addHoles acc allhs hs
-               Just _ => addHoles (insert n x acc) allhs hs
+               Nothing ⇒ addHoles acc allhs hs
+               Just _ ⇒ addHoles (insert n x acc) allhs hs
 
 export
-elabTerm : {vars : _} ->
-           {auto c : Ref Ctxt Defs} ->
-           {auto m : Ref MD Metadata} ->
-           {auto u : Ref UST UState} ->
-           Int -> ElabMode -> List ElabOpt ->
-           NestedNames vars -> Env Term vars ->
-           RawImp -> Maybe (Glued vars) ->
+elabTerm : {vars : _} →
+           {auto c : Ref Ctxt Defs} →
+           {auto m : Ref MD Metadata} →
+           {auto u : Ref UST UState} →
+           Int → ElabMode → List ElabOpt →
+           NestedNames vars → Env Term vars →
+           RawImp → Maybe (Glued vars) →
            Core (Term vars, Glued vars)
 elabTerm defining mode opts nest env tm ty
     = elabTermSub defining mode opts nest env env SubRefl tm ty
 
 export
-checkTermSub : {vars : _} ->
-               {auto c : Ref Ctxt Defs} ->
-               {auto m : Ref MD Metadata} ->
-               {auto u : Ref UST UState} ->
-               Int -> ElabMode -> List ElabOpt ->
-               NestedNames vars -> Env Term vars ->
-               Env Term inner -> SubVars inner vars ->
-               RawImp -> Glued vars ->
+checkTermSub : {vars : _} →
+               {auto c : Ref Ctxt Defs} →
+               {auto m : Ref MD Metadata} →
+               {auto u : Ref UST UState} →
+               Int → ElabMode → List ElabOpt →
+               NestedNames vars → Env Term vars →
+               Env Term inner → SubVars inner vars →
+               RawImp → Glued vars →
                Core (Term vars)
 checkTermSub defining mode opts nest env env' sub tm ty
     = do defs <- the (Core Defs) $ case mode of
-                      InType => branch -- might need to backtrack if there's
+                      InType ⇒ branch -- might need to backtrack if there's
                                        -- a case in the type
-                      _ => get Ctxt
+                      _ ⇒ get Ctxt
          ust <- get UST
          mv <- get MD
          res <-
             catch {t = Error}
                   (elabTermSub defining mode opts nest
                                env env' sub tm (Just ty))
-                  (\err => case err of
+                  (\err ⇒ case err of
                               TryWithImplicits loc benv ns
-                                 => do put Ctxt defs
+                                 ⇒ do put Ctxt defs
                                        put UST ust
                                        put MD mv
                                        tm' <- bindImps loc benv ns tm
                                        elabTermSub defining mode opts nest
                                                    env env' sub
                                                    tm' (Just ty)
-                              _ => throw err)
+                              _ ⇒ throw err)
          pure (fst res)
   where
-    bindImps : FC -> Env Term vs -> List (Name, Term vs) -> RawImp ->
+    bindImps : FC → Env Term vs → List (Name, Term vs) → RawImp →
                Core RawImp
     bindImps loc env [] ty = pure ty
     bindImps loc env ((n, ty) :: ntys) sc
@@ -252,13 +252,13 @@ checkTermSub defining mode opts nest env env' sub tm ty
                      !(unelabNoSugar env ty) !(bindImps loc env ntys sc)
 
 export
-checkTerm : {vars : _} ->
-            {auto c : Ref Ctxt Defs} ->
-            {auto m : Ref MD Metadata} ->
-            {auto u : Ref UST UState} ->
-            Int -> ElabMode -> List ElabOpt ->
-            NestedNames vars -> Env Term vars ->
-            RawImp -> Glued vars ->
+checkTerm : {vars : _} →
+            {auto c : Ref Ctxt Defs} →
+            {auto m : Ref MD Metadata} →
+            {auto u : Ref UST UState} →
+            Int → ElabMode → List ElabOpt →
+            NestedNames vars → Env Term vars →
+            RawImp → Glued vars →
             Core (Term vars)
 checkTerm defining mode opts nest env tm ty
     = checkTermSub defining mode opts nest env env SubRefl tm ty

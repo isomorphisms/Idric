@@ -4,19 +4,19 @@ module Core.Name
 
 public export
 data Name : Type where
-     NS : List String -> Name -> Name -- in a namespace
-     UN : String -> Name -- user defined name
-     MN : String -> Int -> Name -- machine generated name
-     PV : Name -> Int -> Name -- pattern variable name; int is the resolved function id
-     DN : String -> Name -> Name -- a name and how to display it
-     RF : String -> Name  -- record field name
-     Nested : (Int, Int) -> Name -> Name -- nested function name
-     CaseBlock : Int -> Int -> Name -- case block nested in (resolved) name
-     WithBlock : Int -> Int -> Name -- with block nested in (resolved) name
-     Resolved : Int -> Name -- resolved, index into context
+     NS : List String → Name → Name -- in a namespace
+     UN : String → Name -- user defined name
+     MN : String → Int → Name -- machine generated name
+     PV : Name → Int → Name -- pattern variable name; int is the resolved function id
+     DN : String → Name → Name -- a name and how to display it
+     RF : String → Name  -- record field name
+     Nested : (Int, Int) → Name → Name -- nested function name
+     CaseBlock : Int → Int → Name -- case block nested in (resolved) name
+     WithBlock : Int → Int → Name -- with block nested in (resolved) name
+     Resolved : Int → Name -- resolved, index into context
 
 export
-userNameRoot : Name -> Maybe String
+userNameRoot : Name → Maybe String
 userNameRoot (NS _ n) = userNameRoot n
 userNameRoot (UN n) = Just n
 userNameRoot (DN _ n) = userNameRoot n
@@ -24,7 +24,7 @@ userNameRoot (RF n) = Just ("." ++ n)  -- TMP HACK
 userNameRoot _ = Nothing
 
 export
-isUserName : Name -> Bool
+isUserName : Name → Bool
 isUserName (PV _ _) = False
 isUserName (MN _ _) = False
 isUserName (NS _ n) = isUserName n
@@ -32,7 +32,7 @@ isUserName (DN _ n) = isUserName n
 isUserName _ = True
 
 export
-nameRoot : Name -> String
+nameRoot : Name → String
 nameRoot (NS _ n) = nameRoot n
 nameRoot (UN n) = n
 nameRoot (MN n _) = n
@@ -46,12 +46,12 @@ nameRoot (Resolved i) = "$" ++ show i
 
 --- Drop a namespace from a name
 export
-dropNS : Name -> Name
+dropNS : Name → Name
 dropNS (NS _ n) = n
 dropNS n = n
 
 export
-showSep : String -> List String -> String
+showSep : String → List String → String
 showSep sep [] = ""
 showSep sep [x] = x
 showSep sep (x :: xs) = x ++ sep ++ showSep sep xs
@@ -84,7 +84,7 @@ Eq Name where
     (==) (Resolved x) (Resolved x') = x == x'
     (==) _ _ = False
 
-nameTag : Name -> Int
+nameTag : Name → Int
 nameTag (NS _ _) = 0
 nameTag (UN _) = 1
 nameTag (MN _ _) = 2
@@ -100,45 +100,45 @@ export
 Ord Name where
     compare (NS x y) (NS x' y')
         = case compare y y' of -- Compare base name first (more likely to differ)
-               EQ => compare x x'
+               EQ ⇒ compare x x'
                -- Because of the terrible way Idris 1 compiles 'case', this
-               -- is actually faster than just having 't => t'...
-               GT => GT
-               LT => LT
+               -- is actually faster than just having 't ⇒ t'...
+               GT ⇒ GT
+               LT ⇒ LT
     compare (UN x) (UN y) = compare x y
     compare (MN x y) (MN x' y')
         = case compare y y' of
-               EQ => compare x x'
-               GT => GT
-               LT => LT
+               EQ ⇒ compare x x'
+               GT ⇒ GT
+               LT ⇒ LT
     compare (PV x y) (PV x' y')
         = case compare y y' of
-               EQ => compare x x'
-               GT => GT
-               LT => LT
+               EQ ⇒ compare x x'
+               GT ⇒ GT
+               LT ⇒ LT
     compare (DN _ n) (DN _ n') = compare n n'
     compare (RF n) (RF n') = compare n n'
     compare (Nested x y) (Nested x' y')
         = case compare y y' of
-               EQ => compare x x'
-               GT => GT
-               LT => LT
+               EQ ⇒ compare x x'
+               GT ⇒ GT
+               LT ⇒ LT
     compare (CaseBlock x y) (CaseBlock x' y')
         = case compare y y' of
-               EQ => compare x x'
-               GT => GT
-               LT => LT
+               EQ ⇒ compare x x'
+               GT ⇒ GT
+               LT ⇒ LT
     compare (WithBlock x y) (WithBlock x' y')
         = case compare y y' of
-               EQ => compare x x'
-               GT => GT
-               LT => LT
+               EQ ⇒ compare x x'
+               GT ⇒ GT
+               LT ⇒ LT
     compare (Resolved x) (Resolved y) = compare x y
 
     compare x y = compare (nameTag x) (nameTag y)
 
 export
-nameEq : (x : Name) -> (y : Name) -> Maybe (x = y)
+nameEq : (x : Name) → (y : Name) → Maybe (x = y)
 nameEq (NS xs x) (NS ys y) with (decEq xs ys)
   nameEq (NS ys x) (NS ys y) | (Yes Refl) with (nameEq x y)
     nameEq (NS ys x) (NS ys y) | (Yes Refl) | Nothing = Nothing
@@ -186,7 +186,7 @@ nameEq (Resolved x) (Resolved y) with (decEq x y)
 nameEq _ _ = Nothing
 
 export
-namesEq : (xs : List Name) -> (ys : List Name) -> Maybe (xs = ys)
+namesEq : (xs : List Name) → (ys : List Name) → Maybe (xs = ys)
 namesEq [] [] = Just Refl
 namesEq (x :: xs) (y :: ys)
     = do p <- nameEq x y
