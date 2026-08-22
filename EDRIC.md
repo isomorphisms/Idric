@@ -125,6 +125,7 @@ make test only=idris2/basic/edric001
 make test only=idris2/basic/edric002
 make test only=idris2/basic/edric003
 make test only=idris2/basic/edric004
+make test only=idris2/basic/edric005
 ```
 
 ## Change discipline
@@ -157,4 +158,7 @@ A new thread working on Edric should:
 - Idriç source extension: `.idric`; `.idr` remains accepted for Idris compatibility.
 - Storage-neutral, lower snake_case `choice ... one_of` syntax: implemented for `.idric` only.
 - Ordinary `.idr` use of `choice` and `one_of` as identifiers: preserved and regression-tested.
+- Idriç source accepts `→`, `⇒`, `←`, and `≤` as compact aliases for `->`, `=>`, `<-`, and `<=`; the ASCII spellings remain accepted.
+- The aliases are filename-scoped to `.idric`; ordinary `.idr` Unicode identifiers remain unchanged.
+- Canonical Unicode pretty-printing is not yet claimed by this input-syntax slice.
 - Historical broad mechanical Unicode rewrite: reference only, not the base.

@@ -18,6 +18,12 @@ promoteIdricKeyword : Token -> Token
 promoteIdricKeyword (Ident "choice") = Keyword "choice"
 promoteIdricKeyword tok = tok
 
+sourceSyntax : Maybe String -> SourceSyntax
+sourceSyntax (Just fname) = if isSuffixOf ".idric" fname
+                               then IdricSyntax
+                               else IdrisSyntax
+sourceSyntax Nothing = IdrisSyntax
+
 sourceTokens : Maybe String -> List (WithBounds Token) -> List (WithBounds Token)
 sourceTokens (Just fname) toks
     = if isSuffixOf ".idric" fname
@@ -33,7 +39,8 @@ runParserToSource : {e : _} ->
                     Either Error (List Warning, State, ty)
 runParserToSource sourceFile origin lit reject str p
     = do str        <- mapFst (fromLitError origin) $ unlit lit str
-         (cs, toks) <- mapFst (fromLexError origin) $ lexTo reject str
+         (cs, toks) <- mapFst (fromLexError origin) $
+                         lexToWith (sourceSyntax sourceFile) reject str
          (decs, ws, (parsed, _)) <- mapFst (fromParsingErrors origin) $
                                       parseWith p (sourceTokens sourceFile toks)
          let cs : SemanticDecorations

@@ -23,6 +23,12 @@ public export
 data IsMultiline = Multi | Single
 
 public export
+data SourceSyntax = IdrisSyntax | IdricSyntax
+
+isIdricSyntaxSymbol : Char -> Bool
+isIdricSyntaxSymbol c = c `elem` unpack "→⇒←≤"
+
+public export
 data DebugInfo
   = DebugLoc
   | DebugFile
@@ -142,14 +148,21 @@ Pretty Void Token where
 docComment : Lexer
 docComment = is '|' <+> is '|' <+> is '|' <+> many (isNot '\n')
 
-holeIdent : Lexer
-holeIdent = is '?' <+> identNormal
+excludedSyntaxChar : SourceSyntax -> Char -> Bool
+excludedSyntaxChar IdrisSyntax = const False
+excludedSyntaxChar IdricSyntax = isIdricSyntaxSymbol
 
-dotIdent : Lexer
-dotIdent = is '.' <+> identNormal
+sourceIdent : SourceSyntax -> Flavour -> Lexer
+sourceIdent syntax = identExcept (excludedSyntaxChar syntax)
 
-pragma : Lexer
-pragma = is '%' <+> identNormal
+holeIdent : SourceSyntax -> Lexer
+holeIdent syntax = is '?' <+> sourceIdent syntax Normal
+
+dotIdent : SourceSyntax -> Lexer
+dotIdent syntax = is '.' <+> sourceIdent syntax Normal
+
+pragma : SourceSyntax -> Lexer
+pragma syntax = is '%' <+> sourceIdent syntax Normal
 
 doubleLit : Lexer
 doubleLit
@@ -239,6 +252,18 @@ groupClose _ = ""
 validSymbol : Lexer
 validSymbol = some (pred isOpChar)
 
+canonicalIdricSymbol : String -> Token
+canonicalIdricSymbol "→" = Symbol "->"
+canonicalIdricSymbol "⇒" = Symbol "=>"
+canonicalIdricSymbol "←" = Symbol "<-"
+canonicalIdricSymbol "≤" = Symbol "<="
+canonicalIdricSymbol symbol = Symbol symbol
+
+syntaxSymbol : SourceSyntax -> Tokenizer Token
+syntaxSymbol IdrisSyntax = match fail Symbol
+syntaxSymbol IdricSyntax
+    = match (pred isIdricSyntaxSymbol) canonicalIdricSymbol
+
 -- Valid symbols which have a special meaning so can't be operators
 public export
 reservedInfixSymbols : List String
@@ -285,8 +310,8 @@ fromOctLit str
              --        ^-- can't happen if the literal lexed correctly
 
 mutual
-  stringTokens : Bool -> Nat -> Tokenizer Token
-  stringTokens multi hashtag
+  stringTokens : SourceSyntax -> Bool -> Nat -> Tokenizer Token
+  stringTokens syntax multi hashtag
       = let escapeChars = "\\" ++ replicate hashtag '#'
             interpStart = escapeChars ++ "{"
             escapeLexer = escape (exact escapeChars) any
@@ -298,21 +323,22 @@ mutual
         <|> compose (exact interpStart)
                     (const InterpBegin)
                     (const ())
-                    (\_ => rawTokens)
+                    (\_ => rawTokens syntax)
                     (const $ is '}')
                     (const InterpEnd)
 
-  rawTokens : Tokenizer Token
-  rawTokens =
-          match comment (const Comment)
+  rawTokens : SourceSyntax -> Tokenizer Token
+  rawTokens syntax =
+          syntaxSymbol syntax
+      <|> match comment (const Comment)
       <|> match blockComment (const Comment)
       <|> match docComment (DocComment . removeOptionalLeadingSpace . drop 3)
       <|> match cgDirective mkDirective
-      <|> match holeIdent (\x => HoleIdent (assert_total (strTail x)))
+      <|> match (holeIdent syntax) (\x => HoleIdent (assert_total (strTail x)))
       <|> compose (choice $ exact <$> groupSymbols)
                   Symbol
                   id
-                  (\_ => rawTokens)
+                  (\_ => rawTokens syntax)
                   (exact . groupClose)
                   Symbol
       <|> match (choice $ (exact . fst) <$> debugInfo) (MagicDebugInfo . fromMaybe DebugLoc . flip lookup debugInfo)
@@ -325,20 +351,20 @@ mutual
       <|> compose multilineBegin
                   (\begin => StringBegin (countHashtag begin) Multi)
                   countHashtag
-                  (stringTokens True)
+                  (stringTokens syntax True)
                   (exact . multilineEnd)
                   (const StringEnd)
       <|> compose stringBegin
                   (\begin => StringBegin (countHashtag begin) Single)
                   countHashtag
-                  (stringTokens False)
+                  (stringTokens syntax False)
                   (\hashtag => exact (stringEnd hashtag) <+> reject (is '"'))
                   (const StringEnd)
       <|> match charLit (CharLit . stripQuotes)
-      <|> match dotIdent (\x => DotIdent (assert_total $ strTail x))
-      <|> match namespacedIdent parseNamespace
-      <|> match identNormal parseIdent
-      <|> match pragma (\x => Pragma (assert_total $ strTail x))
+      <|> match (dotIdent syntax) (\x => DotIdent (assert_total $ strTail x))
+      <|> match (namespacedIdentExcept $ excludedSyntaxChar syntax) parseNamespace
+      <|> match (sourceIdent syntax Normal) parseIdent
+      <|> match (pragma syntax) (\x => Pragma (assert_total $ strTail x))
       <|> match space (const Space)
       <|> match validSymbol Symbol
       <|> match symbol Unrecognised
@@ -364,13 +390,14 @@ mutual
       removeUnderscores s = fastPack $ filter (/= '_') (fastUnpack s)
 
 export
-lexTo : Lexer ->
-        String ->
-        Either (StopReason, Int, Int, String)
-               ( List (WithBounds ())     -- bounds of comments
-               , List (WithBounds Token)) -- tokens
-lexTo reject str
-    = case lexTo reject rawTokens str of
+lexToWith : SourceSyntax ->
+            Lexer ->
+            String ->
+            Either (StopReason, Int, Int, String)
+                   ( List (WithBounds ())     -- bounds of comments
+                   , List (WithBounds Token)) -- tokens
+lexToWith syntax reject str
+    = case lexTo reject (rawTokens syntax) str of
            (toks, (EndInput, l, c, _)) =>
              -- Add the EndInput token so that we'll have a line and column
              -- number to read when storing spans in the file
@@ -394,8 +421,24 @@ lexTo reject str
         _ => Right t
 
 export
+lexTo : Lexer ->
+        String ->
+        Either (StopReason, Int, Int, String)
+               ( List (WithBounds ())     -- bounds of comments
+               , List (WithBounds Token)) -- tokens
+lexTo = lexToWith IdrisSyntax
+
+export
+lexWith : SourceSyntax ->
+          String ->
+          Either (StopReason, Int, Int, String)
+                 ( List (WithBounds ())     -- bounds of comments
+                 , List (WithBounds Token)) -- tokens
+lexWith syntax = lexToWith syntax (pred $ const False)
+
+export
 lex : String ->
       Either (StopReason, Int, Int, String)
              ( List (WithBounds ())     -- bounds of comments
              , List (WithBounds Token)) -- tokens
-lex = lexTo (pred $ const False)
+lex = lexWith IdrisSyntax
