@@ -68,10 +68,11 @@ extraSearchDirectories =
 ------------------------------------------------------------------------
 
 public export
-data IdrSrcExt = E_idr | E_lidr | E_yaff | E_org | E_md
+data IdrSrcExt = E_idric | E_idr | E_lidr | E_yaff | E_org | E_md
 
 public export
 Eq IdrSrcExt where
+  E_idric == E_idric = True
   E_idr  == E_idr  = True
   E_lidr == E_lidr = True
   E_yaff == E_yaff = True
@@ -81,6 +82,7 @@ Eq IdrSrcExt where
 
 public export
 Show IdrSrcExt where
+  show E_idric = "idric"
   show E_idr  = "idr"
   show E_lidr = "lidr"
   show E_yaff = "yaff"
@@ -90,7 +92,7 @@ Show IdrSrcExt where
 ||| This does not include the complete set of literate extensions as supported by Idris.
 public export
 listOfExtensions : List IdrSrcExt
-listOfExtensions = [E_idr, E_lidr, E_yaff, E_org, E_md]
+listOfExtensions = [E_idric, E_idr, E_lidr, E_yaff, E_org, E_md]
 
 ||| List of valid extensions in Idris as strings.
 |||
@@ -98,7 +100,7 @@ listOfExtensions = [E_idr, E_lidr, E_yaff, E_org, E_md]
 |||
 public export
 listOfExtensionsStr : List String
-listOfExtensionsStr = listOfExtensionsLiterate ++ [".yaff", ".idr"]
+listOfExtensionsStr = listOfExtensionsLiterate ++ [".yaff", ".idric", ".idr"]
 
 ||| Applies the following properties of relative directory construction:
 ||| X / .  = X
@@ -129,8 +131,8 @@ splitIdrisFileName fname
     isPureCode : Maybe (String, String)
     isPureCode
       = let (bname, ext) = splitFileName fname in
-        do guard (ext == "idr")
-           pure (bname, ".idr")
+        do guard (ext == "idric" || ext == "idr")
+           pure (bname, "." ++ ext)
 
 
 -- Return the name of the first file available in the list

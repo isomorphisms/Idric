@@ -78,6 +78,7 @@ The individual underlying commands remain available:
 ```sh
 make bootstrap SCHEME="$PWD/.tools/bin/scheme"
 make test only=idris2/basic/edric001
+make test only=idris2/basic/edric002
 ```
 
 ## Change discipline
@@ -107,5 +108,6 @@ A new thread working on Edric should:
 - Ordinary Idris 2 implementation language: established.
 - Pinned repo-local threaded Chez Scheme bootstrap: established.
 - Focused Edric handoff test: checked in.
+- Idriç source extension: `.idric`; `.idr` remains accepted for Idris compatibility.
 - Edric-specific syntax or semantic changes on this modern base: not yet claimed by this checkpoint.
 - Historical broad mechanical Unicode rewrite: reference only, not the base.
