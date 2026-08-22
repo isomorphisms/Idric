@@ -31,6 +31,8 @@ bootstrap() {
 smoke_test() {
     "$make_command" -C "$repo_root" test only=idris2/basic/edric001
     "$make_command" -C "$repo_root" test only=idris2/basic/edric002
+    "$make_command" -C "$repo_root" test only=idris2/basic/edric003
+    "$make_command" -C "$repo_root" test only=idris2/basic/edric004
 }
 
 command=${1:-all}

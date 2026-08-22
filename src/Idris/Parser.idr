@@ -1324,6 +1324,30 @@ mkDataConType ret (con@(MkWithData _ (UnnamedAutoArg x)) :: xs)
 mkDataConType _ _ -- with and named applications not allowed in simple ADTs
     = Nothing
 
+isLowerSnakeName : String -> Bool
+isLowerSnakeName str
+    = case unpack str of
+           [] => False
+           c :: cs => isLower c && validTail False cs
+  where
+    validTail : Bool -> List Char -> Bool
+    validTail afterUnderscore [] = not afterUnderscore
+    validTail afterUnderscore ('_' :: cs)
+        = not afterUnderscore && validTail True cs
+    validTail afterUnderscore (c :: cs)
+        = (isLower c || isDigit c)
+          && (not afterUnderscore || isLower c)
+          && validTail False cs
+
+lowerSnakeName : String -> Rule Name
+lowerSnakeName description
+    = (>>=) {c1 = True, c2 = False} unqualifiedName $ \n =>
+        if isLowerSnakeName n
+           then the (EmptyRule Name) $ pure (UN $ Basic n)
+           else the (EmptyRule Name) $ fatalError
+                  ("Expected a lower snake_case " ++ description ++
+                   ", got: " ++ n)
+
 simpleCon : OriginDesc -> PTerm -> IndentInfo -> Rule PTypeDecl
 simpleCon fname ret indents
     = do b <- bounds (do cdoc   <- optDocumentation fname
@@ -1333,6 +1357,21 @@ simpleCon fname ret indents
                          let conType = the (Maybe PTerm) (mkDataConType ret
                                                             (concat (map distribData params)))
                          fromMaybe (fatalError "Named arguments not allowed in ADT constructors")
+                                   (pure . MkPTy (singleton ("", cname)) cdoc <$> conType)
+                         )
+         atEnd indents
+         pure b.withFC
+
+choiceCon : OriginDesc -> PTerm -> IndentInfo -> Rule PTypeDecl
+choiceCon fname ret indents
+    = do b <- bounds (do cdoc   <- optDocumentation fname
+                         cname  <- fcBounds $ decorate fname Data $
+                                     lowerSnakeName "choice alternative name"
+                         params <- the (EmptyRule $ List $ WithFC $ List ArgType)
+                                     $ many (fcBounds $ argExpr plhs fname indents)
+                         let conType = the (Maybe PTerm) (mkDataConType ret
+                                                            (concat (map distribData params)))
+                         fromMaybe (fatalError "Named arguments not allowed in choice alternatives")
                                    (pure . MkPTy (singleton ("", cname)) cdoc <$> conType)
                          )
          atEnd indents
@@ -1409,6 +1448,31 @@ dataVisOpt fname
     = do { vis <- visOption   fname ; mbtot <- optional (totalityOpt fname) ; pure (specified vis, mbtot) }
   <|> do { tot <- totalityOpt fname ; vis <- visibility fname ; pure (vis, Just tot) }
   <|> pure (defaulted, Nothing)
+
+choiceDeclBody : OriginDesc -> IndentInfo -> Rule PDataDecl
+choiceDeclBody fname indents
+    = (>>=) {c1 = True, c2 = True}
+        (bounds (do col <- column
+                    decoratedKeyword fname "choice"
+                    tyName <- mustWork $ bounds $ decorate fname Typ $
+                                lowerSnakeName "choice type name"
+                    mustWork $ decorate fname Keyword $ exactIdent "one_of"
+                    the (EmptyRule (Int, WithBounds Name)) $
+                      pure (col, tyName))) $ \header => do
+         let (col, tyName) = header.val
+         let ret = PRef (boundToFC fname tyName) tyName.val
+         cons <- nonEmptyBlockAfter col (choiceCon fname ret)
+         let tyCon = PType (virtualiseFC $ boundToFC fname header)
+         the (EmptyRule PDataDecl) $
+           pure (MkPData (boundToFC fname header)
+                         tyName.val (Just tyCon) [] (forget cons))
+
+choiceDecl : (fname : OriginDesc) => (indents : IndentInfo) => Rule PDeclNoFC
+choiceDecl
+    = do doc         <- optDocumentation fname
+         (vis,mbTot) <- dataVisOpt fname
+         dat         <- choiceDeclBody fname indents
+         pure (PData doc vis mbTot dat)
 
 dataDecl : (fname : OriginDesc) => (indents : IndentInfo) => Rule PDeclNoFC
 dataDecl
@@ -1923,6 +1987,7 @@ topDecl fname indents
     = do id <- anyReservedIdent
          the (Rule PDecl) $ fatalLoc id.bounds "Cannot begin a declaration with a reserved identifier"
   <|> fcBounds dataDecl
+  <|> fcBounds choiceDecl
   <|> fcBounds (PClaim <$> localClaim)
   <|> fcBounds (PDirective <$> directive)
   <|> fcBounds implDecl

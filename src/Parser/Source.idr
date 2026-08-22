@@ -9,20 +9,33 @@ import Core.Name
 import Core.Metadata
 import Core.FC
 
+import Data.String
 import System.File
 
 %default total
 
-export
-runParserTo : {e : _} ->
-              (origin : OriginDesc) ->
-              Maybe LiterateStyle -> Lexer ->
-              String -> Grammar ParsingState Token e ty ->
-              Either Error (List Warning, State, ty)
-runParserTo origin lit reject str p
+promoteIdricKeyword : Token -> Token
+promoteIdricKeyword (Ident "choice") = Keyword "choice"
+promoteIdricKeyword tok = tok
+
+sourceTokens : Maybe String -> List (WithBounds Token) -> List (WithBounds Token)
+sourceTokens (Just fname) toks
+    = if isSuffixOf ".idric" fname
+         then map (map promoteIdricKeyword) toks
+         else toks
+sourceTokens Nothing toks = toks
+
+runParserToSource : {e : _} ->
+                    Maybe String ->
+                    (origin : OriginDesc) ->
+                    Maybe LiterateStyle -> Lexer ->
+                    String -> Grammar ParsingState Token e ty ->
+                    Either Error (List Warning, State, ty)
+runParserToSource sourceFile origin lit reject str p
     = do str        <- mapFst (fromLitError origin) $ unlit lit str
          (cs, toks) <- mapFst (fromLexError origin) $ lexTo reject str
-         (decs, ws, (parsed, _)) <- mapFst (fromParsingErrors origin) $ parseWith p toks
+         (decs, ws, (parsed, _)) <- mapFst (fromParsingErrors origin) $
+                                      parseWith p (sourceTokens sourceFile toks)
          let cs : SemanticDecorations
                 = cs <&> \ c => ((origin, start c, end c), Comment, Nothing)
          let ws = ws <&> \ (mb, warn) =>
@@ -33,11 +46,39 @@ runParserTo origin lit reject str p
          pure (ws, state, parsed)
 
 export
+runParserTo : {e : _} ->
+              (origin : OriginDesc) ->
+              Maybe LiterateStyle -> Lexer ->
+              String -> Grammar ParsingState Token e ty ->
+              Either Error (List Warning, State, ty)
+runParserTo origin lit reject str p
+    = runParserToSource Nothing origin lit reject str p
+
+export
+runParserToFile : {e : _} ->
+                  (sourceFile : String) ->
+                  (origin : OriginDesc) ->
+                  Maybe LiterateStyle -> Lexer ->
+                  String -> Grammar ParsingState Token e ty ->
+                  Either Error (List Warning, State, ty)
+runParserToFile sourceFile origin lit reject str p
+    = runParserToSource (Just sourceFile) origin lit reject str p
+
+export
 runParser : {e : _} ->
             (origin : OriginDesc) -> Maybe LiterateStyle -> String ->
             Grammar ParsingState Token e ty ->
             Either Error (List Warning, State, ty)
 runParser origin lit = runParserTo origin lit (pred $ const False)
+
+export
+runParserFile : {e : _} ->
+                (sourceFile : String) ->
+                (origin : OriginDesc) -> Maybe LiterateStyle -> String ->
+                Grammar ParsingState Token e ty ->
+                Either Error (List Warning, State, ty)
+runParserFile sourceFile origin lit
+    = runParserToFile sourceFile origin lit (pred $ const False)
 
 export covering
 parseFile : (fname : String)
@@ -47,4 +88,4 @@ parseFile : (fname : String)
 parseFile fname origin p
     = do Right str <- readFile fname
              | Left err => pure (Left (FileErr fname err))
-         pure (runParser origin (isLitFile fname) str p)
+         pure (runParserFile fname origin (isLitFile fname) str p)

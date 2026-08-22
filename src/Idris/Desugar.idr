@@ -986,7 +986,9 @@ mutual
   desugarData ps doc (MkPData fc n tycon opts datacons)
       = do addDocString n doc
            syn <- get Syn
-           mm <- traverse (desugarType ps) datacons
+           -- The type constructor is in scope throughout its constructor
+           -- types, including when choice syntax gives it a lower-case name.
+           mm <- traverse (desugarType (n :: ps)) datacons
            pure $ MkImpData fc n
                    !(flip traverseOpt tycon $ \ tycon => do
                       tycon <- desugar AnyExpr ps tycon

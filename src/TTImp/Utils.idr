@@ -184,13 +184,37 @@ findBindableNamesQuot env used (IQuoteName fc x) = []
 findBindableNamesQuot env used (IQuoteDecl fc xs) = []
 findBindableNamesQuot env used (IRunElab fc _ x) = []
 
+||| Lower-case names normally become implicit binders. A lower-case type or
+||| data constructor introduced by Idric choice syntax is a global name
+||| instead, so leave it for ordinary name resolution.
+export
+excludeKnownTyOrDataCons :
+  {auto c : Ref Ctxt Defs} ->
+  List (Name, Name) -> Core (List (Name, Name))
+excludeKnownTyOrDataCons ns
+    = do defs <- get Ctxt
+         filterM (keep defs) ns
+  where
+    isTyOrDataCon : (Name, Int, GlobalDef) -> Bool
+    isTyOrDataCon (_, _, gdef) =
+      case definition gdef of
+        TCon {} => True
+        DCon {} => True
+        _ => False
+
+    keep : Defs -> (Name, Name) -> Core Bool
+    keep defs (n, _) = do
+      matches <- lookupCtxtName n (gamma defs)
+      pure $ not (any isTyOrDataCon matches)
+
 export
 findUniqueBindableNames :
   {auto c : Ref Ctxt Defs} ->
   FC -> (arg : Bool) -> (env : List Name) -> (used : List String) ->
   RawImp -> Core (List (Name, Name))
 findUniqueBindableNames fc arg env used t
-  = do let assoc = nub (findBindableNames arg env used t)
+  = do assoc <- excludeKnownTyOrDataCons
+                  (nub (findBindableNames arg env used t))
        when (showShadowingWarning !getSession) $
          do defs <- get Ctxt
             let ctxt = gamma defs

@@ -122,7 +122,8 @@ bindNames : {auto c : Ref Ctxt Defs} ->
             (arg : Bool) -> RawImp -> Core (List Name, RawImp)
 bindNames arg tm
     = if !isUnboundImplicits
-         then do let ns = nub (findBindableNames arg [] [] tm)
+         then do ns <- excludeKnownTyOrDataCons
+                         (nub (findBindableNames arg [] [] tm))
                  log "elab.bindnames" 10 $ "Found names :" ++ show ns
                  pure (map snd ns, doBind ns tm)
          else pure ([], tm)
