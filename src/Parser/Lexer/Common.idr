@@ -89,10 +89,14 @@ isIdent flavour string =
     (x::xs) => isIdentStart flavour x && all (isIdentTrailing flavour) xs
 
 export %inline
+identExcept : (Char -> Bool) -> Flavour -> Lexer
+identExcept excluded flavour =
+  (pred $ \c => isIdentStart flavour c && not (excluded c)) <+>
+    (many . pred $ \c => isIdentTrailing flavour c && not (excluded c))
+
+export %inline
 ident : Flavour -> Lexer
-ident flavour =
-  (pred $ isIdentStart flavour) <+>
-    (many . pred $ isIdentTrailing flavour)
+ident = identExcept (const False)
 
 export
 isIdentNormal : String -> Bool
@@ -106,12 +110,20 @@ export
 identAllowDashes : Lexer
 identAllowDashes = ident AllowDashes
 
-namespaceIdent : Lexer
-namespaceIdent = ident Capitalised <+> many (is '.' <+> ident Capitalised <+> expect (is '.'))
+namespaceIdentExcept : (Char -> Bool) -> Lexer
+namespaceIdentExcept excluded
+    = identExcept excluded Capitalised <+>
+        many (is '.' <+> identExcept excluded Capitalised <+> expect (is '.'))
+
+export
+namespacedIdentExcept : (Char -> Bool) -> Lexer
+namespacedIdentExcept excluded
+    = namespaceIdentExcept excluded <+>
+        opt (is '.' <+> identExcept excluded Normal)
 
 export
 namespacedIdent : Lexer
-namespacedIdent = namespaceIdent <+> opt (is '.' <+> identNormal)
+namespacedIdent = namespacedIdentExcept (const False)
 
 export
 spacesOrNewlines : Lexer

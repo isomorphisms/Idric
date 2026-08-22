@@ -33,6 +33,7 @@ smoke_test() {
     "$make_command" -C "$repo_root" test only=idris2/basic/edric002
     "$make_command" -C "$repo_root" test only=idris2/basic/edric003
     "$make_command" -C "$repo_root" test only=idris2/basic/edric004
+    "$make_command" -C "$repo_root" test only=idris2/basic/edric005
 }
 
 command=${1:-all}
