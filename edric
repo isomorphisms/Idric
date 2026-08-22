@@ -6,6 +6,12 @@ toolchain_dir=${EDRIC_TOOLCHAIN_DIR:-"$repo_root/.tools"}
 scheme="$toolchain_dir/bin/scheme"
 make_command=${MAKE:-make}
 
+# Bootstrap stage 2 runs the compiler produced by stage 1. That compiler
+# invokes its Chez backend as `scheme`, so the private pinned toolchain must be
+# visible on PATH as well as passed to the stage-1 make invocation.
+PATH="$toolchain_dir/bin:$PATH"
+export PATH
+
 usage() {
     cat <<'USAGE'
 usage: ./edric [scheme|bootstrap|test|all]
