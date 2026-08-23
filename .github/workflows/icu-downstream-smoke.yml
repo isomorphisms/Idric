@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - icu-downstream-smoke
+      - icu-downstream-smoke-pr
+  pull_request:
   workflow_dispatch:
 
 jobs:
