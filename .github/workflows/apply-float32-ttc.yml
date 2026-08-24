@@ -19,7 +19,7 @@ jobs:
           ref: float32-primitive
           fetch-depth: 0
 
-      # Apply once, then this workflow is removed from the feature branch.
+      # Run while the draft PR is closed so this small write job has the queue to itself.
       - name: Add Float TTC tag
         shell: python
         run: |
