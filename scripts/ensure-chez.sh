@@ -78,7 +78,7 @@ rm -rf "$source_dir" "$build_dir" "$prefix"
 unpack_dir="$toolchain_dir/src/.ChezScheme-${chez_version}.unpack"
 rm -rf "$unpack_dir"
 mkdir -p "$unpack_dir" "$build_dir"
-tar -xzf "$archive" -C "$unpack_dir"
+tar --no-same-owner -xzf "$archive" -C "$unpack_dir"
 
 extracted_source=''
 for candidate in "$unpack_dir"/*; do
