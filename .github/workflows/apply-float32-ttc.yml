@@ -19,6 +19,7 @@ jobs:
           ref: float32-primitive
           fetch-depth: 0
 
+      # Apply once, then this workflow is removed from the feature branch.
       - name: Add Float TTC tag
         shell: python
         run: |
