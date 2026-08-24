@@ -1,0 +1,119 @@
+name: Apply Float32 implementation
+
+on:
+  push:
+    branches:
+      - float32-primitive
+    paths:
+      - '.github/workflows/apply-float32.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: float32-primitive
+          fetch-depth: 0
+
+      - name: Apply Float32 compiler edits
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}: {old!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          # Repair the typo in the first PrimType commit.
+          replace_once(
+              "src/Core/TT/Primitive.idr",
+              '  show (GTE ty) = ">="n  show (GT ty) = ">"',
+              '  show (GTE ty) = ">="\n  show (GT ty) = ">"')
+
+          # Float is an arithmetic/comparison primitive, but it has no compiler
+          # Constant constructor yet. Keep Float casts runtime-only so literal
+          # and arithmetic expressions retain their 32-bit boundary.
+          replace_once(
+              "src/Core/Primitives.idr",
+              "castTo DoubleType = castDouble\ncastTo WorldType = const Nothing",
+              "castTo DoubleType = castDouble\ncastTo FloatType = const Nothing\ncastTo WorldType = const Nothing")
+          replace_once(
+              "src/Core/Primitives.idr",
+              "numTypes = integralTypes ++ [DoubleType]\n\nprimTypes : List PrimType\nprimTypes = numTypes ++ [StringType, CharType]",
+              "numTypes = integralTypes ++ [DoubleType, FloatType]\n\nprimTypes : List PrimType\nprimTypes = numTypes ++ [StringType, CharType]\n\ncastTypes : List PrimType\ncastTypes = integralTypes ++ [DoubleType, StringType, CharType]")
+          replace_once(
+              "src/Core/Primitives.idr",
+              "    [ MkPrim (Cast t1 t2) (predTy t1 t2) isTotal\n    | t1 <- primTypes\n    , t2 <- primTypes",
+              "    [ MkPrim (Cast t1 t2) (predTy t1 t2) isTotal\n    | t1 <- castTypes\n    , t2 <- castTypes")
+          replace_once(
+              "src/Core/Primitives.idr",
+              "      (t1,t2) /= (CharType,DoubleType)\n    ]",
+              "      (t1,t2) /= (CharType,DoubleType)\n    ] ++\n\n    [ MkPrim (Cast IntegerType FloatType) (predTy IntegerType FloatType) isTotal\n    , MkPrim (Cast DoubleType FloatType) (predTy DoubleType FloatType) isTotal\n    , MkPrim (Cast FloatType DoubleType) (predTy FloatType DoubleType) isTotal\n    ]")
+
+          # Decimal literals are lexed as Double literals, then rounded at the
+          # explicit Double -> Float primitive boundary.
+          replace_once(
+              "libs/prelude/Builtin.idr",
+              "public export\nFromDouble Double where\n  fromDouble s = s\n\n%defaulthint",
+              "public export\nFromDouble Double where\n  fromDouble s = s\n\n%inline\npublic export\nFromDouble Float where\n  fromDouble = prim__cast_DoubleFloat\n\n%defaulthint")
+
+          replace_once(
+              "libs/prelude/Prelude/Num.idr",
+              "public export\nFractional Double where\n  (/) = prim__div_Double",
+              "public export\nFractional Double where\n  (/) = prim__div_Double\n\n-- Float\n\npublic export\nNum Float where\n  (+) = prim__add_Float\n  (*) = prim__mul_Float\n  fromInteger = prim__cast_IntegerFloat\n\n%inline\npublic export\nNeg Float where\n  negate x = prim__negate_Float x\n  (-) = prim__sub_Float\n\npublic export\nAbs Float where\n  abs x = if x < 0 then -x else x\n\npublic export\nFractional Float where\n  (/) = prim__div_Float")
+
+          replace_once(
+              "libs/prelude/Prelude/EqOrd.idr",
+              "public export\nEq Double where\n  x == y = intToBool (prim__eq_Double x y)\n\npublic export\nEq Char where",
+              "public export\nEq Double where\n  x == y = intToBool (prim__eq_Double x y)\n\npublic export\nEq Float where\n  x == y = intToBool (prim__eq_Float x y)\n\npublic export\nEq Char where")
+          replace_once(
+              "libs/prelude/Prelude/EqOrd.idr",
+              "public export\nOrd Double where\n  (<) x y = intToBool (prim__lt_Double x y)\n  (<=) x y = intToBool (prim__lte_Double x y)\n  (>) x y = intToBool (prim__gt_Double x y)\n  (>=) x y = intToBool (prim__gte_Double x y)\n\npublic export\nOrd String where",
+              "public export\nOrd Double where\n  (<) x y = intToBool (prim__lt_Double x y)\n  (<=) x y = intToBool (prim__lte_Double x y)\n  (>) x y = intToBool (prim__gt_Double x y)\n  (>=) x y = intToBool (prim__gte_Double x y)\n\npublic export\nOrd Float where\n  (<) x y = intToBool (prim__lt_Float x y)\n  (<=) x y = intToBool (prim__lte_Float x y)\n  (>) x y = intToBool (prim__gt_Float x y)\n  (>=) x y = intToBool (prim__gte_Float x y)\n\npublic export\nOrd String where")
+
+          # Scheme keeps Float as a distinct Idric type and rounds every value-
+          # producing Float operation through a runtime IEEE single boundary.
+          replace_once(
+              "src/Compiler/Scheme/Common.idr",
+              "schOp (Add ty) [x, y] = pure $ add (intKind ty) x y\nschOp (Sub ty) [x, y] = pure $ sub (intKind ty) x y\nschOp (Mul ty) [x, y] = pure $ mul (intKind ty) x y\nschOp (Div ty) [x, y] = pure $ div (intKind ty) x y\nschOp (Mod ty) [x, y] = pure $ op \"blodwen-euclidMod\" [x, y]\nschOp (Neg ty) [x] = pure $ op \"-\" [x]",
+              "schOp (Add FloatType) [x, y] = pure $ op \"blodwen-float32\" [op \"+\" [x, y]]\nschOp (Sub FloatType) [x, y] = pure $ op \"blodwen-float32\" [op \"-\" [x, y]]\nschOp (Mul FloatType) [x, y] = pure $ op \"blodwen-float32\" [op \"*\" [x, y]]\nschOp (Div FloatType) [x, y] = pure $ op \"blodwen-float32\" [op \"/\" [x, y]]\nschOp (Neg FloatType) [x] = pure $ op \"blodwen-float32\" [op \"-\" [x]]\nschOp (Add ty) [x, y] = pure $ add (intKind ty) x y\nschOp (Sub ty) [x, y] = pure $ sub (intKind ty) x y\nschOp (Mul ty) [x, y] = pure $ mul (intKind ty) x y\nschOp (Div ty) [x, y] = pure $ div (intKind ty) x y\nschOp (Mod ty) [x, y] = pure $ op \"blodwen-euclidMod\" [x, y]\nschOp (Neg ty) [x] = pure $ op \"-\" [x]")
+          replace_once(
+              "src/Compiler/Scheme/Common.idr",
+              "schOp (Cast DoubleType StringType)  [x] = pure $ op \"number->string\" [x]",
+              "schOp (Cast IntegerType FloatType) [x] = pure $ op \"blodwen-float32\" [op \"exact->inexact\" [x]]\nschOp (Cast DoubleType FloatType)  [x] = pure $ op \"blodwen-float32\" [x]\nschOp (Cast FloatType DoubleType)  [x] = pure x\nschOp (Cast DoubleType StringType)  [x] = pure $ op \"number->string\" [x]")
+
+          replace_once(
+              "support/chez/support.ss",
+              "; flonum constants\n",
+              "; Float values are carried in Chez flonums but rounded through an\n; IEEE-754 single-precision bytevector at every value-producing boundary.\n(define (blodwen-float32 x)\n  (let ([buf (make-bytevector 4)])\n    (bytevector-ieee-single-native-set! buf 0 (exact->inexact x))\n    (bytevector-ieee-single-native-ref buf 0)))\n\n; flonum constants\n")
+
+          # Focused semantic regression: 2^24 + 1 rounds back to 2^24 in Float,
+          # while the same Double computation remains distinct.
+          test_dir = Path("tests/idris2/basic/edric006")
+          test_dir.mkdir(parents=True, exist_ok=True)
+          (test_dir / "Main.idric").write_text('''module Main\n\nfloat_rounds_at_24_bits : Bool\nfloat_rounds_at_24_bits =\n  ((16777216.0 : Float) + 1.0) == (16777216.0 : Float)\n\ndouble_keeps_next_integer : Bool\ndouble_keeps_next_integer =\n  ((16777216.0 : Double) + 1.0) > (16777216.0 : Double)\n\nfloat_fraction_arithmetic : Bool\nfloat_fraction_arithmetic =\n  ((0.5 : Float) + 0.25) == (0.75 : Float)\n\nfloat_integer_literal : Bool\nfloat_integer_literal =\n  (3 : Float) == (3.0 : Float)\n\nmain : IO ()\nmain = do\n  printLn float_rounds_at_24_bits\n  printLn double_keeps_next_integer\n  printLn float_fraction_arithmetic\n  printLn float_integer_literal\n''')
+          (test_dir / "expected").write_text("True\nTrue\nTrue\nTrue\n")
+          (test_dir / "run").write_text(". ../../../testutils.sh\n\nrun Main.idric\n")
+          replace_once(
+              "edric",
+              '    "$make_command" -C "$repo_root" test only=idris2/basic/edric005\n',
+              '    "$make_command" -C "$repo_root" test only=idris2/basic/edric005\n    "$make_command" -C "$repo_root" test only=idris2/basic/edric006\n')
+
+      - name: Commit Float32 implementation
+        run: |
+          git config user.name 'i'
+          git config user.email 'isomorphisms@sdf.org'
+          git add src/Core/TT/Primitive.idr src/Core/Primitives.idr \
+                  libs/prelude/Builtin.idr libs/prelude/Prelude/Num.idr \
+                  libs/prelude/Prelude/EqOrd.idr src/Compiler/Scheme/Common.idr \
+                  support/chez/support.ss tests/idris2/basic/edric006 edric
+          git commit -m 'Implement 32-bit Float semantics'
+          git push origin HEAD:float32-primitive
