@@ -68,7 +68,7 @@ TTC FC where
       = case !getTag of
              0 => do f <- fromBuf;
                      s <- fromBuf; e <- fromBuf
-                     pure (MkFC f s e)
+                     pure (MkFC file startPos endPos)
              1 => pure EmptyFC
              2 => do f <- fromBuf;
                      s <- fromBuf; e <- fromBuf
@@ -206,6 +206,7 @@ TTC PrimType where
   toBuf CharType    = tag 11
   toBuf DoubleType  = tag 12
   toBuf WorldType   = tag 13
+  toBuf FloatType   = tag 14
 
   fromBuf = case !getTag of
     0  => pure IntType
@@ -222,6 +223,7 @@ TTC PrimType where
     11 => pure CharType
     12 => pure DoubleType
     13 => pure WorldType
+    14 => pure FloatType
     _  => corrupt "PrimType"
 
 export
@@ -404,8 +406,9 @@ mutual
                7 => do lr <- fromBuf;
                        ty <- fromBuf; tm <- fromBuf
                        pure (TDelay emptyFC lr ty tm)
-               8 => do lr <- fromBuf; tm <- fromBuf
-                       pure (TForce emptyFC lr tm)
+               8 => do lr <- fromBuf
+                       x <- fromBuf
+                       pure (TForce emptyFC lr x)
                9 => do c <- fromBuf
                        pure (PrimVal emptyFC c)
                10 => pure (Erased emptyFC Placeholder)
@@ -501,16 +504,16 @@ mutual
 
     fromBuf
         = case !getTag of
-               0 => do x <- fromBuf; t <- fromBuf
-                       args <- fromBuf; y <- fromBuf
-                       pure (ConCase x t args y)
-               1 => do ty <- fromBuf; arg <- fromBuf; y <- fromBuf
-                       pure (DelayCase ty arg y)
-               2 => do x <- fromBuf; y <- fromBuf
-                       pure (ConstCase x y)
-               3 => do x <- fromBuf
-                       pure (DefaultCase x)
-               _ => corrupt "CaseAlt"
+             0 => do x <- fromBuf; t <- fromBuf
+                     args <- fromBuf; y <- fromBuf
+                     pure (ConCase x t args y)
+             1 => do ty <- fromBuf; arg <- fromBuf; y <- fromBuf
+                     pure (DelayCase ty arg y)
+             2 => do x <- fromBuf; y <- fromBuf
+                     pure (ConstCase x y)
+             3 => do x <- fromBuf
+                     pure (DefaultCase x)
+             _ => corrupt "CaseAlt"
 
 export
 {vars : _} -> TTC (Env Term vars) where
@@ -519,7 +522,10 @@ export
       = do toBuf bnd; toBuf env
 
   -- Length has to correspond to length of 'vars'
-  fromBuf {vars = []} = pure []
+  fromBuf {vars = []}
+    = case !getTag of
+           0 => pure []
+           _ => corrupt "Env"
   fromBuf {vars = x :: xs}
       = do bnd <- fromBuf
            env <- fromBuf
@@ -725,7 +731,8 @@ TTC ConInfo where
              1 => pure TYCON
              2 => pure NIL
              3 => pure CONS
-             4 => do n <- fromBuf; pure (ENUM n)
+             4 => do n <- fromBuf
+                     pure (ENUM n)
              5 => pure NOTHING
              6 => pure JUST
              7 => pure RECORD
@@ -784,11 +791,10 @@ mutual
                8 => do fc <- fromBuf
                        lr <- fromBuf
                        x <- fromBuf
-                       pure (CForce fc lr x)
-               9 => do fc <- fromBuf
-                       lr <- fromBuf
+                       pure (CForce emptyFC lr x)
+               9 => do lr <- fromBuf
                        x <- fromBuf
-                       pure (CDelay fc lr x)
+                       pure (CDelay emptyFC lr x)
                10 => do fc <- fromBuf
                         sc <- fromBuf; alts <- fromBuf; def <- fromBuf
                         pure (CConCase fc sc alts def)
