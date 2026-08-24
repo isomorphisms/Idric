@@ -1,0 +1,24 @@
+module Main
+
+float_rounds_at_24_bits : Bool
+float_rounds_at_24_bits =
+  ((16777216.0 : Float) + 1.0) == (16777216.0 : Float)
+
+double_keeps_next_integer : Bool
+double_keeps_next_integer =
+  ((16777216.0 : Double) + 1.0) > (16777216.0 : Double)
+
+float_fraction_arithmetic : Bool
+float_fraction_arithmetic =
+  ((0.5 : Float) + 0.25) == (0.75 : Float)
+
+float_integer_literal : Bool
+float_integer_literal =
+  (3 : Float) == (3.0 : Float)
+
+main : IO ()
+main = do
+  printLn float_rounds_at_24_bits
+  printLn double_keeps_next_integer
+  printLn float_fraction_arithmetic
+  printLn float_integer_literal
