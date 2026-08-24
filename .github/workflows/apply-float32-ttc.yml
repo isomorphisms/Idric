@@ -1,17 +1,16 @@
 name: Apply Float TTC support
 
 on:
-  push:
+  pull_request:
     branches:
-      - float32-primitive
-    paths:
-      - '.github/workflows/apply-float32-ttc.yml'
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: github.event.pull_request.head.ref == 'float32-primitive'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +18,6 @@ jobs:
           ref: float32-primitive
           fetch-depth: 0
 
-      # Apply exactly two serialization cases to the clean TTC blob.
       - name: Add Float TTC tag
         shell: python
         run: |
@@ -28,28 +26,36 @@ jobs:
           p = Path('src/Core/TTC.idr')
           text = p.read_text()
 
-          old = '''  toBuf DoubleType  = tag 12
+          encoder_old = '''  toBuf DoubleType  = tag 12
   toBuf WorldType   = tag 13'''
-          new = '''  toBuf DoubleType  = tag 12
+          encoder_new = '''  toBuf DoubleType  = tag 12
   toBuf WorldType   = tag 13
   toBuf FloatType   = tag 14'''
-          if text.count(old) != 1:
-              raise SystemExit(f'expected one PrimType encoder match, found {text.count(old)}')
-          text = text.replace(old, new, 1)
-
-          old = '''    12 => pure DoubleType
+          decoder_old = '''    12 => pure DoubleType
     13 => pure WorldType
     _  => corrupt "PrimType"'''
-          new = '''    12 => pure DoubleType
+          decoder_new = '''    12 => pure DoubleType
     13 => pure WorldType
     14 => pure FloatType
     _  => corrupt "PrimType"'''
-          if text.count(old) != 1:
-              raise SystemExit(f'expected one PrimType decoder match, found {text.count(old)}')
-          p.write_text(text.replace(old, new, 1))
 
-      - name: Commit Float TTC support
+          if '  toBuf FloatType   = tag 14' not in text:
+              if text.count(encoder_old) != 1:
+                  raise SystemExit('Float encoder insertion point is not unique')
+              text = text.replace(encoder_old, encoder_new, 1)
+
+          if '    14 => pure FloatType' not in text:
+              if text.count(decoder_old) != 1:
+                  raise SystemExit('Float decoder insertion point is not unique')
+              text = text.replace(decoder_old, decoder_new, 1)
+
+          p.write_text(text)
+
+      - name: Commit Float TTC support when needed
         run: |
+          if git diff --quiet -- src/Core/TTC.idr; then
+            exit 0
+          fi
           git config user.name 'i'
           git config user.email 'isomorphisms@sdf.org'
           git add src/Core/TTC.idr
