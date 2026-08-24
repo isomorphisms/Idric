@@ -1,0 +1,56 @@
+name: Apply Float TTC support
+
+on:
+  push:
+    branches:
+      - float32-primitive
+    paths:
+      - '.github/workflows/apply-float32-ttc.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: float32-primitive
+          fetch-depth: 0
+
+      - name: Add Float TTC tag
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path('src/Core/TTC.idr')
+          text = p.read_text()
+
+          old = '''  toBuf DoubleType  = tag 12
+  toBuf WorldType   = tag 13'''
+          new = '''  toBuf DoubleType  = tag 12
+  toBuf WorldType   = tag 13
+  toBuf FloatType   = tag 14'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one PrimType encoder match, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          old = '''    12 => pure DoubleType
+    13 => pure WorldType
+    _  => corrupt "PrimType"'''
+          new = '''    12 => pure DoubleType
+    13 => pure WorldType
+    14 => pure FloatType
+    _  => corrupt "PrimType"'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one PrimType decoder match, found {text.count(old)}')
+          p.write_text(text.replace(old, new, 1))
+
+      - name: Commit Float TTC support
+        run: |
+          git config user.name 'i'
+          git config user.email 'isomorphisms@sdf.org'
+          git add src/Core/TTC.idr
+          git commit -m 'Serialize Float primitive type'
+          git push origin HEAD:float32-primitive
