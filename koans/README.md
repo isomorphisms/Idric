@@ -21,7 +21,7 @@ The sequence is:
 
 1. values, types, and named holes
 2. functions using `→` and `⇒`
-3. lists and length-indexed vectors
+3. lists and length-indexed lists using inherited Idris `Data.Vect` / `Vect` names
 4. equality proofs and `Refl`
 5. totality and coverage
 6. implicit arguments and dependent results
@@ -30,7 +30,7 @@ The sequence is:
 9. `choice ... one_of`
 10. exhaustive lower-snake-case patterns
 11. `.idr` and `.idric` compatibility boundaries
-12. a small Wegert model combining choices, vectors, and proofs
+12. a small Wegert model combining choices, length-indexed lists through inherited `Vect`, and proofs
 
 Reference answers are deliberately separate from the exercises:
 

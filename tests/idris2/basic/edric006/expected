@@ -1,6 +1,6 @@
 01-values-types-and-holes: exercise fails as intended
 02-functions-with-unicode-arrows: exercise fails as intended
-03-lists-and-vectors: exercise fails as intended
+03-lists-and-length-indexed-lists: exercise fails as intended
 04-equality-proofs: exercise fails as intended
 05-totality-and-coverage: exercise fails as intended
 06-implicit-dependent-results: exercise fails as intended
@@ -12,7 +12,7 @@
 12-wegert-model: exercise fails as intended
 01-values-types-and-holes: solution passes
 02-functions-with-unicode-arrows: solution passes
-03-lists-and-vectors: solution passes
+03-lists-and-length-indexed-lists: solution passes
 04-equality-proofs: solution passes
 05-totality-and-coverage: solution passes
 06-implicit-dependent-results: solution passes
