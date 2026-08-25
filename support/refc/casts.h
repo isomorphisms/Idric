@@ -103,9 +103,9 @@ Idris2_Value *idris2_cast_Double_to_Integer(Idris2_Value *);
   (idris2_mkChar((unsigned char)idris2_vp_to_Double))
 Idris2_Value *idris2_cast_Double_to_string(Idris2_Value *);
 
-#define idris2_cast_Double_to_Float(x)                                        \
+#define idris2_cast_Double_to_Float(x)                                         \
   (idris2_mkFloat((float)idris2_vp_to_Double(x)))
-#define idris2_cast_Float_to_Double(x)                                        \
+#define idris2_cast_Float_to_Double(x)                                         \
   (idris2_mkDouble((double)idris2_vp_to_Float(x)))
 
 #define idris2_cast_Char_to_Bits8(x)                                           \
