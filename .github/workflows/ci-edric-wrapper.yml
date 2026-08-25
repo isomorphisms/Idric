@@ -1,0 +1,56 @@
+name: Edric wrapper
+
+on:
+  push:
+    paths:
+      - 'edric'
+      - 'scripts/ensure-chez.sh'
+      - '.github/workflows/ci-edric-wrapper.yml'
+  pull_request:
+    paths:
+      - 'edric'
+      - 'scripts/ensure-chez.sh'
+      - '.github/workflows/ci-edric-wrapper.yml'
+
+jobs:
+  private-scheme-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify private Scheme owns bootstrap PATH
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          toolchain="$RUNNER_TEMP/edric-toolchain"
+          fake_make="$RUNNER_TEMP/edric-make"
+          mkdir -p "$toolchain/bin"
+
+          cat > "$toolchain/bin/scheme" <<'SCHEME'
+          #!/bin/sh
+          cat >/dev/null
+          printf '#t\n'
+          SCHEME
+          chmod +x "$toolchain/bin/scheme"
+
+          cat > "$fake_make" <<'MAKE'
+          #!/bin/sh
+          set -eu
+          expected="$EDRIC_TOOLCHAIN_DIR/bin/scheme"
+          actual=$(command -v scheme || true)
+          if [ "$actual" != "$expected" ]; then
+              echo "expected private scheme at $expected, got ${actual:-<none>}" >&2
+              exit 1
+          fi
+          case " $* " in
+              *" SCHEME=$expected "*) ;;
+              *)
+                  echo "bootstrap did not receive SCHEME=$expected: $*" >&2
+                  exit 1
+                  ;;
+          esac
+          MAKE
+          chmod +x "$fake_make"
+
+          EDRIC_TOOLCHAIN_DIR="$toolchain" MAKE="$fake_make" ./edric bootstrap
