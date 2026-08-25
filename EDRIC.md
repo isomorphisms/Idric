@@ -22,6 +22,25 @@ Use ordinary, current Idris 2 to implement Edric until an Edric change is itself
 
 The first Edric-specific syntax is the storage-neutral `choice` declaration described below. The compiler remains implemented in ordinary Idris 2.
 
+## Data-structure vocabulary
+
+Edriç names a structure by what it is, not merely by whether its length is
+known.
+
+- `List A` is a list whose length is not part of its public type.
+- `SizedList n A` or `ListOfLength n A` is a list whose length is part of
+  its type. The length may be known in advance or computed while the program
+  runs and then packaged with the list. If computing it can fail, the package
+  belongs inside `Result` or `Maybe`.
+- `Array n A` is indexed contiguous storage; it is not renamed merely
+  because its length is known.
+- `Vector` is reserved for a genuine mathematical or numeric vector,
+  including shader vector values.
+
+The inherited Idris 2 names `Vect` and `Data.Vect` remain where upstream
+compatibility requires them. New Edriç APIs, examples, and explanations must
+not use “vector” as a synonym for a list with a known or computed length.
+
 ## Storage-neutral choices
 
 Files ending in `.idric` may declare a non-parameterized choice with lower
