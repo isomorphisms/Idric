@@ -1,0 +1,19 @@
+module Main
+
+import Data.Vect
+
+%default total
+
+numbers : List Nat
+numbers = [2, 4, 6]
+
+exactly_three : Vect 3 Nat
+exactly_three = ?three_values
+
+prepend : a → Vect n a → Vect (S n) a
+prepend value values = ?longer_vector
+
+main : IO ()
+main = do
+  printLn (List.length numbers)
+  printLn (prepend 0 exactly_three)

@@ -1,0 +1,178 @@
+#!/bin/sh
+set -eu
+
+koans_root=$(CDPATH='' cd "$(dirname "$0")" && pwd)
+repo_root=$(CDPATH='' cd "$koans_root/.." && pwd)
+idris2=${IDRIS2:-"$repo_root/build/exec/idris2"}
+PATH="$repo_root/.tools/bin:$PATH"
+export PATH
+
+case "$idris2" in
+/*) ;;
+*/*)
+	idris2_dir=$(CDPATH='' cd "$(dirname "$idris2")" && pwd)
+	idris2="$idris2_dir/$(basename "$idris2")"
+	;;
+*)
+	idris2=$(command -v "$idris2" || true)
+	;;
+esac
+
+if [ ! -x "$idris2" ]; then
+	printf 'Idriç compiler not found at %s\n' "$idris2" >&2
+	printf "%s\n" "Run ./edric bootstrap first, or set IDRIS2 to this checkout's compiler." >&2
+	exit 2
+fi
+
+exercise_dirs() {
+	for directory in "$koans_root"/[0-9][0-9]-*; do
+		[ -d "$directory/exercise" ] || continue
+		printf '%s\n' "$directory"
+	done
+}
+
+check_exercise() {
+	directory=$1
+	if ! inspection=$(
+		cd "$directory/exercise"
+		{
+			printf ':m\n'
+			if [ -f "$directory/holes" ]; then
+				while IFS= read -r hole; do
+					[ -n "$hole" ] || continue
+					if grep -F "?$hole" Main.idric >/dev/null; then
+						printf ':t %s\n' "$hole"
+					fi
+				done <"$directory/holes"
+			fi
+			printf ':q\n'
+		} |
+			"$idris2" --no-banner --no-color --console-width 0 Main.idric 2>&1
+	); then
+		printf '%s\n' "$inspection"
+		return 1
+	fi
+	if printf '%s\n' "$inspection" | grep -F 'Error:' >/dev/null ||
+		! printf '%s\n' "$inspection" | grep -F 'Main> No holes' >/dev/null; then
+		printf '%s\n' "$inspection"
+		return 1
+	fi
+	(
+		cd "$directory/exercise"
+		"$idris2" --no-banner --no-color --console-width 0 --exec main Main.idric
+	)
+}
+
+run_solution() {
+	directory=$1
+	if ! inspection=$(
+		cd "$directory/solution"
+		printf ':m\n:q\n' |
+			"$idris2" --no-banner --no-color --console-width 0 Main.idric 2>&1
+	); then
+		printf '%s\n' "$inspection"
+		return 1
+	fi
+	if printf '%s\n' "$inspection" | grep -F 'Error:' >/dev/null ||
+		! printf '%s\n' "$inspection" | grep -F 'Main> No holes' >/dev/null; then
+		printf '%s\n' "$inspection"
+		return 1
+	fi
+	(
+		cd "$directory/solution"
+		"$idris2" --no-banner --no-color --console-width 0 --exec main Main.idric
+	)
+}
+
+run_exercises() {
+	for directory in $(exercise_dirs); do
+		name=$(basename "$directory")
+		printf '%s\n' "$name"
+		if ! check_exercise "$directory"; then
+			printf '\nStopped at %s/exercise/Main.idric\n' "$name" >&2
+			exit 1
+		fi
+	done
+	printf 'All Idriç koans pass.\n'
+}
+
+run_named_exercise() {
+	wanted=$1
+	match=
+	for directory in $(exercise_dirs); do
+		name=$(basename "$directory")
+		case "$name" in
+		"$wanted" | "$wanted"-*)
+			if [ -n "$match" ]; then
+				printf 'Koan prefix %s is ambiguous.\n' "$wanted" >&2
+				exit 2
+			fi
+			match=$directory
+			;;
+		esac
+	done
+	if [ -z "$match" ]; then
+		printf 'No koan matches %s.\n' "$wanted" >&2
+		exit 2
+	fi
+	check_exercise "$match"
+}
+
+run_solutions() {
+	for directory in $(exercise_dirs); do
+		name=$(basename "$directory")
+		if ! actual=$(run_solution "$directory" 2>&1); then
+			printf '%s: solution does not compile or run\n%s\n' \
+				"$name" "$actual" >&2
+			exit 1
+		fi
+		expected=$(sed -e '${/^$/d;}' "$directory/expected")
+		if [ "$actual" != "$expected" ]; then
+			printf '%s: solution output differs\n' "$name" >&2
+			printf 'expected:\n%s\nactual:\n%s\n' "$expected" "$actual" >&2
+			exit 1
+		fi
+		printf '%s: solution passes\n' "$name"
+	done
+}
+
+validate_exercises() {
+	temporary_dir=$(mktemp -d "${TMPDIR:-/tmp}/idric-koans.XXXXXX")
+	trap 'rm -rf "$temporary_dir"' 0 1 2 15
+	for directory in $(exercise_dirs); do
+		name=$(basename "$directory")
+		output="$temporary_dir/$name"
+		if check_exercise "$directory" >"$output" 2>&1; then
+			printf '%s: untouched exercise unexpectedly passes\n' "$name" >&2
+			exit 1
+		fi
+		while IFS= read -r expected_diagnostic; do
+			[ -n "$expected_diagnostic" ] || continue
+			if ! grep -F "$expected_diagnostic" "$output" >/dev/null; then
+				printf '%s: missing expected diagnostic: %s\n' \
+					"$name" "$expected_diagnostic" >&2
+				cat "$output" >&2
+				exit 1
+			fi
+		done <"$directory/expected-diagnostic"
+		printf '%s: exercise fails as intended\n' "$name"
+	done
+	rm -rf "$temporary_dir"
+	trap - 0 1 2 15
+}
+
+validate() {
+	validate_exercises
+	run_solutions
+	printf '12 Idriç koans validated.\n'
+}
+
+case "${1:-}" in
+"") run_exercises ;;
+--solutions) run_solutions ;;
+--validate) validate ;;
+-h | --help | help)
+	printf 'usage: ./koans/run [KOAN_NUMBER_OR_NAME|--solutions|--validate]\n'
+	;;
+*) run_named_exercise "$1" ;;
+esac

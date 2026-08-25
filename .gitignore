@@ -25,6 +25,8 @@ idris2docs_venv
 /tests/**/*.dll
 /tests/failures
 
+/koans/**/build
+
 /benchmark/**/build
 /benchmark/*.csv
 
