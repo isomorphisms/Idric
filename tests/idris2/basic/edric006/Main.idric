@@ -1,1 +1,47 @@
-m«ë
+module Main
+
+float_equal : Float -> Float -> Bool
+float_equal x y = if x < y then False else if x > y then False else True
+
+float_large : Float
+float_large = 16777216.0
+
+float_next : Float
+float_next = float_large + 1.0
+
+double_large : Double
+double_large = 16777216.0
+
+double_next : Double
+double_next = double_large + 1.0
+
+float_half_plus_quarter : Float
+float_half_plus_quarter = 0.5 + 0.25
+
+float_three_quarters : Float
+float_three_quarters = 0.75
+
+float_three : Float
+float_three = 3
+
+float_three_decimal : Float
+float_three_decimal = 3.0
+
+float_rounds_at_24_bits : Bool
+float_rounds_at_24_bits = float_equal float_next float_large
+
+double_keeps_next_integer : Bool
+double_keeps_next_integer = double_next > double_large
+
+float_fraction_arithmetic : Bool
+float_fraction_arithmetic = float_equal float_half_plus_quarter float_three_quarters
+
+float_integer_literal : Bool
+float_integer_literal = float_equal float_three float_three_decimal
+
+main : IO ()
+main = do
+  printLn float_rounds_at_24_bits
+  printLn double_keeps_next_integer
+  printLn float_fraction_arithmetic
+  printLn float_integer_literal

@@ -1,1 +1,4 @@
-m«ë
+. ../../testutils.sh
+
+idris2 -o refc_float32 Main.idr
+$VALGRIND ./build/exec/refc_float32
