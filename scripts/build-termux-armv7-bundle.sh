@@ -109,7 +109,11 @@ mkdir -p \
         SCHEME="$host_scheme"
 )
 
-sed '1c#!chezscheme' "$idric_source/build/exec/idris2_app/idris2.ss" >"$sanitized_scheme"
+sed \
+    -e '1c#!chezscheme' \
+    -e "s|$build_root|/idric-build|g" \
+    -e "s|${HOME:-/nonexistent}|/idric-home|g" \
+    "$idric_source/build/exec/idris2_app/idris2.ss" >"$sanitized_scheme"
 (
     cd "$build_root"
     "$host_scheme" --script "$idric_source/scripts/compile-chez-cross.ss" \
