@@ -72,7 +72,12 @@ jobs:
           archive=$(find build/termux-armv7-dist -maxdepth 1 -name '*.tar.gz' -print -quit)
           test -n "$archive"
           tar -tzf "$archive" | sed -n '1,80p'
-          sha256sum --check "$archive.sha256"
+          archive_dir=$(dirname "$archive")
+          archive_name=$(basename "$archive")
+          (
+            cd "$archive_dir"
+            sha256sum --check "$archive_name.sha256"
+          )
 
       - name: Upload phone bundle
         uses: actions/upload-artifact@v4
