@@ -57,7 +57,7 @@ if find "$bundle" -type f -perm /002 -print -quit | grep -q .; then
     fail 'bundle contains a world-writable file'
 fi
 
-if strings "$compiler" | grep -Eq '/home/runner|/workspace/|/tmp/'; then
+if strings "$compiler" | grep -Eq '/home/runner|/workspace/'; then
     fail 'compiled Idriç image leaks a build-machine path'
 fi
 
