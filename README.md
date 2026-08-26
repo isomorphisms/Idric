@@ -18,6 +18,11 @@ with first class types.
 
 For installation instructions, see [INSTALL.md](INSTALL.md).
 
+For the 32-bit ARMv7 Android Go/Termux compiler bundle, see
+[docs/termux-armv7.md](docs/termux-armv7.md). The bundle is a separate
+Termux-side tool; downstream Android applications do not need this repository
+as a Git submodule.
+
 The [wiki](https://github.com/idris-lang/Idris2/wiki) lists a number of useful
 resources, in particular
 

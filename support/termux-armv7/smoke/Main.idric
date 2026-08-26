@@ -1,0 +1,4 @@
+module Main
+
+main : IO ()
+main = putStrLn "Idriç ARMv7 OK"

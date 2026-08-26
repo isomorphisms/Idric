@@ -1,0 +1,82 @@
+name: Termux ARMv7 binary
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/ci-termux-armv7.yml'
+      - 'bootstrap/**'
+      - 'libs/**'
+      - 'scripts/build-termux-armv7-bundle.sh'
+      - 'scripts/compile-chez-cross.ss'
+      - 'scripts/verify-termux-armv7-bundle.sh'
+      - 'src/**'
+      - 'support/c/**'
+      - 'support/chez/**'
+      - 'support/termux-armv7/**'
+      - 'Makefile'
+      - 'config.mk'
+      - 'idris2.ipkg'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-termux-armv7.yml'
+      - 'bootstrap/**'
+      - 'libs/**'
+      - 'scripts/build-termux-armv7-bundle.sh'
+      - 'scripts/compile-chez-cross.ss'
+      - 'scripts/verify-termux-armv7-bundle.sh'
+      - 'src/**'
+      - 'support/c/**'
+      - 'support/chez/**'
+      - 'support/termux-armv7/**'
+      - 'Makefile'
+      - 'config.mk'
+      - 'idris2.ipkg'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: termux-armv7-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-phone-bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      NDK_VERSION: 29.0.14206865
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Android NDK
+        shell: bash
+        run: sdkmanager "ndk;$NDK_VERSION"
+
+      - name: Build 32-bit ARMv7 Termux bundle
+        shell: bash
+        run: |
+          ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" \
+          JOBS=2 \
+          ./scripts/build-termux-armv7-bundle.sh
+
+      - name: Inspect artifact
+        shell: bash
+        run: |
+          archive=$(find build/termux-armv7-dist -maxdepth 1 -name '*.tar.gz' -print -quit)
+          test -n "$archive"
+          tar -tzf "$archive" | sed -n '1,80p'
+          sha256sum --check "$archive.sha256"
+
+      - name: Upload phone bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: idric-termux-armv7
+          path: |
+            build/termux-armv7-dist/*.tar.gz
+            build/termux-armv7-dist/*.sha256
+          if-no-files-found: error
+          retention-days: 14
