@@ -1,0 +1,25 @@
+01-values-types-and-holes: exercise fails as intended
+02-functions-with-unicode-arrows: exercise fails as intended
+03-lists-and-length-indexed-lists: exercise fails as intended
+04-equality-proofs: exercise fails as intended
+05-totality-and-coverage: exercise fails as intended
+06-implicit-dependent-results: exercise fails as intended
+07-erased-arguments: exercise fails as intended
+08-linear-arguments: exercise fails as intended
+09-storage-neutral-choices: exercise fails as intended
+10-exhaustive-choice-patterns: exercise fails as intended
+11-source-boundaries: exercise fails as intended
+12-wegert-model: exercise fails as intended
+01-values-types-and-holes: solution passes
+02-functions-with-unicode-arrows: solution passes
+03-lists-and-length-indexed-lists: solution passes
+04-equality-proofs: solution passes
+05-totality-and-coverage: solution passes
+06-implicit-dependent-results: solution passes
+07-erased-arguments: solution passes
+08-linear-arguments: solution passes
+09-storage-neutral-choices: solution passes
+10-exhaustive-choice-patterns: solution passes
+11-source-boundaries: solution passes
+12-wegert-model: solution passes
+12 Idriç koans validated.

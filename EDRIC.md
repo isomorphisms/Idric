@@ -145,6 +145,28 @@ make test only=idris2/basic/edric002
 make test only=idris2/basic/edric003
 make test only=idris2/basic/edric004
 make test only=idris2/basic/edric005
+make test only=idris2/basic/edric006
+```
+
+## Idriç koans
+
+The progressive teaching suite lives in `koans`. It is part of this repository
+so the exercises are checked against the exact compiler revision that defines
+their syntax and semantics.
+
+After bootstrapping the compiler, start at the first unfinished exercise:
+
+```sh
+./koans/run
+```
+
+The compiler stops at the first named hole, coverage failure, or other proof
+obligation. Edit that exercise and run the command again. Reference solutions
+and the suite's self-check are available separately:
+
+```sh
+./koans/run --solutions
+./koans/run --validate
 ```
 
 ## Change discipline
@@ -181,3 +203,6 @@ A new thread working on Edric should:
 - The aliases are filename-scoped to `.idric`; ordinary `.idr` Unicode identifiers remain unchanged.
 - Canonical Unicode pretty-printing is not yet claimed by this input-syntax slice.
 - Historical broad mechanical Unicode rewrite: reference only, not the base.
+- Twelve progressive Idriç koans cover holes, dependent types, quantitative
+  multiplicities, storage-neutral choices, compatibility boundaries, and a
+  small Wegert model; their exercises and solutions are compiler-tested.

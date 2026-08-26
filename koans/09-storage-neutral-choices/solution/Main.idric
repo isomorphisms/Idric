@@ -1,0 +1,19 @@
+module Main
+
+%default total
+
+choice traffic_light one_of
+  red
+  amber
+  green
+
+starting_light : traffic_light
+starting_light = red
+
+light_name : traffic_light → String
+light_name red = "red"
+light_name amber = "amber"
+light_name green = "green"
+
+main : IO ()
+main = putStrLn (light_name starting_light)
