@@ -146,6 +146,22 @@ validate_exercises() {
 			printf '%s: untouched exercise unexpectedly passes\n' "$name" >&2
 			exit 1
 		fi
+		if [ -f "$directory/holes" ]; then
+			if grep -F 'Error:' "$output" >/dev/null; then
+				printf '%s: named-hole exercise also has an unexpected compiler error\n' \
+					"$name" >&2
+				cat "$output" >&2
+				exit 1
+			fi
+		else
+			error_count=$(grep -c '^Error:' "$output" || true)
+			if [ "$error_count" -ne 1 ]; then
+				printf '%s: expected exactly one compiler error, found %s\n' \
+					"$name" "$error_count" >&2
+				cat "$output" >&2
+				exit 1
+			fi
+		fi
 		while IFS= read -r expected_diagnostic; do
 			[ -n "$expected_diagnostic" ] || continue
 			if ! grep -F "$expected_diagnostic" "$output" >/dev/null; then
