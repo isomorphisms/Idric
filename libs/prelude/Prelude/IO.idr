@@ -117,7 +117,7 @@ ingest_line_of_characters = primIO prim__getStr
 write_out_character : HasIO io => Char -> io ()
 write_out_character character = primIO (prim__putChar character)
 
-||| Write one character to stdout followed by a newline.
+||| Write one single-byte character to stdout followed by a newline.
 %inline export
 write_out_character_with_newline : HasIO io => Char -> io ()
 write_out_character_with_newline character =
