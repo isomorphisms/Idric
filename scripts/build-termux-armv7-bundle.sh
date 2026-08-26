@@ -81,9 +81,7 @@ xpatch="$chez_source/xc-$chez_machine/s/xpatch"
     cd "$idric_source"
     PATH="$(dirname "$host_scheme"):$PATH" \
     CHEZ="$host_scheme" \
-        make bootstrap \
-        PREFIX=/idric-bootstrap \
-        SCHEME="$host_scheme"
+        make bootstrap SCHEME="$host_scheme"
 )
 
 idris_version=$(awk -F= '
