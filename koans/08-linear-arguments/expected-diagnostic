@@ -1,0 +1,3 @@
+one_use
+consume : (1 _ : a) -> b
+1 value : a

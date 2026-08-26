@@ -8,6 +8,18 @@ This file is the durable handoff for the project called **Idriç**, **Idric**, o
 
 The repository's ASCII name is `Idric`. The intended project name is `Idriç`; `Edric` is also used in speech/transcription. All three names deliberately appear here so repository search can find the project.
 
+## Project posture
+
+Idriç is a personal experimental language line that uses Idris 2 as its
+starting point. It is not maintained as a staging branch for pull requests to
+the upstream Idris 2 project. Upstream behavior is retained when it remains
+useful, but intentional Idriç language changes may break source compatibility
+and must state that break explicitly with a focused regression.
+
+The original experiment began with alternate mathematical symbols. That is the
+historical seed, not a permanent limit: this repository may continue to change
+syntax, vocabulary, primitive types, and compiler behavior deliberately.
+
 ## Foundation
 
 Edric is an experimental Idris-derived compiler line built on the current Idris 2 compiler. The modern baseline for this checkpoint is Idris 2 commit:
@@ -21,6 +33,39 @@ The older `isomorphisms/Idri-` / `Idris2-boot` work is historical reference only
 Use ordinary, current Idris 2 to implement Edric until an Edric change is itself stable enough to be deliberately dogfooded. Do not make the compiler depend on an unbuilt dialect of itself.
 
 The first Edric-specific syntax is the storage-neutral `choice` declaration described below. The compiler remains implemented in ordinary Idris 2.
+
+## Data-structure vocabulary
+
+Edriç names a structure by what it is, not merely by whether its length is
+known.
+
+- `List A` is a list whose length is not part of its public type.
+- `SizedList n A` or `ListOfLength n A` is a list whose length is part of
+  its type. The length may be known in advance or computed while the program
+  runs and then packaged with the list. If computing it can fail, the package
+  belongs inside `Result` or `Maybe`.
+- `Array n A` is indexed contiguous storage; it is not renamed merely
+  because its length is known.
+- `Vector` is reserved for a genuine mathematical or numeric vector,
+  including shader vector values.
+
+The inherited Idris 2 names `Vect` and `Data.Vect` remain where upstream
+compatibility requires them. New Edriç APIs, examples, and explanations must
+not use “vector” as a synonym for a list with a known or computed length.
+
+## Single-precision Float
+
+`Float` is a primitive IEEE-754 single-precision value distinct from `Double`.
+Every value-producing arithmetic operation and cast must round at the
+single-precision boundary; it is not acceptable to store an unrounded `Double`
+and round only when printing or crossing the foreign-function boundary.
+
+The focused regression uses the 24-bit significand boundary: `2^24 + 1` rounds
+back to `2^24` as `Float`, while `Double` retains the next integer. It also
+checks fractional arithmetic and integer literals. `Float` is a reserved
+primitive name, like `Double`; an inherited library that declares its own
+constructor named `Float` requires an explicit downstream compatibility
+decision rather than silently changing the primitive's semantics.
 
 ## Storage-neutral choices
 
@@ -101,6 +146,26 @@ CHEZ_ARCHIVE=/path/to/csv10.4.1.tar.gz ./edric scheme
 
 The host still needs a C compiler, `make`, `tar`, and either `sha256sum` or `shasum`. `curl` or `wget` is needed only when `CHEZ_ARCHIVE` is not supplied.
 
+## Backend policy
+
+- Chez is the canonical compiler, self-hosting, and runtime path.
+- Racket is the supported alternate bootstrap path.
+- RefC is an inherited optional portability backend. It is not the bootstrap
+  path and no current downstream is known to select it, but while it remains a
+  public backend it must implement language primitives coherently and keep its
+  focused regressions.
+- Node, browser JavaScript, Gambit, and VM execution do not yet claim support
+  for the distinct `Float` primitive.
+- The external GLSL ES and direct ARMv7 compilers accept restricted numerical
+  subsets. They are domain backends, not substitutes for a general Idriç
+  backend.
+
+Removing an inherited backend is a separate compatibility change. It must
+remove or revise the public code-generator selection, dispatch, support build
+and installation, tests, Nix coverage, and documentation together. A language
+feature branch must not retire a backend accidentally by omitting that
+feature's implementation.
+
 ## Build and test
 
 From a clean checkout, the complete checkpoint build is:
@@ -126,6 +191,29 @@ make test only=idris2/basic/edric002
 make test only=idris2/basic/edric003
 make test only=idris2/basic/edric004
 make test only=idris2/basic/edric005
+make test only=idris2/basic/edric006
+make test only=idris2/basic/edric007
+```
+
+## Idriç koans
+
+The progressive teaching suite lives in `koans`. It is part of this repository
+so the exercises are checked against the exact compiler revision that defines
+their syntax and semantics.
+
+After bootstrapping the compiler, start at the first unfinished exercise:
+
+```sh
+./koans/run
+```
+
+The compiler stops at the first named hole, coverage failure, or other proof
+obligation. Edit that exercise and run the command again. Reference solutions
+and the suite's self-check are available separately:
+
+```sh
+./koans/run --solutions
+./koans/run --validate
 ```
 
 ## Change discipline
@@ -162,3 +250,9 @@ A new thread working on Edric should:
 - The aliases are filename-scoped to `.idric`; ordinary `.idr` Unicode identifiers remain unchanged.
 - Canonical Unicode pretty-printing is not yet claimed by this input-syntax slice.
 - Historical broad mechanical Unicode rewrite: reference only, not the base.
+- Twelve progressive Idriç koans cover holes, dependent types, quantitative
+  multiplicities, storage-neutral choices, compatibility boundaries, and a
+  small Wegert model; their exercises and solutions are compiler-tested.
+- Distinct IEEE-754 single-precision `Float`: implemented for Chez, Racket, and
+  RefC with focused rounding regressions; other inherited backends do not yet
+  claim Float support.

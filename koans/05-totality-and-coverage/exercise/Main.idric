@@ -1,0 +1,17 @@
+module Main
+
+%default total
+
+data Signal = Red | Amber | Green
+
+next : Signal → Signal
+next Red = Green
+next Green = Amber
+
+signal_name : Signal → String
+signal_name Red = "red"
+signal_name Amber = "amber"
+signal_name Green = "green"
+
+main : IO ()
+main = putStrLn (signal_name (next Amber))
