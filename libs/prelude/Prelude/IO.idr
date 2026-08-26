@@ -135,7 +135,7 @@ prim__fork : (1 prog : PrimIO ()) -> PrimIO ThreadID
 
 export
 fork : (1 prog : IO ()) -> IO ThreadID
-fork act = fromPrim (prim__fork (toPrim (c x)))
+fork act = fromPrim (prim__fork (toPrim act))
 
 %foreign "scheme:blodwen-thread-wait"
 export
