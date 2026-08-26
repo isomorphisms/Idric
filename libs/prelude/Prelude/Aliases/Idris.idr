@@ -1,5 +1,6 @@
 module Prelude.Aliases.Idris
 
+import Builtin
 import Prelude.IO
 import Prelude.Show
 
