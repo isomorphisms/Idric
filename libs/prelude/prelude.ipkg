@@ -6,6 +6,8 @@ opts = "--ignore-missing-ipkg --no-prelude"
 modules = Builtin,
           PrimIO,
           Prelude,
+          Prelude.Aliases.Idris,
+          Prelude.Aliases.PlainEnglish,
           Prelude.Basics,
           Prelude.Cast,
           Prelude.EqOrd,
