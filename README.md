@@ -8,7 +8,7 @@ At this checkpoint the fork deliberately remains ordinary Idris 2. Edric-specifi
 
 ---
 
-# Idris 2
+## Idris 2
 
 [![Documentation Status](https://readthedocs.org/projects/idris2/badge/?version=latest)](https://idris2.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](https://github.com/idris-lang/Idris2/actions/workflows/ci-idris2-and-libs.yml/badge.svg?branch=main)](https://github.com/idris-lang/Idris2/actions/workflows/ci-idris2-and-libs.yml?query=branch%3Amain)

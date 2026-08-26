@@ -6,7 +6,7 @@ fail() {
     exit 1
 }
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 temporary_parent=${TMPDIR:-"${PREFIX:-/tmp}/tmp"}
 mkdir -p "$temporary_parent"
 work_dir=$(mktemp -d "$temporary_parent/idric-armv7-smoke.XXXXXX")

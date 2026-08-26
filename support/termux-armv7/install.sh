@@ -6,7 +6,7 @@ fail() {
     exit 1
 }
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 [ -n "${PREFIX:-}" ] || fail 'PREFIX is not set; run this inside Termux'
 
 os=$(uname -o 2>/dev/null || true)
@@ -14,7 +14,7 @@ os=$(uname -o 2>/dev/null || true)
 
 architecture=$(uname -m)
 case "$architecture" in
-    armv7l|armv8l) ;;
+    armv7l | armv8l) ;;
     *) fail "this bundle is for 32-bit ARMv7 Termux, not $architecture" ;;
 esac
 

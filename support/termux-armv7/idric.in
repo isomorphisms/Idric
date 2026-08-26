@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-bundle_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+bundle_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
 idris_version=@IDRIS2_VERSION@
 idric_prefix="$bundle_root/idric"
 idric_app="$bundle_root/libexec/idric"
@@ -14,9 +14,9 @@ export IDRIS2_INC_SRC="$idric_app"
 export CHEZ="$chez"
 
 if [ "${LD_LIBRARY_PATH:-}" = '' ]; then
-    LD_LIBRARY_PATH=$idric_lib
+	LD_LIBRARY_PATH=$idric_lib
 else
-    LD_LIBRARY_PATH="$idric_lib:$LD_LIBRARY_PATH"
+	LD_LIBRARY_PATH="$idric_lib:$LD_LIBRARY_PATH"
 fi
 export LD_LIBRARY_PATH
 

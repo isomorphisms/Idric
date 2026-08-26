@@ -6,8 +6,8 @@ fail() {
     exit 1
 }
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
 
 chez_repository=https://github.com/cisco/ChezScheme.git
 chez_commit=45b39d5168fe8fe4adbc464786527217854f31bb
@@ -80,7 +80,7 @@ xpatch="$chez_source/xc-$chez_machine/s/xpatch"
 (
     cd "$idric_source"
     PATH="$(dirname "$host_scheme"):$PATH" \
-        CHEZ="$host_scheme" \
+    CHEZ="$host_scheme" \
         make bootstrap SCHEME="$host_scheme"
 )
 
@@ -102,14 +102,14 @@ mkdir -p \
 (
     cd "$idric_source"
     PATH="$(dirname "$host_scheme"):$PATH" \
-        CHEZ="$host_scheme" \
+    CHEZ="$host_scheme" \
         make install-bootstrap-libs \
-            PREFIX="$bundle/idric" \
-            IDRIS2_PREFIX="$bundle/idric" \
-            SCHEME="$host_scheme"
+        PREFIX="$bundle/idric" \
+        IDRIS2_PREFIX="$bundle/idric" \
+        SCHEME="$host_scheme"
 )
 
-sed '1c#!chezscheme' "$idric_source/build/exec/idris2_app/idris2.ss" > "$sanitized_scheme"
+sed '1c#!chezscheme' "$idric_source/build/exec/idris2_app/idris2.ss" >"$sanitized_scheme"
 (
     cd "$build_root"
     "$host_scheme" --script "$idric_source/scripts/compile-chez-cross.ss" \
@@ -171,7 +171,7 @@ cp "$idric_source"/support/c/*.h "$idric_runtime/support/c/"
 cp "$idric_source"/support/chez/*.ss "$idric_runtime/support/chez/"
 
 sed "s/@IDRIS2_VERSION@/$idris_version/g" \
-    "$idric_source/support/termux-armv7/idric.in" > "$bundle/bin/idric"
+    "$idric_source/support/termux-armv7/idric.in" >"$bundle/bin/idric"
 cp "$idric_source/support/termux-armv7/install.sh" "$bundle/install.sh"
 cp "$idric_source/support/termux-armv7/smoke-test.sh" "$bundle/smoke-test.sh"
 cp "$idric_source/support/termux-armv7/smoke/Main.idric" "$bundle/smoke/Main.idric"
@@ -191,7 +191,7 @@ chmod 755 \
     printf 'android_api=%s\n' "$android_api"
     printf 'abi=armeabi-v7a\n'
     printf 'ndk_version=%s\n' "$ndk_version"
-} > "$bundle/BUILD-METADATA"
+} >"$bundle/BUILD-METADATA"
 
 "$idric_source/scripts/verify-termux-armv7-bundle.sh" "$bundle"
 
@@ -204,11 +204,11 @@ source_date_epoch=${SOURCE_DATE_EPOCH:-$(git -C "$idric_source" show -s --format
         --owner=0 \
         --group=0 \
         --numeric-owner \
-        -cf - "$bundle_name" | gzip -n > "$archive"
+        -cf - "$bundle_name" | gzip -n >"$archive"
 )
 (
     cd "$dist_dir"
-    sha256sum "$(basename "$archive")" > "$(basename "$checksum")"
+    sha256sum "$(basename "$archive")" >"$(basename "$checksum")"
 )
 
 printf '%s\n' "$archive"
