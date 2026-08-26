@@ -1,0 +1,9 @@
+module Main
+
+%default total
+
+apply_once : (1 value : a) → (consume : (1 item : a) → b) → b
+apply_once value consume = consume value
+
+main : IO ()
+main = printLn (apply_once 41 (\number ⇒ number))

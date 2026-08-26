@@ -1,0 +1,14 @@
+module Main
+
+import IdrisCompatibility
+
+%default total
+
+increment : Nat → Nat
+increment = \value ⇒ S value
+
+boundary_value : Nat
+boundary_value = increment compatibility_value
+
+main : IO ()
+main = printLn boundary_value

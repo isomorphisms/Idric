@@ -1,0 +1,14 @@
+module Main
+
+%default total
+
+answer : Nat
+answer = 42
+
+message : String
+message = "a value inhabits a type"
+
+main : IO ()
+main = do
+  printLn answer
+  putStrLn message
