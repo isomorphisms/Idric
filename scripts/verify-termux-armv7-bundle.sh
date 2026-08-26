@@ -28,7 +28,7 @@ grep -qx 'abi=armeabi-v7a' "$metadata" || fail 'wrong ABI metadata'
 grep -qx 'chez_machine=tarm7le' "$metadata" || fail 'wrong Chez machine metadata'
 grep -qx 'android_api=24' "$metadata" || fail 'wrong Android API metadata'
 
-scheme_kind=$(file -b "$scheme")
+scheme_kind=$(file -Lb "$scheme")
 support_kind=$(file -b "$support")
 case "$scheme_kind" in
     *'ELF 32-bit LSB'*ARM*EABI5*) ;;
