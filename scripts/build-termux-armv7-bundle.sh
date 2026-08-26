@@ -187,6 +187,10 @@ chmod 755 \
 "$target_strip" "$bundle/chez/lib/$chez_version_dir/$chez_machine/scheme"
 "$target_strip" "$idric_runtime/lib/libidris2_support.so"
 
+if strings "$bundle/libexec/idric/idris2.so" | grep -F "$build_root" >/dev/null; then
+    fail 'compiled Idriç image leaks its build root'
+fi
+
 {
     printf 'idric_commit=%s\n' "$idric_commit"
     printf 'idris_version=%s\n' "$idris_version"
