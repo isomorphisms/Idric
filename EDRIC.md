@@ -22,6 +22,10 @@ Use ordinary, current Idris 2 to implement Edric until an Edric change is itself
 
 The first Edric-specific syntax is the storage-neutral `choice` declaration described below. The compiler remains implemented in ordinary Idris 2.
 
+## Natural-number vocabulary
+
+Idriç source spells the natural-number type `ℕ`. In a `.idric` file the frontend lowers `ℕ` to the inherited Idris 2 `Nat` internally; ordinary `.idr` source remains unchanged. `Nat` therefore remains an implementation and compatibility spelling, not the spelling for new Idriç APIs, examples, or teaching material.
+
 ## Data-structure vocabulary
 
 Edriç names a structure by what it is, not merely by whether its length is
@@ -48,9 +52,9 @@ snake_case names:
 
 ```idris
 choice existing_touch_target one_of
-  fixed_value Nat
-  zero Nat
-  pole Nat
+  fixed_value ℕ
+  zero ℕ
+  pole ℕ
 
 choice touch_beginning one_of
   near_existing existing_touch_target
@@ -199,6 +203,7 @@ A new thread working on Edric should:
 - Idriç source extension: `.idric`; `.idr` remains accepted for Idris compatibility.
 - Storage-neutral, lower snake_case `choice ... one_of` syntax: implemented for `.idric` only.
 - Ordinary `.idr` use of `choice` and `one_of` as identifiers: preserved and regression-tested.
+- Idriç source spells natural numbers `ℕ`; the frontend lowers that spelling to inherited Idris 2 `Nat` internally.
 - Idriç source accepts `→`, `⇒`, `←`, and `≤` as compact aliases for `->`, `=>`, `<-`, and `<=`; the ASCII spellings remain accepted.
 - The aliases are filename-scoped to `.idric`; ordinary `.idr` Unicode identifiers remain unchanged.
 - Canonical Unicode pretty-printing is not yet claimed by this input-syntax slice.

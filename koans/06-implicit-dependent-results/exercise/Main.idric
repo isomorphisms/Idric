@@ -5,7 +5,7 @@ import Data.Vect
 %default total
 
 -- n is inferred from values; the result type depends on that inferred value.
-prepend : {n : Nat} → a → Vect n a → Vect (S n) a
+prepend : {n : ℕ} → a → Vect n a → Vect (S n) a
 prepend item items = ?dependent_result
 
 main : IO ()
