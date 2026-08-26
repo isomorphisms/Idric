@@ -150,6 +150,10 @@ chez_version_dir=$(basename "$(dirname "$chez_machine_dir")")
 mkdir -p "$bundle/chez/bin" "$bundle/chez/lib/$chez_version_dir"
 cp -R "$chez_stage/chez/bin/." "$bundle/chez/bin/"
 cp -R "$chez_machine_dir" "$bundle/chez/lib/$chez_version_dir/"
+bundle_machine_dir="$bundle/chez/lib/$chez_version_dir/$chez_machine"
+ln -sfn scheme "$bundle_machine_dir/petite"
+ln -sfn scheme "$bundle_machine_dir/scheme-script"
+ln -sfn scheme.boot "$bundle_machine_dir/scheme-script.boot"
 
 (
     cd "$idric_source"
