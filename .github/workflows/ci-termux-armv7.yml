@@ -36,7 +36,7 @@ on:
       - 'idris2.ipkg'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: termux-armv7-${{ github.ref }}
@@ -83,3 +83,19 @@ jobs:
             build/termux-armv7-dist/*.sha256
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish phone-test prerelease
+        if: github.event_name == 'push' && github.ref == 'refs/heads/termux-armv7-binary'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          archive=$(find build/termux-armv7-dist -maxdepth 1 -name '*.tar.gz' -print -quit)
+          short_sha=${GITHUB_SHA::12}
+          gh release create "termux-armv7-$short_sha" \
+            "$archive" "$archive.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Idriç 0.8.0 ARMv7 Termux ($short_sha)" \
+            --notes "32-bit ARMv7 Android/Termux phone-test build. CI verified the ELF ABI, Android linker, checksum, permissions, and relocation structure. Stable release remains blocked until install.sh compiles and runs the included fixture on the actual phone." \
+            --prerelease
