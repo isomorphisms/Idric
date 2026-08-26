@@ -159,37 +159,7 @@ validate_exercises() {
 				cat "$output" >&2
 				exit 1
 			fi
-			if grep '^Error:' "$output" | grep -v ' is not covering\.		while IFS= read -r expected_diagnostic; do
-			[ -n "$expected_diagnostic" ] || continue
-			if ! grep -F "$expected_diagnostic" "$output" >/dev/null; then
-				printf '%s: missing expected diagnostic: %s\n' \
-					"$name" "$expected_diagnostic" >&2
-				cat "$output" >&2
-				exit 1
-			fi
-		done <"$directory/expected-diagnostic"
-		printf '%s: exercise fails as intended\n' "$name"
-	done
-	rm -rf "$temporary_dir"
-	trap - 0 1 2 15
-}
-
-validate() {
-	validate_exercises
-	run_solutions
-	printf '12 Idriç koans validated.\n'
-}
-
-case "${1:-}" in
-"") run_exercises ;;
---solutions) run_solutions ;;
---validate) validate ;;
--h | --help | help)
-	printf 'usage: ./koans/run [KOAN_NUMBER_OR_NAME|--solutions|--validate]\n'
-	;;
-*) run_named_exercise "$1" ;;
-esac
- >/dev/null; then
+			if grep '^Error:' "$output" | grep -v ' is not covering\.$' >/dev/null; then
 				printf '%s: coverage exercise also has an unexpected compiler error\n' \
 					"$name" >&2
 				cat "$output" >&2
