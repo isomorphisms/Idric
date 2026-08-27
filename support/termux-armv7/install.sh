@@ -3,7 +3,11 @@ set -eu
 
 fail() {
     printf 'install-idric: %s\n' "$*" >&2
-    exit 1
+    exit 10
+}
+
+record() {
+    printf '%s\n' "$*" | tee -a "$acceptance_log"
 }
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
@@ -24,6 +28,12 @@ commit=$(sed -n 's/^idric_commit=//p' "$metadata")
 [ -n "$commit" ] || fail 'idric_commit is missing from BUILD-METADATA'
 short_commit=$(printf '%s' "$commit" | cut -c1-12)
 
+acceptance_log=${IDRIC_ACCEPTANCE_LOG:-"$PREFIX/tmp/idric-armv7-accept-$short_commit.log"}
+mkdir -p "$(dirname -- "$acceptance_log")"
+: >"$acceptance_log"
+record "IDRIC_PHONE_ACCEPT commit=$commit"
+record "INSTALL environment=PASS os=$os architecture=$architecture prefix=$PREFIX"
+
 install_dir=${IDRIC_INSTALL_DIR:-"$PREFIX/opt/idric-$short_commit"}
 current_link="$PREFIX/opt/idric"
 command_link="$PREFIX/bin/idric"
@@ -33,16 +43,36 @@ command_link="$PREFIX/bin/idric"
 [ ! -e "$command_link" ] || [ -L "$command_link" ] || fail "will not replace non-link: $command_link"
 
 mkdir -p "$PREFIX/opt" "$PREFIX/bin"
-cp -R "$script_dir" "$install_dir"
-chmod 755 \
+if ! cp -R "$script_dir" "$install_dir"; then
+    record "INSTALL copy=FAIL source=$script_dir destination=$install_dir"
+    exit 10
+fi
+if ! chmod 755 \
     "$install_dir/bin/idric" \
     "$install_dir/chez/bin/scheme" \
     "$install_dir/install.sh" \
-    "$install_dir/smoke-test.sh"
+    "$install_dir/smoke-test.sh"; then
+    record "INSTALL permissions=FAIL destination=$install_dir"
+    exit 10
+fi
 
-"$install_dir/smoke-test.sh" || fail "phone smoke test failed; retained for inspection at $install_dir"
+record "INSTALL copy=PASS destination=$install_dir"
 
-ln -sfn "$install_dir" "$current_link"
-ln -sfn "$current_link/bin/idric" "$command_link"
+status=0
+"$install_dir/smoke-test.sh" "$acceptance_log" || status=$?
+if [ "$status" -ne 0 ]; then
+    record "ACTIVATE skipped=YES reason=acceptance-failed"
+    printf 'install-idric: phone acceptance failed (status %s); bundle retained at %s; evidence: %s\n' \
+        "$status" "$install_dir" "$acceptance_log" >&2
+    exit "$status"
+fi
 
-printf 'Idriç installed: %s\n' "$command_link"
+if ! ln -sfn "$install_dir" "$current_link" ||
+   ! ln -sfn "$current_link/bin/idric" "$command_link"; then
+    record 'ACTIVATE command=FAIL'
+    exit 10
+fi
+
+record "ACTIVATE command=PASS path=$command_link"
+record 'IDRIC_PHONE_ACCEPT result=PASS'
+printf 'Idriç installed: %s\nEvidence: %s\n' "$command_link" "$acceptance_log"

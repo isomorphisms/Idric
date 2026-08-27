@@ -46,6 +46,22 @@ normally mounted `noexec`, so invoke the installer through the shell:
 sh idric-termux-armv7-*/install.sh
 ```
 
+That is the complete phone acceptance run. It writes a transcript to
+`$PREFIX/tmp/idric-armv7-accept-<commit>.log` and reports these boundaries:
+
+- `INSTALL`: Termux/ARMv7 preflight and copying the relocatable bundle;
+- `RUNTIME`: starting the bundled Chez runtime and compiler image;
+- `COMPILER`: compiling the included `smoke/Main.idric`;
+- `FIXTURE`: executing the result and comparing its stdout byte-for-byte with
+  `Idriç ARMv7 OK\n`;
+- `ACTIVATE`: switching `$PREFIX/opt/idric` and `$PREFIX/bin/idric` only after
+  every preceding stage passes.
+
+Failures return 10 for installation, 20 for runtime startup, 30 for compilation,
+and 40 or 41 for fixture execution or output. The failing build directory and
+its stdout/stderr files are retained, and their path is recorded in the
+transcript. A successful run removes only those temporary build files.
+
 The installer copies the bundle into Termux's private `$PREFIX/opt`, runs the
 phone smoke test there, then creates `$PREFIX/bin/idric`. It refuses to replace
 an unrelated real file or directory. Each build is kept in a commit-versioned
