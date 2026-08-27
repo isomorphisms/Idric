@@ -2,9 +2,15 @@
 
 This repository is the canonical modern home of the **Idriç** compiler experiment. `Idric` is the repository's ASCII spelling; `Edric` may appear in speech/transcription. It is based on current Idris 2, not the obsolete Idris2 bootstrap tree.
 
+The `Odriç` branch is the deliberately unsettled compiler line being born
+alongside `ish`. Its branch charter is [ODRIC.md](ODRIC.md).
+
 **Start here:** [EDRIC.md](EDRIC.md) records the build, test, naming, baseline, and handoff rules so a new work thread can pick the project up from the repository itself.
 
-At this checkpoint the fork deliberately remains ordinary Idris 2. Edric-specific language changes should be introduced one at a time with focused tests rather than by replaying the old mechanical rewrite wholesale.
+The Idriç checkpoint from which Odriç begins deliberately remains ordinary
+Idris 2 plus focused language changes. Odriç keeps that tree as bootstrap
+material, but does not treat its ANF, prelude, primitives, or runtime as a
+stability contract.
 
 ---
 
