@@ -1,0 +1,107 @@
+module Projective
+
+import Data.Vect
+
+%default total
+
+||| Evidence that a homogeneous coordinate tuple is not the all-zero tuple.
+|||
+||| `isZero` is supplied by the scalar layer. This experiment intentionally
+||| does not invent a field hierarchy merely to get a zero test.
+public export
+data SomeNonZero :
+  (isZero : scalar → Bool) →
+  Vect n scalar →
+  Type where
+  FirstCoordinateNonZero :
+    isZero x = False →
+    SomeNonZero isZero (x :: xs)
+  LaterCoordinateNonZero :
+    SomeNonZero isZero xs →
+    SomeNonZero isZero (x :: xs)
+
+||| A nonzero homogeneous representative of a point of projective n-space.
+|||
+||| This is deliberately called a representative rather than a projective
+||| point: scalar multiples have not yet been quotiented by the nonzero-scalar
+||| action.
+public export
+record HomogeneousRep
+  (n : Nat)
+  (scalar : Type)
+  (isZero : scalar → Bool) where
+  constructor MkHomogeneousRep
+  homogeneousCoordinates : Vect (S n) scalar
+  someNonZero : SomeNonZero isZero homogeneousCoordinates
+
+||| An affine n-point. `Vect` is only the current fixed-length storage used by
+||| this experiment; the mathematical abstraction is the record itself.
+public export
+record AffinePoint (n : Nat) (scalar : Type) where
+  constructor MkAffinePoint
+  affineCoordinates : Vect n scalar
+
+||| A coordinate chart U_i, selected by the homogeneous coordinate that is
+||| required to be nonzero.
+public export
+record CoordinateChart (n : Nat) where
+  constructor MkCoordinateChart
+  denominator : Fin (S n)
+
+||| The usual affine chart [1 : z1 : ... : zn].
+public export
+standardChart : CoordinateChart n
+standardChart = MkCoordinateChart FZ
+
+||| Read the coordinate whose nonvanishing defines a chart.
+public export
+chartCoordinate :
+  CoordinateChart n →
+  HomogeneousRep n scalar isZero →
+  scalar
+chartCoordinate chart point =
+  index (denominator chart) (homogeneousCoordinates point)
+
+||| Proof that a projective representative lies in a chosen affine chart.
+public export
+InChart :
+  CoordinateChart n →
+  HomogeneousRep n scalar isZero →
+  Type
+InChart chart point =
+  isZero (chartCoordinate chart point) = False
+
+||| Proof that a representative lies on the coordinate hyperplane complementary
+||| to a chosen affine chart. Calling this "infinity" only makes sense relative
+||| to that chart/embedding.
+public export
+AtChartBoundary :
+  CoordinateChart n →
+  HomogeneousRep n scalar isZero →
+  Type
+AtChartBoundary chart point =
+  isZero (chartCoordinate chart point) = True
+
+||| Embed affine n-space into the standard projective chart by
+||| z |-> [1 : z]. The caller supplies the scalar value playing the role of one
+||| together with evidence that it is nonzero.
+public export
+affineRepresentative :
+  (isZero : scalar → Bool) →
+  (one : scalar) →
+  (oneNonZero : isZero one = False) →
+  AffinePoint n scalar →
+  HomogeneousRep n scalar isZero
+affineRepresentative isZero one oneNonZero (MkAffinePoint xs) =
+  MkHomogeneousRep (one :: xs) (FirstCoordinateNonZero oneNonZero)
+
+||| The affine embedding lands in the standard chart by construction.
+public export
+affineRepresentativeInStandardChart :
+  (isZero : scalar → Bool) →
+  (one : scalar) →
+  (oneNonZero : isZero one = False) →
+  (point : AffinePoint n scalar) →
+  InChart standardChart (affineRepresentative isZero one oneNonZero point)
+affineRepresentativeInStandardChart isZero one oneNonZero point =
+  oneNonZero
