@@ -177,13 +177,14 @@ For each language change:
 2. Add a focused regression test under the existing Idris 2 test harness.
 3. Keep ordinary Idris 2 behavior working unless the change explicitly replaces it.
 4. Record user-visible syntax and semantic decisions here when they become part of Edric rather than leaving them only in a conversation.
-5. Keep `main` buildable; use a branch when an experiment is not yet coherent.
+5. Keep the default `Idriç` branch buildable; use a descriptive branch when an
+   experiment is not yet coherent.
 
 ## New-thread handoff
 
 A new thread working on Edric should:
 
-1. Open this file and the root `README.md`.
+1. Open this file, [BRANCHES.md](BRANCHES.md), and the root `README.md`.
 2. Inspect the latest commits and current branch before changing code.
 3. Use `./edric` to establish the repo-local Scheme toolchain, bootstrap the compiler, and run the focused handoff test.
 4. Treat this repository as authoritative for implemented state. Conversation notes may explain intent but do not override the checked-in source and tests.
