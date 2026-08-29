@@ -1,19 +1,49 @@
 . ../../../testutils.sh
 
-reject_idric() {
-    if idris2_no_clean --check "$1" >/dev/null 2>&1; then
-        echo "unexpected Idriç acceptance: $1"
+expect_float16_warning() {
+    source="$1"
+    requested="$2"
+    if ! output=$(idris2_no_clean --check "$source" 2>&1); then
+        printf '%s\n' "$output"
+        echo "Idriç float coercion did not compile: $source"
+        exit 1
+    fi
+    if ! printf '%s\n' "$output" | grep -F "requested $requested; running this as Float16" >/dev/null; then
+        printf '%s\n' "$output"
+        echo "missing Float16 coercion warning for $requested"
         exit 1
     fi
 }
 
-reject_idric WideDouble.idric
-reject_idric WideFloat.idric
-reject_idric WideFloat32.idric
-reject_idric WideFloat64.idric
-reject_idric Decimal.idric
+expect_no_float16_warning() {
+    source="$1"
+    if ! output=$(idris2_no_clean --check "$source" 2>&1); then
+        printf '%s\n' "$output"
+        echo "canonical Float16 source did not compile: $source"
+        exit 1
+    fi
+    if printf '%s\n' "$output" | grep -F "running this as Float16" >/dev/null; then
+        printf '%s\n' "$output"
+        echo "canonical Float16 unexpectedly warned: $source"
+        exit 1
+    fi
+}
 
-# The compiler implementation and ordinary Idris compatibility may still use
-# inherited Double internally. The filename-scoped Idriç profile is the part
-# that forbids wide floating arithmetic.
+expect_float16_warning WideDouble.idric Double
+expect_float16_warning WideFloat.idric Float
+expect_float16_warning WideFloat32.idric Float32
+expect_float16_warning WideFloat64.idric Float64
+
+expect_no_float16_warning CanonicalFloat16.idric
+expect_no_float16_warning Decimal.idric
+
+rounding=$(run Float16Rounding.idric)
+if [ "$rounding" != "float16-rounding: PASS" ]; then
+    printf '%s\n' "$rounding"
+    echo "Float16 arithmetic did not round at the binary16 operation boundary"
+    exit 1
+fi
+
+# Ordinary .idr remains ordinary Idris: its inherited Double is not rewritten
+# and receives no Idriç narrowing warning.
 check IdrisDouble.idr >/dev/null
