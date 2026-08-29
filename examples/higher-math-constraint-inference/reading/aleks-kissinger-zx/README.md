@@ -8,20 +8,22 @@ Oxford profile: https://www.cs.ox.ac.uk/people/aleks.kissinger/
 
 ### Pictures of Processes
 
-Aleks Kissinger, *Pictures of Processes: Automated Graph Rewriting for Monoidal Categories and Applications to Quantum Computing*, DPhil thesis, University of Oxford, 2012.
+Aleks Kissinger, *Pictures of Processes: Automated Graph Rewriting for Monoidal Categories and Applications to Quantum Computing*, DPhil thesis, University of Oxford, 2011; arXiv version 2012.
 
 - arXiv: https://arxiv.org/abs/1203.0202
-- Oxford repository: https://ora.ox.ac.uk/objects/uuid:61fb3161-a353-48fc-8da2-6ce220cce6a2
+- Oxford repository: https://ora.ox.ac.uk/objects/uuid%3A61fb3161-a353-48fc-8da2-6ce220cce6a2
+- DOI: https://doi.org/10.5287/ora-j0ne86yd5
 
-This is the graph-rewriting source most directly relevant to compiler representation: typed input/output wires, string diagrams, a discretized string-graph representation, and double-pushout rewriting.
+The Oxford record also credits **Bob Coecke** and **Samson Abramsky** as supervisors. This is the graph-rewriting source most directly relevant to compiler representation: typed input/output wires, string diagrams, a discretized string-graph representation, and double-pushout rewriting.
 
-**Redistribution:** link only here. No permissive redistribution grant for the exact thesis file was verified in this pass.
+**Redistribution:** link only here. The Oxford record provides a dissemination copy under its terms of use, but no general permissive redistribution license for the exact thesis file was verified in this pass.
 
 ### Picturing Quantum Processes
 
 Bob Coecke and Aleks Kissinger, *Picturing Quantum Processes: A First Course in Quantum Theory and Diagrammatic Reasoning*, Cambridge University Press, 2017. DOI 10.1017/9781316219317.
 
-- Cambridge contents: https://www.cambridge.org/core/books/picturing-quantum-processes/7A1A65B9E6B3F4A9F1A47D5A73B2FBA0
+- DOI: https://doi.org/10.1017/9781316219317
+- Cambridge contents: https://www.cambridge.org/core/books/abs/picturing-quantum-processes/contents/5CFBFD838C6DE10714C2A693CE246FE8
 - author description: https://www.cs.ox.ac.uk/people/aleks.kissinger/
 
 The book develops quantum theory diagram-first: processes, string diagrams, Hilbert-space semantics, measurement, classical/quantum interaction, phases/complementarity, computation, resources, and Quantomatic.
@@ -60,4 +62,4 @@ The equally critical caveat is that ZX diagrams live in a compact setting where 
 
 ## Credit and thanks
 
-Deep thanks to **Aleks Kissinger**; to **Bob Coecke** for *Picturing Quantum Processes*; and to **John van de Wetering** for *Picturing Quantum Software* and the current public book repository/release. The wider ZX and categorical-quantum community is credited in `CREDIT-AND-CITATION-NETWORK.md`.
+Deep thanks to **Aleks Kissinger**; to **Bob Coecke** for *Picturing Quantum Processes* and for supervising *Pictures of Processes*; to **Samson Abramsky** for supervising *Pictures of Processes*; and to **John van de Wetering** for *Picturing Quantum Software* and the current public book repository/release. The wider ZX and categorical-quantum community is credited in `CREDIT-AND-CITATION-NETWORK.md`.
