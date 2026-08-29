@@ -14,9 +14,22 @@ import System.File
 
 %default total
 
-promoteIdricKeyword : Token -> Token
-promoteIdricKeyword (Ident "choice") = Keyword "choice"
-promoteIdricKeyword tok = tok
+idricWideFloatName : String -> Bool
+idricWideFloatName "Double" = True
+idricWideFloatName "Float" = True
+idricWideFloatName "Float32" = True
+idricWideFloatName "Float64" = True
+idricWideFloatName _ = False
+
+promoteIdricToken : Token -> Token
+promoteIdricToken (Ident "choice") = Keyword "choice"
+promoteIdricToken (Ident n) =
+    if idricWideFloatName n
+       then Unrecognised ("Idriç does not provide " ++ n ++ "; wider floating precision is disabled")
+       else Ident n
+promoteIdricToken (DoubleLit _) =
+    Unrecognised "Idriç decimal floating literals are disabled until the Float16 primitive is implemented; they do not fall back to Double or Float32"
+promoteIdricToken tok = tok
 
 sourceSyntax : Maybe String -> SourceSyntax
 sourceSyntax (Just fname) = if isSuffixOf ".idric" fname
@@ -27,7 +40,7 @@ sourceSyntax Nothing = IdrisSyntax
 sourceTokens : Maybe String -> List (WithBounds Token) -> List (WithBounds Token)
 sourceTokens (Just fname) toks
     = if isSuffixOf ".idric" fname
-         then map (map promoteIdricKeyword) toks
+         then map (map promoteIdricToken) toks
          else toks
 sourceTokens Nothing toks = toks
 
