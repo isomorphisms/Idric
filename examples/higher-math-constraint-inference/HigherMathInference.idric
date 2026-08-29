@@ -1,0 +1,185 @@
+module HigherMathInference
+
+%default total
+
+-- This file is a small executable sketch, not a claim that Idriç already has
+-- theorem-driven higher-mathematics inference.  The point is to make three
+-- forcing examples concrete enough that the desired elaborator behavior can
+-- be discussed and tested.
+
+-- --------------------------------------------------------------------------
+-- 1. Presheaf restriction
+-- --------------------------------------------------------------------------
+
+public export
+data Open = Whole | Patch | Point
+
+public export
+data Included : Open → Open → Type where
+  Same       : Included u u
+  PatchWhole : Included Patch Whole
+  PointPatch : Included Point Patch
+  PointWhole : Included Point Whole
+
+public export
+data Section : Open → Type where
+  WholeSection : Integer → Section Whole
+  PatchSection : Integer → Section Patch
+  PointSection : Integer → Section Point
+
+public export
+restrict : Included v u → Section u → Section v
+restrict Same section = section
+restrict PatchWhole (WholeSection n) = PatchSection n
+restrict PointPatch (PatchSection n) = PointSection n
+restrict PointWhole (WholeSection n) = PointSection n
+
+-- What is already inferable here is the dependent index bookkeeping: given
+--   inclusion : Included v u
+--   section   : Section u
+-- `restrict inclusion section` determines that the result is `Section v`.
+--
+-- The desired extension is broader.  If source notation says "restrict s to V",
+-- the elaborator should be able to generate unknown U/V and structure
+-- constraints from the operation, solve the inclusion/domain equations, and
+-- infer the section type without the programmer restating all indices.
+--
+-- A genuine presheaf interface would additionally carry the identity and
+-- composition laws.  A sheaf interface would add locality/uniqueness and
+-- gluing.  Those laws should become usable constraints, not decorative docs.
+
+-- --------------------------------------------------------------------------
+-- 2. Pairs with a two-dimensional unital algebra structure
+-- --------------------------------------------------------------------------
+
+public export
+data Pair2 = Pair2 Integer Integer
+
+-- Algebra a b means that the distinguished basis element j satisfies
+--
+--     j² = a + b j
+--
+-- once 1 = (1,0), j = (0,1), multiplication is bilinear, and 1 is the
+-- multiplicative identity.  That one relation then determines multiplication
+-- of all pairs.
+public export
+data TwoDUnitalAlgebra = Algebra Integer Integer
+
+public export
+j2Scalar : TwoDUnitalAlgebra → Integer
+j2Scalar (Algebra a b) = a
+
+public export
+j2Basis : TwoDUnitalAlgebra → Integer
+j2Basis (Algebra a b) = b
+
+public export
+one : Pair2
+one = Pair2 1 0
+
+public export
+j : Pair2
+j = Pair2 0 1
+
+public export
+multiply : TwoDUnitalAlgebra → Pair2 → Pair2 → Pair2
+multiply algebra (Pair2 x y) (Pair2 u v) =
+  Pair2
+    (x * u + y * v * j2Scalar algebra)
+    (x * v + y * u + y * v * j2Basis algebra)
+
+public export
+complexPlane : TwoDUnitalAlgebra
+complexPlane = Algebra (-1) 0
+
+public export
+splitPlane : TwoDUnitalAlgebra
+splitPlane = Algebra 1 0
+
+public export
+dualNumbers : TwoDUnitalAlgebra
+dualNumbers = Algebra 0 0
+
+public export
+discriminant : TwoDUnitalAlgebra → Integer
+discriminant algebra =
+  j2Basis algebra * j2Basis algebra + 4 * j2Scalar algebra
+
+public export
+data TwoDShape
+  = ComplexPlaneShape
+  | DualNumberShape
+  | SplitPlaneShape
+
+public export
+shape : TwoDUnitalAlgebra → TwoDShape
+shape algebra =
+  let d = discriminant algebra in
+    if d < 0
+      then ComplexPlaneShape
+      else if d == 0
+        then DualNumberShape
+        else SplitPlaneShape
+
+-- Over the reals, for the algebra R[j]/(j² - b j - a), the discriminant sign
+-- gives the familiar three shapes: C, dual numbers, or R×R.  If the degenerate
+-- discriminant-zero case is excluded, two shapes remain.
+--
+-- Inference target: do not require the user to start by naming one of those
+-- algebras.  Let the operations/laws generate structure constraints.  For
+-- example, unital bilinear multiplication on a two-dimensional basis reduces
+-- the unknown multiplication table to the unknown value of j²; additional
+-- equations can then narrow the admissible algebra structure.
+
+-- --------------------------------------------------------------------------
+-- 3. Ostrowski-shaped classification boundary
+-- --------------------------------------------------------------------------
+
+-- The remembered example motivating this section is recorded cautiously.  The
+-- standard theorem that matches the "usual absolute value or p-adic family"
+-- description is Ostrowski's theorem for nontrivial absolute values on Q,
+-- up to equivalence.  This file does not attribute any mistaken statement to
+-- the person whose old explanation was being recalled.
+--
+-- This tiny executable model only gives examples of the theorem's output
+-- shape.  It does NOT pretend to prove Ostrowski's theorem.  A serious version
+-- would carry a prime witness for the p-adic case and an equivalence witness.
+
+public export
+data RationalAbsoluteValueExample
+  = UsualExample
+  | PAdicExample Nat
+
+public export
+data RationalAbsoluteValueClass
+  = UsualArchimedean
+  | PAdic Nat
+
+public export
+classifyRationalAbsoluteValueExample :
+  RationalAbsoluteValueExample → RationalAbsoluteValueClass
+classifyRationalAbsoluteValueExample UsualExample = UsualArchimedean
+classifyRationalAbsoluteValueExample (PAdicExample p) = PAdic p
+
+-- Desired theorem-aware inference boundary, schematically:
+--
+--   x : AbsoluteValue Q
+--   nontrivial x
+--          |
+--          | query typed theorem index: Ostrowski
+--          v
+--   Equivalent x usual
+--     OR
+--   some prime p with Equivalent x (pAdic p)
+--
+-- Hindley-Milner contributes the useful basic discipline here: leave unknowns,
+-- generate equality/unification constraints from use, solve, generalize what
+-- remains.  Dependent types let the unknowns mention values such as an open set,
+-- a dimension, a prime, or a domain.  The extra piece wanted here is a typed
+-- mathematical knowledge layer: structures, laws, normal forms, and named
+-- theorems may contribute constraints or eliminate impossible cases.
+--
+-- That last step should be explicit and inspectable.  "The computer knows
+-- Maschke's theorem" should mean a versioned theorem entry with hypotheses and
+-- a checked conclusion that the elaborator/planner is allowed to use, not a
+-- mysterious heuristic silently changing program meaning.
