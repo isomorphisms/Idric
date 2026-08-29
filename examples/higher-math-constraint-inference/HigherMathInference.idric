@@ -3,7 +3,7 @@ module HigherMathInference
 %default total
 
 -- This file is a small executable sketch, not a claim that Idriç already has
--- theorem-driven higher-mathematics inference.  The point is to make three
+-- theorem-driven higher-mathematics inference.  The point is to make four
 -- forcing examples concrete enough that the desired elaborator behavior can
 -- be discussed and tested.
 
@@ -53,7 +53,7 @@ restrict PointWhole (WholeSection n) = PointSection n
 -- --------------------------------------------------------------------------
 
 public export
-data Pair2 = Pair2 Integer Integer
+data Pair2 = MkPair2 Integer Integer
 
 -- Algebra a b means that the distinguished basis element j satisfies
 --
@@ -75,16 +75,16 @@ j2Basis (Algebra a b) = b
 
 public export
 one : Pair2
-one = Pair2 1 0
+one = MkPair2 1 0
 
 public export
 j : Pair2
-j = Pair2 0 1
+j = MkPair2 0 1
 
 public export
 multiply : TwoDUnitalAlgebra → Pair2 → Pair2 → Pair2
-multiply algebra (Pair2 x y) (Pair2 u v) =
-  Pair2
+multiply algebra (MkPair2 x y) (MkPair2 u v) =
+  MkPair2
     (x * u + y * v * j2Scalar algebra)
     (x * v + y * u + y * v * j2Basis algebra)
 
@@ -206,9 +206,10 @@ classifyRationalAbsoluteValueExample (PAdicExample p) = PAdic p
 --   any other repetition             => invalid
 --
 -- Thus Tⁱⱼ vʲ has free i and contracted j.  Tⁱᵢ contracts i even though both
--- occurrences are on one tensor (the trace-shaped case).  Aᵢ Bᵢ is NOT silently
--- turned into an inner product: it is invalid here unless some explicit metric
--- or index-raising/lowering operation supplies the missing mathematical step.
+-- occurrences are on one tensor (the trace-shaped case).  In this strict
+-- context Aᵢ Bᵢ is NOT silently turned into an inner product: it needs either
+-- an explicit metric/index-raising operation or the distinct elementwise
+-- operator context modeled below.
 
 public export
 data EinsteinAxis = IAxis | JAxis | KAxis
@@ -237,6 +238,7 @@ occurrencesFromGlyphs (glyph :: rest) =
     Nothing => occurrencesFromGlyphs rest
     Just occurrence => occurrence :: occurrencesFromGlyphs rest
 
+public export
 sameAxis : EinsteinAxis → EinsteinAxis → Bool
 sameAxis IAxis IAxis = True
 sameAxis JAxis JAxis = True
@@ -246,10 +248,12 @@ sameAxis _ _ = False
 public export
 data IndexCounts = Counts Nat Nat
 
+public export
 bumpCount : IndexHeight → IndexCounts → IndexCounts
 bumpCount Lower (Counts lower upper) = Counts (S lower) upper
 bumpCount Upper (Counts lower upper) = Counts lower (S upper)
 
+public export
 countAxis : EinsteinAxis → List IndexOccurrence → IndexCounts
 countAxis axis [] = Counts Z Z
 countAxis axis (Occurs seen height :: rest) =
@@ -266,6 +270,7 @@ data EinsteinRole
   | Contracted
   | InvalidRepeated
 
+public export
 roleFromCounts : IndexCounts → EinsteinRole
 roleFromCounts (Counts Z Z) = Absent
 roleFromCounts (Counts (S Z) Z) = FreeLower
@@ -293,6 +298,56 @@ signatureFromGlyphs : List Char → EinsteinSignature
 signatureFromGlyphs glyphs =
   signatureFromOccurrences (occurrencesFromGlyphs glyphs)
 
+-- An index glyph does not by itself decide between Einstein contraction and
+-- elementwise indexed computation.  The parsed operator supplies that context.
+-- Under strict Einstein multiplication, repeated lower occurrences remain
+-- invalid.  Under explicit elementwise multiplication, each distinct scripted
+-- index introduces an unknown iteration domain that surrounding operands,
+-- dimensions, ranges, or declarations must solve.
+
+public export
+data IndexedOperatorContext
+  = StrictEinsteinProduct
+  | ElementwiseMultiply
+
+public export
+data IndexedComputation
+  = EinsteinProduct EinsteinSignature
+  | ElementwiseOver (List EinsteinAxis)
+
+public export
+axisOccurs : EinsteinAxis → List IndexOccurrence → Bool
+axisOccurs axis occurrences =
+  case countAxis axis occurrences of
+    Counts Z Z => False
+    _ => True
+
+public export
+keepAxis : Bool → EinsteinAxis → List EinsteinAxis → List EinsteinAxis
+keepAxis True axis rest = axis :: rest
+keepAxis False _ rest = rest
+
+public export
+iterationAxesFromOccurrences : List IndexOccurrence → List EinsteinAxis
+iterationAxesFromOccurrences occurrences =
+  keepAxis (axisOccurs IAxis occurrences) IAxis
+    (keepAxis (axisOccurs JAxis occurrences) JAxis
+      (keepAxis (axisOccurs KAxis occurrences) KAxis []))
+
+public export
+computationFromOccurrences :
+  IndexedOperatorContext → List IndexOccurrence → IndexedComputation
+computationFromOccurrences StrictEinsteinProduct occurrences =
+  EinsteinProduct (signatureFromOccurrences occurrences)
+computationFromOccurrences ElementwiseMultiply occurrences =
+  ElementwiseOver (iterationAxesFromOccurrences occurrences)
+
+public export
+computationFromGlyphs :
+  IndexedOperatorContext → List Char → IndexedComputation
+computationFromGlyphs context glyphs =
+  computationFromOccurrences context (occurrencesFromGlyphs glyphs)
+
 -- This is intentionally only the notation/constraint front edge.  A serious
 -- elaborator experiment should attach each occurrence to a typed index space,
 -- not identify two indices merely because the letter matches.  Contracting j
@@ -315,6 +370,10 @@ signatureFromGlyphs glyphs =
 -- use generate unknowns plus constraints; unification solves the compatible
 -- index spaces; unresolved free indices remain in the inferred result type.
 -- Dependent types can then make dimensions/spaces part of those constraints.
+-- In an explicitly elementwise context, the same process leaves the scripted
+-- axes as iteration domains instead: shared occurrences constrain operands to
+-- compatible domains, and a later target-aware planner may emit an ordinary
+-- loop, a fused loop nest, or vectorized multiplication.
 --
 -- Still deliberately NOT implemented here:
 --
