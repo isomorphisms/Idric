@@ -41,8 +41,8 @@ halfStep : Nat -> Double -> Double -> Double
 halfStep Z value threshold = 0.000000059604644775390625 -- 2^-24, subnormal step
 halfStep (S fuel) value threshold =
   if value >= threshold
-     then prim__div_Double threshold 1024.0
-     else halfStep fuel value (prim__div_Double threshold 2.0)
+     then assert_total (prim__div_Double threshold 1024.0)
+     else halfStep fuel value (assert_total (prim__div_Double threshold 2.0))
 
 private
 quantizeFloat16Carrier : Double -> Double
@@ -55,11 +55,11 @@ quantizeFloat16Carrier value =
                let negative = value < 0.0
                    magnitude = if negative then prim__negate_Double value else value in
                  if magnitude >= 65520.0
-                    then let infinity = prim__div_Double 1.0 0.0 in
+                    then let infinity = assert_total (prim__div_Double 1.0 0.0) in
                            if negative then prim__negate_Double infinity else infinity
                     else
                       let step = halfStep 29 magnitude 32768.0
-                          scaled = prim__div_Double magnitude step
+                          scaled = assert_total (prim__div_Double magnitude step)
                           rounded = roundNearestEven scaled
                           roundedValue = prim__mul_Double
                                            (prim__cast_IntegerDouble rounded)
@@ -102,7 +102,7 @@ Abs Float16 where
 public export
 Fractional Float16 where
   (MkFloat16 left) / (MkFloat16 right) =
-    idricFloat16 (prim__div_Double left right)
+    idricFloat16 (assert_total (prim__div_Double left right))
 
 public export
 Eq Float16 where
