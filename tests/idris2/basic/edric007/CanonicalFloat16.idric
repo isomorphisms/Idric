@@ -1,0 +1,4 @@
+module CanonicalFloat16
+
+canonical : Float16
+canonical = 1.5
