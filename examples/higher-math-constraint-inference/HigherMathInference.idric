@@ -183,3 +183,146 @@ classifyRationalAbsoluteValueExample (PAdicExample p) = PAdic p
 -- Maschke's theorem" should mean a versioned theorem entry with hypotheses and
 -- a checked conclusion that the elaborator/planner is allowed to use, not a
 -- mysterious heuristic silently changing program meaning.
+
+-- --------------------------------------------------------------------------
+-- 4. Einstein notation as a constraint source
+-- --------------------------------------------------------------------------
+
+-- The programmer keyboard already has the literal index glyphs
+--
+--     lower: ᵢ ⱼ ₖ
+--     upper: ⁱ ʲ ᵏ
+--
+-- so the surface notation itself can contribute constraints before the user
+-- writes a separate declaration saying which occurrences are covariant or
+-- contravariant.  This small model only recognizes i/j/k, matching that current
+-- keyboard inventory.
+--
+-- Strict product-term convention used by this sketch:
+--
+--   one lower occurrence             => free lower index
+--   one upper occurrence             => free upper index
+--   one lower + one upper occurrence => contracted index
+--   any other repetition             => invalid
+--
+-- Thus Tⁱⱼ vʲ has free i and contracted j.  Tⁱᵢ contracts i even though both
+-- occurrences are on one tensor (the trace-shaped case).  Aᵢ Bᵢ is NOT silently
+-- turned into an inner product: it is invalid here unless some explicit metric
+-- or index-raising/lowering operation supplies the missing mathematical step.
+
+public export
+data EinsteinAxis = IAxis | JAxis | KAxis
+
+public export
+data IndexHeight = Lower | Upper
+
+public export
+data IndexOccurrence = Occurs EinsteinAxis IndexHeight
+
+public export
+indexFromGlyph : Char → Maybe IndexOccurrence
+indexFromGlyph 'ᵢ' = Just (Occurs IAxis Lower)
+indexFromGlyph 'ⱼ' = Just (Occurs JAxis Lower)
+indexFromGlyph 'ₖ' = Just (Occurs KAxis Lower)
+indexFromGlyph 'ⁱ' = Just (Occurs IAxis Upper)
+indexFromGlyph 'ʲ' = Just (Occurs JAxis Upper)
+indexFromGlyph 'ᵏ' = Just (Occurs KAxis Upper)
+indexFromGlyph _ = Nothing
+
+public export
+occurrencesFromGlyphs : List Char → List IndexOccurrence
+occurrencesFromGlyphs [] = []
+occurrencesFromGlyphs (glyph :: rest) =
+  case indexFromGlyph glyph of
+    Nothing => occurrencesFromGlyphs rest
+    Just occurrence => occurrence :: occurrencesFromGlyphs rest
+
+sameAxis : EinsteinAxis → EinsteinAxis → Bool
+sameAxis IAxis IAxis = True
+sameAxis JAxis JAxis = True
+sameAxis KAxis KAxis = True
+sameAxis _ _ = False
+
+public export
+data IndexCounts = Counts Nat Nat
+
+bumpCount : IndexHeight → IndexCounts → IndexCounts
+bumpCount Lower (Counts lower upper) = Counts (S lower) upper
+bumpCount Upper (Counts lower upper) = Counts lower (S upper)
+
+countAxis : EinsteinAxis → List IndexOccurrence → IndexCounts
+countAxis axis [] = Counts Z Z
+countAxis axis (Occurs seen height :: rest) =
+  let later = countAxis axis rest in
+    if sameAxis axis seen
+      then bumpCount height later
+      else later
+
+public export
+data EinsteinRole
+  = Absent
+  | FreeLower
+  | FreeUpper
+  | Contracted
+  | InvalidRepeated
+
+roleFromCounts : IndexCounts → EinsteinRole
+roleFromCounts (Counts Z Z) = Absent
+roleFromCounts (Counts (S Z) Z) = FreeLower
+roleFromCounts (Counts Z (S Z)) = FreeUpper
+roleFromCounts (Counts (S Z) (S Z)) = Contracted
+roleFromCounts _ = InvalidRepeated
+
+public export
+roleFor : EinsteinAxis → List IndexOccurrence → EinsteinRole
+roleFor axis occurrences = roleFromCounts (countAxis axis occurrences)
+
+public export
+data EinsteinSignature = Signature EinsteinRole EinsteinRole EinsteinRole
+
+public export
+signatureFromOccurrences : List IndexOccurrence → EinsteinSignature
+signatureFromOccurrences occurrences =
+  Signature
+    (roleFor IAxis occurrences)
+    (roleFor JAxis occurrences)
+    (roleFor KAxis occurrences)
+
+public export
+signatureFromGlyphs : List Char → EinsteinSignature
+signatureFromGlyphs glyphs =
+  signatureFromOccurrences (occurrencesFromGlyphs glyphs)
+
+-- This is intentionally only the notation/constraint front edge.  A serious
+-- elaborator experiment should attach each occurrence to a typed index space,
+-- not identify two indices merely because the letter matches.  Contracting j
+-- should generate an equality/compatibility constraint between the two j index
+-- spaces and their dimensions.  The surviving free occurrences determine the
+-- result tensor's variance/index signature.
+--
+-- For example, schematically:
+--
+--   Tⁱⱼ : Tensor [Upper I, Lower J]
+--   vʲ  : Tensor [Upper J]
+--
+--   Tⁱⱼ vʲ
+--     => J occurs once lower and once upper
+--     => constrain the two J spaces to match
+--     => contract J
+--     => result Tensor [Upper I]
+--
+-- This fits the Hindley-Milner-shaped experiment unusually cleanly: syntax and
+-- use generate unknowns plus constraints; unification solves the compatible
+-- index spaces; unresolved free indices remain in the inferred result type.
+-- Dependent types can then make dimensions/spaces part of those constraints.
+--
+-- Still deliberately NOT implemented here:
+--
+-- * lexer/AST integration (a raw character scan would wrongly inspect comments
+--   and string literals);
+-- * agreement of free indices across addition and across both sides of `=`;
+-- * dimensions and named index spaces;
+-- * explicit metric-driven raising/lowering;
+-- * more index glyphs than the keyboard's current i/j/k inventory;
+-- * actual compiler acceptance of this file.  Keep status NOT_VERIFIED until
+--   the checked Idriç compiler runs these tests.
