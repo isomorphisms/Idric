@@ -2,6 +2,8 @@ module Tests
 
 import HigherMathInference
 import CompilationStage
+import Contraction
+import PresheafTensor
 
 %default total
 
@@ -152,6 +154,66 @@ gpu_fragment_is_preferred_test = Refl
 branching_is_left_open_test :
   realizationPolicy BranchingIndexed = OpenQuestion
 branching_is_left_open_test = Refl
+
+-- 7. Typed contraction itself, not only glyph counting.
+--
+-- These are actual mathematical vectors/covectors over one named space.  A
+-- covector eats a vector from the same space and returns a scalar.  There is no
+-- implicit metric operation turning a vector into a covector, so two vectors do
+-- not become contractible merely because their coordinate counts happen to
+-- match.
+plane_pairing_test :
+  contract
+    (planeCovector 5 7)
+    (planeVector 3 4) = 43
+plane_pairing_test = Refl
+
+contraction_linear_in_vector_test :
+  contract
+    (planeCovector 5 7)
+    (addVector (planeVector 3 4) (planeVector 2 (-1)))
+  = contract (planeCovector 5 7) (planeVector 3 4)
+      + contract (planeCovector 5 7) (planeVector 2 (-1))
+contraction_linear_in_vector_test = Refl
+
+contraction_linear_in_covector_test :
+  contract
+    (addCovector (planeCovector 5 7) (planeCovector (-2) 1))
+    (planeVector 3 4)
+  = contract (planeCovector 5 7) (planeVector 3 4)
+      + contract (planeCovector (-2) 1) (planeVector 3 4)
+contraction_linear_in_covector_test = Refl
+
+contraction_respects_scalar_multiplication_test :
+  contract
+    (planeCovector 5 7)
+    (scaleVector 3 (planeVector 3 4))
+  = 3 * contract (planeCovector 5 7) (planeVector 3 4)
+contraction_respects_scalar_multiplication_test = Refl
+
+-- 8. Presheaf tensor restriction already sketched on this branch.
+-- The finite executable model intentionally represents elementary tensors only;
+-- it does not fake the balanced quotient construction of a general tensor
+-- product.  What is pinned here is the restriction law that is already settled.
+presheaf_tensor_restriction_test :
+  restrictTensor PatchWhole
+    (TensorSection (WholeSection 2) (WholeSection 3))
+  = TensorSection (PatchSection 2) (PatchSection 3)
+presheaf_tensor_restriction_test = Refl
+
+presheaf_tensor_identity_test :
+  restrictTensor Same
+    (TensorSection (PatchSection 2) (PatchSection 3))
+  = TensorSection (PatchSection 2) (PatchSection 3)
+presheaf_tensor_identity_test = Refl
+
+presheaf_tensor_composition_test :
+  restrictTensor PointPatch
+    (restrictTensor PatchWhole
+      (TensorSection (WholeSection 2) (WholeSection 3)))
+  = restrictTensor PointWhole
+      (TensorSection (WholeSection 2) (WholeSection 3))
+presheaf_tensor_composition_test = Refl
 
 main : IO ()
 main = putStrLn "higher-math constraint inference sketches: ok"
