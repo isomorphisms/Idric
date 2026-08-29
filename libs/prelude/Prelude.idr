@@ -45,3 +45,4 @@ import public Prelude.Ops as Prelude
 import public Prelude.Show as Prelude
 import public Prelude.Types as Prelude
 import public Prelude.Uninhabited as Prelude
+import public Prelude.Float16 as Prelude
