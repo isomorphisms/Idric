@@ -9,6 +9,8 @@ reject_idric() {
 
 reject_idric WideDouble.idric
 reject_idric WideFloat.idric
+reject_idric WideFloat32.idric
+reject_idric WideFloat64.idric
 reject_idric Decimal.idric
 
 # The compiler implementation and ordinary Idris compatibility may still use
