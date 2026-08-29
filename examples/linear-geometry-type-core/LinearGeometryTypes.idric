@@ -19,6 +19,11 @@ data ExactRealVector : Nat -> Type where
   VCons : Integer -> ExactRealVector n -> ExactRealVector (S n)
 
 public export
+zeroVector : (n : Nat) -> ExactRealVector n
+zeroVector Z = VNil
+zeroVector (S n) = VCons 0 (zeroVector n)
+
+public export
 add : ExactRealVector n -> ExactRealVector n -> ExactRealVector n
 add VNil VNil = VNil
 add (VCons x xs) (VCons y ys) = VCons (x + y) (add xs ys)
@@ -182,6 +187,22 @@ firstAxisReflection = FirstAxisReflection
 public export
 firstPlaneQuarterTurn : SpecialOrthogonal (S (S n))
 firstPlaneQuarterTurn = InSO FirstPlaneQuarterTurnTransform
+
+-- Exact coordinate realizations for the two dimension-generic generators.
+-- The quarter turn uses the conventional block [[0,-1],[1,0]], so
+-- (x,y,rest) maps to (-y,x,rest).  These operations are intentionally kept
+-- separate from a generic OrthogonalTransform evaluator until all constructors
+-- (notably quaternion rotations) have equally explicit coordinate semantics.
+public export
+applyFirstAxisReflection :
+  ExactRealVector (S n) -> ExactRealVector (S n)
+applyFirstAxisReflection (VCons x xs) = VCons (-x) xs
+
+public export
+applyFirstPlaneQuarterTurn :
+  ExactRealVector (S (S n)) -> ExactRealVector (S (S n))
+applyFirstPlaneQuarterTurn (VCons x (VCons y rest)) =
+  VCons (-y) (VCons x rest)
 
 public export
 composeOrthogonal :
