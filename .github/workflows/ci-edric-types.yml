@@ -4,18 +4,22 @@ on:
   pull_request:
     paths:
       - 'examples/units-time-intervals/**'
+      - 'examples/linear-geometry-type-core/**'
       - 'tests/idris2/basic/edric007/**'
+      - 'tests/idris2/basic/edric008/**'
       - 'edric'
       - '.github/workflows/ci-edric-types.yml'
   push:
     paths:
       - 'examples/units-time-intervals/**'
+      - 'examples/linear-geometry-type-core/**'
       - 'tests/idris2/basic/edric007/**'
+      - 'tests/idris2/basic/edric008/**'
       - 'edric'
       - '.github/workflows/ci-edric-types.yml'
 
 jobs:
-  units-time-intervals:
+  settled-type-cores:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
