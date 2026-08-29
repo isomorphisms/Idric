@@ -21,15 +21,32 @@ idricWideFloatName "Float32" = True
 idricWideFloatName "Float64" = True
 idricWideFloatName _ = False
 
+||| Idriç treats explicit precision names as ragged input rather than a hard
+||| contract. Wider floating requests are normalized to the ordinary Float16
+||| source type; the original spelling is retained separately for a warning.
 promoteIdricToken : Token -> Token
 promoteIdricToken (Ident "choice") = Keyword "choice"
 promoteIdricToken (Ident n) =
     if idricWideFloatName n
-       then Unrecognised ("Idriç does not provide " ++ n ++ "; wider floating precision is disabled")
+       then Ident "Float16"
        else Ident n
-promoteIdricToken (DoubleLit _) =
-    Unrecognised "Idriç decimal floating literals are disabled until the Float16 primitive is implemented; they do not fall back to Double or Float32"
 promoteIdricToken tok = tok
+
+||| A decimal token is still lexed with the inherited Double carrier. Wrap it
+||| immediately in the Float16 constructor so the source-visible value crosses
+||| a binary16 rounding boundary before it participates in Idriç arithmetic.
+||| Parentheses keep the injected application atomic when the literal is itself
+||| an argument, for example `the Double 1.5`.
+promoteIdricBoundedToken : WithBounds Token -> List (WithBounds Token)
+promoteIdricBoundedToken tok =
+    case tok.val of
+         DoubleLit _ =>
+           [ map (const (Symbol "(")) tok
+           , map (const (Ident "idricFloat16")) tok
+           , tok
+           , map (const (Symbol ")")) tok
+           ]
+         _ => [map promoteIdricToken tok]
 
 sourceSyntax : Maybe String -> SourceSyntax
 sourceSyntax (Just fname) = if isSuffixOf ".idric" fname
@@ -40,9 +57,29 @@ sourceSyntax Nothing = IdrisSyntax
 sourceTokens : Maybe String -> List (WithBounds Token) -> List (WithBounds Token)
 sourceTokens (Just fname) toks
     = if isSuffixOf ".idric" fname
-         then map (map promoteIdricToken) toks
+         then concatMap promoteIdricBoundedToken toks
          else toks
 sourceTokens Nothing toks = toks
+
+idricFloatWarnings : Maybe String -> OriginDesc -> List (WithBounds Token) -> List Warning
+idricFloatWarnings (Just fname) origin toks =
+    if isSuffixOf ".idric" fname
+       then warnings toks
+       else []
+  where
+    warnings : List (WithBounds Token) -> List Warning
+    warnings [] = []
+    warnings (tok :: rest) =
+      case tok.val of
+           Ident n =>
+             if idricWideFloatName n
+                then ParserWarning
+                       (boundToFC origin tok)
+                       ("Idriç: requested " ++ n ++ "; running this as Float16")
+                       :: warnings rest
+                else warnings rest
+           _ => warnings rest
+idricFloatWarnings Nothing origin toks = []
 
 runParserToSource : {e : _} ->
                     Maybe String ->
@@ -61,9 +98,10 @@ runParserToSource sourceFile origin lit reject str p
          let ws = ws <&> \ (mb, warn) =>
                     let mkFC = \ b => MkFC origin (startBounds b) (endBounds b)
                     in ParserWarning (maybe EmptyFC mkFC mb) warn
+         let profileWarnings = idricFloatWarnings sourceFile origin toks
          let state : State
              state = { decorations $= (cs++) } (toState decs)
-         pure (ws, state, parsed)
+         pure (profileWarnings ++ ws, state, parsed)
 
 export
 runParserTo : {e : _} ->
