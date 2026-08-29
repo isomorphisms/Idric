@@ -11,6 +11,26 @@ unicode_apply = \function⇒\value⇒function value
 ascii_function : Integer -> Integer
 ascii_function = \value => value + 1
 
+infixl 1 ~>
+(~>) : Integer -> (Integer -> Integer) -> Integer
+value ~> function = function value
+
+infixr 1 <~
+(<~) : (Integer -> Integer) -> Integer -> Integer
+function <~ value = function value
+
+unicode_pipe : Integer
+unicode_pipe = 4↝unicode_function
+
+ascii_pipe : Integer
+ascii_pipe = 4 ~> unicode_function
+
+unicode_reverse_pipe : Integer
+unicode_reverse_pipe = unicode_function↜4
+
+ascii_reverse_pipe : Integer
+ascii_reverse_pipe = unicode_function <~ 4
+
 unicode_order : Bool
 unicode_order = 1≤2
 
@@ -18,7 +38,7 @@ ascii_order : Bool
 ascii_order = 1 <= 2
 
 syntax_literal : String
-syntax_literal = "-> => → ⇒ ← ≤"
+syntax_literal = "-> => → ⇒ ← ≤ <~ ~> ↜ ↝"
 
 main : IO ()
 main = do
@@ -29,6 +49,10 @@ main = do
   printLn (unicode_function 4)
   printLn (unicode_apply unicode_function 4)
   printLn (ascii_function 4)
+  printLn unicode_pipe
+  printLn ascii_pipe
+  printLn unicode_reverse_pipe
+  printLn ascii_reverse_pipe
   printLn unicode_order
   printLn ascii_order
   printLn idris_compat_value
