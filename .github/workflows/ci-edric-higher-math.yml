@@ -1,0 +1,25 @@
+name: Edric higher-math smoke
+
+on:
+  pull_request:
+    paths:
+      - 'examples/higher-math-constraint-inference/**'
+      - 'tests/idris2/basic/edric008/**'
+      - '.github/workflows/ci-edric-higher-math.yml'
+  push:
+    paths:
+      - 'examples/higher-math-constraint-inference/**'
+      - 'tests/idris2/basic/edric008/**'
+      - '.github/workflows/ci-edric-higher-math.yml'
+
+jobs:
+  higher-math:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bootstrap Edric
+        run: ./edric bootstrap
+
+      - name: Compile higher-math fixtures
+        run: make test only=idris2/basic/edric008
