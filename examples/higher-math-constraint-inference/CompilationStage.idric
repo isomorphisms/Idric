@@ -1,0 +1,86 @@
+module CompilationStage
+
+import HigherMathInference
+
+%default total
+
+-- Compilation-stage checkpoint for indexed expressions inferred from source
+-- such as aᵢ, bⱼ, or Tⁱⱼ.
+--
+-- The important boundary is between semantics and realization.
+--
+-- R is a useful precedent for the semantics:
+--
+--   x * y    => element-by-element arithmetic
+--   A %*% B  => matrix multiplication
+--
+-- R's implementation also shows why "vectorized" must not be used as a
+-- synonym for "SIMD instructions".  Base arithmetic in src/main/arithmetic.c
+-- explicitly iterates over elements.  Matrix products in src/main/array.c can
+-- dispatch to BLAS dgemv/dgemm and also retain internal-loop fallbacks.
+--
+-- For Idriç, the first compilation invariant should therefore be that inferred
+-- indexed work remains explicit in the compiler representation.  Backend
+-- planning can then choose an implementation without losing the mathematical
+-- fact that the operation is indexed.
+
+public export
+data IndexedMeaning
+  = ElementwiseIndexed
+  | EinsteinContracted
+
+public export
+data IndexedCompilePlan
+  = IndexedWork EinsteinAxis IndexedMeaning
+
+public export
+planIndexedWork : IndexedMeaning → EinsteinAxis → IndexedCompilePlan
+planIndexedWork meaning axis = IndexedWork axis meaning
+
+-- Realization policy is intentionally not a hard backend requirement yet.
+-- A scalar indexed loop is semantically acceptable.  SIMD and GPU fragment
+-- work are preferred targets when the backend and shape make them sensible.
+-- Branching does not look like the natural realization for ordinary indexed
+-- arithmetic, but it is deliberately left unresolved at this stage rather than
+-- forbidden by the type/index inference experiment.
+
+public export
+data IndexedRealization
+  = ScalarIndexedLoop
+  | SIMDIndexed
+  | GPUFragmentIndexed
+  | BranchingIndexed
+
+public export
+data RealizationPolicy
+  = Preferred
+  | Acceptable
+  | OpenQuestion
+
+public export
+realizationPolicy : IndexedRealization → RealizationPolicy
+realizationPolicy ScalarIndexedLoop = Acceptable
+realizationPolicy SIMDIndexed = Preferred
+realizationPolicy GPUFragmentIndexed = Preferred
+realizationPolicy BranchingIndexed = OpenQuestion
+
+-- Future compiler receipt:
+--
+--   source/index inference
+--     aᵢ * bᵢ
+--        |
+--        v
+--     shared unknown index domain ?I
+--        |
+--        v
+--     IndexedWork IAxis ElementwiseIndexed
+--        |
+--        +--> SIMDIndexed          preferred
+--        +--> GPUFragmentIndexed   preferred
+--        +--> ScalarIndexedLoop    acceptable
+--        +--> BranchingIndexed     open question
+--
+-- A later backend-specific test may tighten this policy.  For example, a target
+-- with a known SIMD multiply path could require SIMD for a sufficiently large,
+-- contiguous elementwise product.  That should be a lowering/optimization
+-- contract, not a meaning attached directly to the Unicode subscript glyph.
