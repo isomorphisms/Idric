@@ -1,0 +1,44 @@
+module PresheafTensorTests
+
+import HigherMathInference
+import PresheafTensor
+
+%default total
+
+-- Tests first: the implementation module is intentionally added in the next
+-- commit.  These tests state the small presheaf-tensor laws we want the type
+-- checker/normalizer to see.
+
+whole_tensor : ElementaryTensorSection Whole
+whole_tensor =
+  TensorSection (WholeSection 2) (WholeSection 3)
+
+-- The inclusion witness fixes the result index.  No separate annotation on the
+-- restriction operation is needed to tell us that the result lives over Patch.
+tensor_restriction_infers_open_test : ElementaryTensorSection Patch
+tensor_restriction_infers_open_test =
+  restrictTensor PatchWhole whole_tensor
+
+-- Restriction along U ⊆ U is the identity map.  In this finite executable
+-- model the equality should close by ordinary definitional reduction.
+tensor_restriction_identity_test :
+  restrictTensor Same tensor_restriction_infers_open_test
+    = tensor_restriction_infers_open_test
+tensor_restriction_identity_test = Refl
+
+-- Restricting Whole -> Patch -> Point must equal the direct Whole -> Point
+-- restriction.  Again, the concrete fixture should normalize to the same term.
+tensor_restriction_composition_test :
+  restrictTensor PointPatch (restrictTensor PatchWhole whole_tensor)
+    = restrictTensor PointWhole whole_tensor
+tensor_restriction_composition_test = Refl
+
+-- The restriction on an elementary tensor is componentwise.  This is the
+-- executable shadow of rho_(F tensor G) = rho_F tensor rho_G.
+tensor_restriction_componentwise_test :
+  restrictTensor PatchWhole whole_tensor
+    = TensorSection (PatchSection 2) (PatchSection 3)
+tensor_restriction_componentwise_test = Refl
+
+main : IO ()
+main = putStrLn "presheaf tensor restriction sketches: ok"
