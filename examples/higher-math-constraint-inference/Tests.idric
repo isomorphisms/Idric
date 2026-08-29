@@ -1,6 +1,7 @@
 module Tests
 
 import HigherMathInference
+import CompilationStage
 
 %default total
 
@@ -54,7 +55,8 @@ ostrowski_5_adic_example_test = Refl
 --   ᵢ ⱼ ₖ are lower indices; ⁱ ʲ ᵏ are upper indices.
 -- An index occurring once is free.  The same index occurring exactly once
 -- lower and exactly once upper is contracted.  Repetition at the same height
--- is rejected by this strict sketch instead of being silently summed.
+-- is invalid only under the strict Einstein-product interpretation; the
+-- compilation-planning tests below separately allow elementwise indexed work.
 sub_i_is_lower_test :
   indexFromGlyph 'ᵢ' = Just (Occurs IAxis Lower)
 sub_i_is_lower_test = Refl
@@ -79,15 +81,52 @@ same_tensor_trace_test :
   roleFor IAxis (occurrencesFromGlyphs ['T', 'ⁱ', 'ᵢ']) = Contracted
 same_tensor_trace_test = Refl
 
-duplicate_lower_is_invalid_test :
+strict_einstein_duplicate_lower_is_invalid_test :
   roleFor IAxis (occurrencesFromGlyphs ['A', 'ᵢ', 'B', 'ᵢ'])
     = InvalidRepeated
-duplicate_lower_is_invalid_test = Refl
+strict_einstein_duplicate_lower_is_invalid_test = Refl
 
 matrix_times_vector_signature_test :
   signatureFromGlyphs ['T', 'ⁱ', 'ⱼ', 'v', 'ʲ']
     = Signature FreeUpper Contracted Absent
 matrix_times_vector_signature_test = Refl
+
+-- 5. Compilation-stage indexed-work contract.
+--
+-- R is a useful semantic precedent here: ordinary `x * y` is elementwise,
+-- while `%*%` is a distinct matrix product.  That is a source-language
+-- semantic distinction, not a promise that `*` literally becomes SIMD.
+--
+-- The compiler invariant we want first is therefore weaker and cleaner:
+-- once type/index inference says "this is indexed work over i", that fact must
+-- survive into compilation planning instead of collapsing into unrelated
+-- scalar expressions.  Realization may initially be a scalar indexed loop,
+-- SIMD, or GPU fragment work.  SIMD/GPU are preferred but not yet mandatory.
+-- Branching remains an open question rather than being forbidden prematurely.
+
+elementwise_i_reaches_compilation_test :
+  planIndexedWork ElementwiseIndexed IAxis = IndexedWork IAxis ElementwiseIndexed
+elementwise_i_reaches_compilation_test = Refl
+
+einstein_j_reaches_compilation_test :
+  planIndexedWork EinsteinContracted JAxis = IndexedWork JAxis EinsteinContracted
+einstein_j_reaches_compilation_test = Refl
+
+scalar_loop_is_acceptable_test :
+  realizationPolicy ScalarIndexedLoop = Acceptable
+scalar_loop_is_acceptable_test = Refl
+
+simd_is_preferred_test :
+  realizationPolicy SIMDIndexed = Preferred
+simd_is_preferred_test = Refl
+
+gpu_fragment_is_preferred_test :
+  realizationPolicy GPUFragmentIndexed = Preferred
+gpu_fragment_is_preferred_test = Refl
+
+branching_is_left_open_test :
+  realizationPolicy BranchingIndexed = OpenQuestion
+branching_is_left_open_test = Refl
 
 main : IO ()
 main = putStrLn "higher-math constraint inference sketches: ok"
