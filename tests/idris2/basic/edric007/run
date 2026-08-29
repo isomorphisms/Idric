@@ -1,0 +1,17 @@
+. ../../../testutils.sh
+
+reject_idric() {
+    if idris2_no_clean --check "$1" >/dev/null 2>&1; then
+        echo "unexpected Idriç acceptance: $1"
+        exit 1
+    fi
+}
+
+reject_idric WideDouble.idric
+reject_idric WideFloat.idric
+reject_idric Decimal.idric
+
+# The compiler implementation and ordinary Idris compatibility may still use
+# inherited Double internally. The filename-scoped Idriç profile is the part
+# that forbids wide floating arithmetic.
+check IdrisDouble.idr >/dev/null
