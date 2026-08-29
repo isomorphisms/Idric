@@ -1,0 +1,175 @@
+module Tests
+
+import LinearGeometryTypes
+
+%default total
+
+-- --------------------------------------------------------------------------
+-- 1. Dimension-indexed linear algebra
+-- --------------------------------------------------------------------------
+
+same_dimension_difference_test :
+  difference
+    (VCons 5 (VCons 7 VNil))
+    (VCons 2 (VCons 3 VNil))
+    = VCons 3 (VCons 4 VNil)
+same_dimension_difference_test = Refl
+
+three_four_norm_test :
+  squaredNorm (VCons 3 (VCons 4 VNil)) = 25
+three_four_norm_test = Refl
+
+same_dimension_distance_test :
+  squaredDistance
+    (VCons 5 (VCons 7 VNil))
+    (VCons 2 (VCons 3 VNil))
+    = 25
+same_dimension_distance_test = Refl
+
+explicit_threshold_accepts_test :
+  withinSquaredTolerance 25
+    (VCons 5 (VCons 7 VNil))
+    (VCons 2 (VCons 3 VNil))
+    = True
+explicit_threshold_accepts_test = Refl
+
+explicit_threshold_rejects_test :
+  withinSquaredTolerance 24
+    (VCons 5 (VCons 7 VNil))
+    (VCons 2 (VCons 3 VNil))
+    = False
+explicit_threshold_rejects_test = Refl
+
+semantic_residual_test :
+  semanticResidual
+    (Embedding (VCons 5 (VCons 7 VNil)))
+    (Embedding (VCons 2 (VCons 3 VNil)))
+    = VCons 3 (VCons 4 VNil)
+semantic_residual_test = Refl
+
+-- A differently dimensioned pair is intentionally not representable as an
+-- argument to difference/semanticResidual.  Dimension agreement is a type
+-- constraint, not a runtime convention.
+
+-- --------------------------------------------------------------------------
+-- 2. O(n), SO(n), reflections, and a first exact Givens-style quarter turn
+-- --------------------------------------------------------------------------
+
+orientation_reflection_reflection_test :
+  composeOrientation Reversing Reversing = Preserving
+orientation_reflection_reflection_test = Refl
+
+orientation_rotation_reflection_test :
+  composeOrientation Preserving Reversing = Reversing
+orientation_rotation_reflection_test = Refl
+
+reflection_in_r3_type_test : OrthogonalTransform 3 Reversing
+reflection_in_r3_type_test = firstAxisReflection
+
+quarter_turn_in_r3_type_test : SpecialOrthogonal 3
+quarter_turn_in_r3_type_test = firstPlaneQuarterTurn
+
+two_reflections_land_in_so3_test : SpecialOrthogonal 3
+two_reflections_land_in_so3_test =
+  twoReflections firstAxisReflection firstAxisReflection
+
+-- --------------------------------------------------------------------------
+-- 3. Spheres: ambient dimension is carried by the type and O(n) preserves it
+-- --------------------------------------------------------------------------
+
+north_pole_is_s2_test : UnitSpherePoint 2
+north_pole_is_s2_test = northPoleS2
+
+so3_action_stays_on_s2_test : UnitSpherePoint 2
+so3_action_stays_on_s2_test =
+  actSOOnUnitSphere firstPlaneQuarterTurn northPoleS2
+
+sphere_s0_h0_rank_test :
+  sphereIntegralCohomologyRank 0 0 = 2
+sphere_s0_h0_rank_test = Refl
+
+sphere_s2_h0_rank_test :
+  sphereIntegralCohomologyRank 2 0 = 1
+sphere_s2_h0_rank_test = Refl
+
+sphere_s2_h1_rank_test :
+  sphereIntegralCohomologyRank 2 1 = 0
+sphere_s2_h1_rank_test = Refl
+
+sphere_s2_h2_rank_test :
+  sphereIntegralCohomologyRank 2 2 = 1
+sphere_s2_h2_rank_test = Refl
+
+odd_sphere_euler_test :
+  sphereEulerCharacteristic 3 = 0
+odd_sphere_euler_test = Refl
+
+even_sphere_euler_test :
+  sphereEulerCharacteristic 4 = 2
+even_sphere_euler_test = Refl
+
+-- --------------------------------------------------------------------------
+-- 4. Quaternions and the unit-quaternion -> SO(3) boundary
+-- --------------------------------------------------------------------------
+
+quaternion_i_j_test :
+  quaternionMultiply quatI quatJ = quatK
+quaternion_i_j_test = Refl
+
+quaternion_j_i_test :
+  quaternionMultiply quatJ quatI = quaternionNegate quatK
+quaternion_j_i_test = Refl
+
+quaternion_i_norm_test :
+  quaternionNormSquared quatI = 1
+quaternion_i_norm_test = Refl
+
+unit_quaternion_rotation_is_so3_test : SpecialOrthogonal 3
+unit_quaternion_rotation_is_so3_test = quaternionRotation unitQuatI
+
+-- --------------------------------------------------------------------------
+-- 5. CP^n and standard quotient/cohomology facts
+-- --------------------------------------------------------------------------
+
+cp3_real_dimension_test :
+  cpRealDimension 3 = 6
+cp3_real_dimension_test = Refl
+
+cp3_hopf_sphere_dimension_test :
+  cpHopfSphereDimension 3 = 7
+cp3_hopf_sphere_dimension_test = Refl
+
+cp2_h0_rank_test :
+  cpIntegralCohomologyRank 2 0 = 1
+cp2_h0_rank_test = Refl
+
+cp2_h2_rank_test :
+  cpIntegralCohomologyRank 2 2 = 1
+cp2_h2_rank_test = Refl
+
+cp2_h4_rank_test :
+  cpIntegralCohomologyRank 2 4 = 1
+cp2_h4_rank_test = Refl
+
+cp2_h3_rank_test :
+  cpIntegralCohomologyRank 2 3 = 0
+cp2_h3_rank_test = Refl
+
+cp2_h6_rank_test :
+  cpIntegralCohomologyRank 2 6 = 0
+cp2_h6_rank_test = Refl
+
+-- --------------------------------------------------------------------------
+-- 6. Named standard topology facts: do not make inference rediscover proofs
+-- --------------------------------------------------------------------------
+
+jordan_curve_has_two_complement_components_test :
+  complementComponentCount (jordanSeparation jordanCurveExample) = 2
+jordan_curve_has_two_complement_components_test = Refl
+
+r3_one_point_compactifies_to_s3_test :
+  compactifiedSphereDimension (euclideanOnePointCompactification 3) = 3
+r3_one_point_compactifies_to_s3_test = Refl
+
+main : IO ()
+main = putStrLn "linear geometry type core: ok"
