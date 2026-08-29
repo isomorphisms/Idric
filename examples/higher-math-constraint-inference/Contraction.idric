@@ -1,0 +1,105 @@
+module Contraction
+
+%default total
+
+-- Small executable contraction kernel.
+--
+-- This deliberately exposes only the mathematical operations needed by the
+-- first tests.  It does not require the programmer to inherit from or name a
+-- Group/Module/Tensor hierarchy.  Those classifications can remain available
+-- to later mathematical reasoning without becoming Java-shaped source syntax.
+--
+-- `Vector` below means an actual mathematical vector: an element of one of the
+-- finite free Z-modules represented by the named spaces.  `Covector` is the
+-- corresponding dual object.  A covector may eat a vector only when their
+-- space index agrees.
+
+public export
+data LinearSpace
+  = LineSpace
+  | PlaneSpace
+  | ThreeSpace
+
+public export
+data Vector : LinearSpace -> Type where
+  LineVector : Integer -> Vector LineSpace
+  PlaneVector : Integer -> Integer -> Vector PlaneSpace
+  ThreeVector : Integer -> Integer -> Integer -> Vector ThreeSpace
+
+public export
+data Covector : LinearSpace -> Type where
+  LineCovector : Integer -> Covector LineSpace
+  PlaneCovector : Integer -> Integer -> Covector PlaneSpace
+  ThreeCovector : Integer -> Integer -> Integer -> Covector ThreeSpace
+
+public export
+lineVector : Integer -> Vector LineSpace
+lineVector x = LineVector x
+
+public export
+planeVector : Integer -> Integer -> Vector PlaneSpace
+planeVector x y = PlaneVector x y
+
+public export
+threeVector : Integer -> Integer -> Integer -> Vector ThreeSpace
+threeVector x y z = ThreeVector x y z
+
+public export
+lineCovector : Integer -> Covector LineSpace
+lineCovector a = LineCovector a
+
+public export
+planeCovector : Integer -> Integer -> Covector PlaneSpace
+planeCovector a b = PlaneCovector a b
+
+public export
+threeCovector : Integer -> Integer -> Integer -> Covector ThreeSpace
+threeCovector a b c = ThreeCovector a b c
+
+-- Evaluation / rank-one contraction.  The shared dependent index is the type
+-- check: `Covector s` can consume only `Vector s`.  No runtime shape guess is
+-- required.
+public export
+contract : Covector space -> Vector space -> Integer
+contract (LineCovector a) (LineVector x) = a * x
+contract (PlaneCovector a b) (PlaneVector x y) = a * x + b * y
+contract (ThreeCovector a b c) (ThreeVector x y z) =
+  a * x + b * y + c * z
+
+public export
+addVector : Vector space -> Vector space -> Vector space
+addVector (LineVector x) (LineVector y) = LineVector (x + y)
+addVector (PlaneVector x1 x2) (PlaneVector y1 y2) =
+  PlaneVector (x1 + y1) (x2 + y2)
+addVector (ThreeVector x1 x2 x3) (ThreeVector y1 y2 y3) =
+  ThreeVector (x1 + y1) (x2 + y2) (x3 + y3)
+
+public export
+scaleVector : Integer -> Vector space -> Vector space
+scaleVector k (LineVector x) = LineVector (k * x)
+scaleVector k (PlaneVector x y) = PlaneVector (k * x) (k * y)
+scaleVector k (ThreeVector x y z) = ThreeVector (k * x) (k * y) (k * z)
+
+public export
+addCovector : Covector space -> Covector space -> Covector space
+addCovector (LineCovector a) (LineCovector b) = LineCovector (a + b)
+addCovector (PlaneCovector a1 a2) (PlaneCovector b1 b2) =
+  PlaneCovector (a1 + b1) (a2 + b2)
+addCovector (ThreeCovector a1 a2 a3) (ThreeCovector b1 b2 b3) =
+  ThreeCovector (a1 + b1) (a2 + b2) (a3 + b3)
+
+public export
+scaleCovector : Integer -> Covector space -> Covector space
+scaleCovector k (LineCovector a) = LineCovector (k * a)
+scaleCovector k (PlaneCovector a b) = PlaneCovector (k * a) (k * b)
+scaleCovector k (ThreeCovector a b c) =
+  ThreeCovector (k * a) (k * b) (k * c)
+
+-- Intentionally absent:
+--
+--   Vector s -> Covector s
+--
+-- Such a map requires additional structure (for example, a chosen nondegenerate
+-- bilinear form / metric).  The compiler must not invent that structure merely
+-- because two objects have the same number of coordinates.  Consequently two
+-- vectors do not silently become contractible through this API.
