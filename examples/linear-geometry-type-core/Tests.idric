@@ -74,6 +74,76 @@ two_reflections_land_in_so3_test =
   twoReflections firstAxisReflection firstAxisReflection
 
 -- --------------------------------------------------------------------------
+-- 2b. High-dimensional exact coordinate oracles
+-- --------------------------------------------------------------------------
+
+-- These deliberately use R^128 so the test exercises a genuinely
+-- high-dimensional type while keeping the arithmetic tiny and exact.  The
+-- first-plane quarter turn is the block matrix [[0,-1],[1,0]] plus I_126;
+-- the reflection is diag(-1,1,...,1).  The trailing 125 zeros are generated
+-- structurally rather than written out.
+
+r128_sample : ExactRealVector 128
+r128_sample = VCons 3 (VCons 4 (VCons 12 (zeroVector 125)))
+
+r128_companion : ExactRealVector 128
+r128_companion = VCons 5 (VCons (-2) (VCons 7 (zeroVector 125)))
+
+reflection_in_r128_type_test : OrthogonalTransform 128 Reversing
+reflection_in_r128_type_test = firstAxisReflection
+
+quarter_turn_in_r128_type_test : SpecialOrthogonal 128
+quarter_turn_in_r128_type_test = firstPlaneQuarterTurn
+
+two_reflections_land_in_so128_test : SpecialOrthogonal 128
+two_reflections_land_in_so128_test =
+  twoReflections firstAxisReflection firstAxisReflection
+
+r128_reflection_exact_image_test :
+  applyFirstAxisReflection r128_sample
+    = VCons (-3) (VCons 4 (VCons 12 (zeroVector 125)))
+r128_reflection_exact_image_test = Refl
+
+r128_quarter_turn_exact_image_test :
+  applyFirstPlaneQuarterTurn r128_sample
+    = VCons (-4) (VCons 3 (VCons 12 (zeroVector 125)))
+r128_quarter_turn_exact_image_test = Refl
+
+r128_reflection_preserves_squared_norm_test :
+  squaredNorm (applyFirstAxisReflection r128_sample) = 169
+r128_reflection_preserves_squared_norm_test = Refl
+
+r128_quarter_turn_preserves_squared_norm_test :
+  squaredNorm (applyFirstPlaneQuarterTurn r128_sample) = 169
+r128_quarter_turn_preserves_squared_norm_test = Refl
+
+r128_reflection_preserves_dot_test :
+  dot
+    (applyFirstAxisReflection r128_sample)
+    (applyFirstAxisReflection r128_companion)
+    = 91
+r128_reflection_preserves_dot_test = Refl
+
+r128_quarter_turn_preserves_dot_test :
+  dot
+    (applyFirstPlaneQuarterTurn r128_sample)
+    (applyFirstPlaneQuarterTurn r128_companion)
+    = 91
+r128_quarter_turn_preserves_dot_test = Refl
+
+r128_reflection_is_involution_test :
+  applyFirstAxisReflection (applyFirstAxisReflection r128_sample) = r128_sample
+r128_reflection_is_involution_test = Refl
+
+r128_four_quarter_turns_are_identity_test :
+  applyFirstPlaneQuarterTurn
+    (applyFirstPlaneQuarterTurn
+      (applyFirstPlaneQuarterTurn
+        (applyFirstPlaneQuarterTurn r128_sample)))
+    = r128_sample
+r128_four_quarter_turns_are_identity_test = Refl
+
+-- --------------------------------------------------------------------------
 -- 3. Spheres: ambient dimension is carried by the type and O(n) preserves it
 -- --------------------------------------------------------------------------
 
