@@ -10,9 +10,16 @@ cp ../../../../examples/higher-math-constraint-inference/Tests.idric Tests.idr
 ./build/exec/higher-math-constraint-inference
 
 # Negative type-checking receipt: a covector over PlaneSpace must not consume a
-# vector over ThreeSpace.  If this ever compiles, the space constraint leaked.
-if "$idris2" bad.idr >/dev/null 2>&1; then
+# vector over ThreeSpace.  Require the failure to name both spaces so an
+# unrelated parse/module error cannot satisfy this test by accident.
+if "$idris2" Bad.idr >/dev/null 2>bad.err; then
   echo "mismatched contraction unexpectedly typechecked" >&2
+  exit 1
+fi
+
+if ! grep -q 'PlaneSpace' bad.err || ! grep -q 'ThreeSpace' bad.err; then
+  cat bad.err >&2
+  echo "mismatched contraction failed for the wrong reason" >&2
   exit 1
 fi
 
