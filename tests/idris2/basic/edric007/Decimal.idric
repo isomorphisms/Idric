@@ -1,0 +1,4 @@
+module Decimal
+
+main : IO ()
+main = printLn 1.5
