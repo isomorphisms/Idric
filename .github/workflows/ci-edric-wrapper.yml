@@ -6,6 +6,9 @@ on:
       - 'edric'
       - 'scripts/ensure-chez.sh'
       - 'src/Parser/Source.idr'
+      - 'libs/prelude/Prelude.idr'
+      - 'libs/prelude/Prelude/Float16.idr'
+      - 'libs/prelude/prelude.ipkg'
       - 'tests/idris2/basic/edric007/**'
       - '.github/workflows/ci-edric-wrapper.yml'
   pull_request:
@@ -13,6 +16,9 @@ on:
       - 'edric'
       - 'scripts/ensure-chez.sh'
       - 'src/Parser/Source.idr'
+      - 'libs/prelude/Prelude.idr'
+      - 'libs/prelude/Prelude/Float16.idr'
+      - 'libs/prelude/prelude.ipkg'
       - 'tests/idris2/basic/edric007/**'
       - '.github/workflows/ci-edric-wrapper.yml'
 
@@ -72,5 +78,5 @@ jobs:
       - name: Bootstrap compiler
         run: make bootstrap SCHEME=scheme
 
-      - name: Check Idriç floating source profile
+      - name: Check Idriç Float16 coercion source profile
         run: make test only=idris2/basic/edric007
