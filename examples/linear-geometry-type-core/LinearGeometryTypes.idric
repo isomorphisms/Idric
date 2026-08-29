@@ -1,0 +1,357 @@
+module LinearGeometryTypes
+
+%default total
+
+-- This is an executable type-system slice for settled linear/elementary
+-- geometry.  It is deliberately not a complete real-number implementation.
+-- ExactRealVector uses Integer coordinates as exact sample points embedded in
+-- R^n so the compiler can execute the structural tests without introducing a
+-- floating-point policy here.  The dimension/orientation/topology interfaces
+-- are the part under test; a later scalar layer can widen the coordinates.
+
+-- --------------------------------------------------------------------------
+-- 1. Dimension-indexed mathematical vectors
+-- --------------------------------------------------------------------------
+
+public export
+data ExactRealVector : Nat -> Type where
+  VNil  : ExactRealVector Z
+  VCons : Integer -> ExactRealVector n -> ExactRealVector (S n)
+
+public export
+add : ExactRealVector n -> ExactRealVector n -> ExactRealVector n
+add VNil VNil = VNil
+add (VCons x xs) (VCons y ys) = VCons (x + y) (add xs ys)
+
+public export
+negateVector : ExactRealVector n -> ExactRealVector n
+negateVector VNil = VNil
+negateVector (VCons x xs) = VCons (-x) (negateVector xs)
+
+public export
+difference : ExactRealVector n -> ExactRealVector n -> ExactRealVector n
+difference VNil VNil = VNil
+difference (VCons x xs) (VCons y ys) = VCons (x - y) (difference xs ys)
+
+public export
+dot : ExactRealVector n -> ExactRealVector n -> Integer
+dot VNil VNil = 0
+dot (VCons x xs) (VCons y ys) = x * y + dot xs ys
+
+public export
+squaredNorm : ExactRealVector n -> Integer
+squaredNorm x = dot x x
+
+public export
+squaredDistance : ExactRealVector n -> ExactRealVector n -> Integer
+squaredDistance x y = squaredNorm (difference x y)
+
+-- Approximation thresholds remain explicit.  The type system may require that
+-- both operands inhabit the same ambient dimension; it must not invent the
+-- application-specific epsilon that says two semantic displacements are close.
+public export
+withinSquaredTolerance :
+  Integer -> ExactRealVector n -> ExactRealVector n -> Bool
+withinSquaredTolerance tolerance x y = squaredDistance x y <= tolerance
+
+public export
+data SemanticEmbedding : Nat -> Type where
+  Embedding : ExactRealVector n -> SemanticEmbedding n
+
+public export
+semanticResidual :
+  SemanticEmbedding n -> SemanticEmbedding n -> ExactRealVector n
+semanticResidual (Embedding x) (Embedding y) = difference x y
+
+public export
+semanticWithinSquaredTolerance :
+  Integer -> SemanticEmbedding n -> SemanticEmbedding n -> Bool
+semanticWithinSquaredTolerance tolerance (Embedding x) (Embedding y) =
+  withinSquaredTolerance tolerance x y
+
+-- --------------------------------------------------------------------------
+-- 2. Quaternion sample algebra
+-- --------------------------------------------------------------------------
+
+-- Integer coefficients give an executable exact subring of the quaternion
+-- algebra.  The multiplication laws are the ordinary Hamilton laws; this does
+-- not claim that the eventual scalar type for H should be Integer.
+public export
+data Quaternion = Q Integer Integer Integer Integer
+
+public export
+quaternionNegate : Quaternion -> Quaternion
+quaternionNegate (Q a b c d) = Q (-a) (-b) (-c) (-d)
+
+public export
+quaternionMultiply : Quaternion -> Quaternion -> Quaternion
+quaternionMultiply (Q a b c d) (Q e f g h) =
+  Q
+    (a * e - b * f - c * g - d * h)
+    (a * f + b * e + c * h - d * g)
+    (a * g - b * h + c * e + d * f)
+    (a * h + b * g - c * f + d * e)
+
+public export
+quaternionNormSquared : Quaternion -> Integer
+quaternionNormSquared (Q a b c d) =
+  a * a + b * b + c * c + d * d
+
+public export
+quatOne : Quaternion
+quatOne = Q 1 0 0 0
+
+public export
+quatI : Quaternion
+quatI = Q 0 1 0 0
+
+public export
+quatJ : Quaternion
+quatJ = Q 0 0 1 0
+
+public export
+quatK : Quaternion
+quatK = Q 0 0 0 1
+
+-- A unit sample carries the norm-one certificate.  This is intentionally a
+-- dependent value, not a Boolean tag that can drift away from its quaternion.
+public export
+data UnitQuaternion : Type where
+  UnitQuaternionValue :
+    (q : Quaternion) -> quaternionNormSquared q = 1 -> UnitQuaternion
+
+public export
+unitQuatOne : UnitQuaternion
+unitQuatOne = UnitQuaternionValue quatOne Refl
+
+public export
+unitQuatI : UnitQuaternion
+unitQuatI = UnitQuaternionValue quatI Refl
+
+public export
+unitQuatJ : UnitQuaternion
+unitQuatJ = UnitQuaternionValue quatJ Refl
+
+public export
+unitQuatK : UnitQuaternion
+unitQuatK = UnitQuaternionValue quatK Refl
+
+-- --------------------------------------------------------------------------
+-- 3. O(n), SO(n), reflections, and exact rotation generators
+-- --------------------------------------------------------------------------
+
+public export
+data Orientation = Preserving | Reversing
+
+public export
+composeOrientation : Orientation -> Orientation -> Orientation
+composeOrientation Preserving Preserving = Preserving
+composeOrientation Preserving Reversing = Reversing
+composeOrientation Reversing Preserving = Reversing
+composeOrientation Reversing Reversing = Preserving
+
+-- There is deliberately no "arbitrary matrix is orthogonal" constructor.
+-- Every constructor below denotes a transformation whose orthogonality is
+-- settled mathematically, and composition preserves that invariant.
+--
+-- FirstPlaneQuarterTurnTransform is the exact Givens rotation in the first
+-- coordinate plane with c = 0, s = 1.  It works in any ambient dimension >= 2.
+-- General-angle/arbitrary-axis Givens rotations can be added when the scalar
+-- and trigonometric representation is settled.
+public export
+data OrthogonalTransform : Nat -> Orientation -> Type where
+  OrthogonalIdentity : OrthogonalTransform n Preserving
+  FirstAxisReflection : OrthogonalTransform (S n) Reversing
+  FirstPlaneQuarterTurnTransform :
+    OrthogonalTransform (S (S n)) Preserving
+  QuaternionRotationTransform :
+    UnitQuaternion -> OrthogonalTransform 3 Preserving
+  ComposeOrthogonal :
+    OrthogonalTransform n left ->
+    OrthogonalTransform n right ->
+    OrthogonalTransform n (composeOrientation left right)
+
+public export
+data SpecialOrthogonal : Nat -> Type where
+  InSO : OrthogonalTransform n Preserving -> SpecialOrthogonal n
+
+public export
+firstAxisReflection : OrthogonalTransform (S n) Reversing
+firstAxisReflection = FirstAxisReflection
+
+public export
+firstPlaneQuarterTurn : SpecialOrthogonal (S (S n))
+firstPlaneQuarterTurn = InSO FirstPlaneQuarterTurnTransform
+
+public export
+composeOrthogonal :
+  OrthogonalTransform n left ->
+  OrthogonalTransform n right ->
+  OrthogonalTransform n (composeOrientation left right)
+composeOrthogonal = ComposeOrthogonal
+
+public export
+twoReflections :
+  OrthogonalTransform n Reversing ->
+  OrthogonalTransform n Reversing ->
+  SpecialOrthogonal n
+twoReflections left right = InSO (ComposeOrthogonal left right)
+
+public export
+quaternionRotation : UnitQuaternion -> SpecialOrthogonal 3
+quaternionRotation q = InSO (QuaternionRotationTransform q)
+
+public export
+soTransform : SpecialOrthogonal n -> OrthogonalTransform n Preserving
+soTransform (InSO transform) = transform
+
+-- --------------------------------------------------------------------------
+-- 4. Spheres and orthogonal actions
+-- --------------------------------------------------------------------------
+
+-- UnitSpherePoint n means a point of S^n in ambient R^(n+1).  A checked exact
+-- coordinate sample carries its norm-one equality.  OrthogonalImage records the
+-- standard theorem that O(n+1) preserves the unit sphere without asking the
+-- elaborator to rediscover that theorem from coordinate arithmetic each time.
+public export
+data UnitSpherePoint : Nat -> Type where
+  CheckedUnitSpherePoint :
+    (coordinates : ExactRealVector (S n)) ->
+    squaredNorm coordinates = 1 ->
+    UnitSpherePoint n
+  OrthogonalImage :
+    OrthogonalTransform (S n) orientation ->
+    UnitSpherePoint n ->
+    UnitSpherePoint n
+
+public export
+actOnUnitSphere :
+  OrthogonalTransform (S n) orientation -> UnitSpherePoint n -> UnitSpherePoint n
+actOnUnitSphere transform point = OrthogonalImage transform point
+
+public export
+actSOOnUnitSphere :
+  SpecialOrthogonal (S n) -> UnitSpherePoint n -> UnitSpherePoint n
+actSOOnUnitSphere rotation point = OrthogonalImage (soTransform rotation) point
+
+public export
+northPoleS2 : UnitSpherePoint 2
+northPoleS2 =
+  CheckedUnitSpherePoint
+    (VCons 0 (VCons 0 (VCons 1 VNil)))
+    Refl
+
+-- Integral cohomology ranks of ordinary spheres.  The S^0 case is explicit:
+-- it has two connected components, so H^0(S^0; Z) has rank 2.  For n > 0 the
+-- only nonzero ranks are degree 0 and degree n, both rank 1.  Odd/even spheres
+-- therefore do NOT differ at this additive-rank level.
+public export
+sphereIntegralCohomologyRank : Nat -> Nat -> Nat
+sphereIntegralCohomologyRank Z Z = 2
+sphereIntegralCohomologyRank Z (S degree) = 0
+sphereIntegralCohomologyRank (S dimension) Z = 1
+sphereIntegralCohomologyRank (S dimension) (S degree) =
+  if dimension == degree then 1 else 0
+
+public export
+data Parity = Even | Odd
+
+public export
+flipParity : Parity -> Parity
+flipParity Even = Odd
+flipParity Odd = Even
+
+public export
+natParity : Nat -> Parity
+natParity Z = Even
+natParity (S n) = flipParity (natParity n)
+
+-- chi(S^n) = 1 + (-1)^n.
+public export
+sphereEulerCharacteristic : Nat -> Integer
+sphereEulerCharacteristic dimension =
+  case natParity dimension of
+    Even => 2
+    Odd => 0
+
+-- --------------------------------------------------------------------------
+-- 5. Complex projective-space facts used as typed library knowledge
+-- --------------------------------------------------------------------------
+
+-- CP^n has complex dimension n and real dimension 2n.
+public export
+cpRealDimension : Nat -> Nat
+cpRealDimension n = n + n
+
+-- The Hopf quotient presentation is CP^n = S^(2n+1) / S^1.  This function
+-- returns the dimension of the sphere appearing in that standard presentation.
+public export
+cpHopfSphereDimension : Nat -> Nat
+cpHopfSphereDimension n = S (n + n)
+
+-- Additive integral cohomology ranks of CP^n: rank 1 in even degrees
+-- 0,2,...,2n and 0 otherwise.  Ring structure Z[x]/(x^(n+1)), |x|=2, is a
+-- separate theorem-level fact and is deliberately not faked as a polynomial
+-- implementation in this small slice.
+public export
+cpIntegralCohomologyRank : Nat -> Nat -> Nat
+cpIntegralCohomologyRank n Z = 1
+cpIntegralCohomologyRank Z (S degree) = 0
+cpIntegralCohomologyRank (S n) (S Z) = 0
+cpIntegralCohomologyRank (S n) (S (S degree)) =
+  cpIntegralCohomologyRank n degree
+
+public export
+data HopfQuotientFact : Nat -> Type where
+  CPnAsSphereByCircle : (n : Nat) -> HopfQuotientFact n
+
+public export
+cpHopfQuotient : (n : Nat) -> HopfQuotientFact n
+cpHopfQuotient n = CPnAsSphereByCircle n
+
+-- --------------------------------------------------------------------------
+-- 6. Named standard topology facts
+-- --------------------------------------------------------------------------
+
+-- These values represent theorem-library entries, not compiler-generated
+-- proofs.  The intended future elaborator boundary from #42 is: if hypotheses
+-- match a named checked theorem, the theorem may contribute a typed fact and an
+-- explanation trace saying exactly which theorem was used.
+
+-- EmbeddedCircleInS2 stands for a genuine embedding S^1 -> S^2.  The Jordan
+-- curve theorem then gives exactly two connected components in the complement.
+public export
+data EmbeddedCircleInS2 = MkJordanCurveExample
+
+public export
+jordanCurveExample : EmbeddedCircleInS2
+jordanCurveExample = MkJordanCurveExample
+
+public export
+data JordanSeparation : EmbeddedCircleInS2 -> Type where
+  ExactlyTwoComplementComponents :
+    (curve : EmbeddedCircleInS2) -> JordanSeparation curve
+
+public export
+jordanSeparation : (curve : EmbeddedCircleInS2) -> JordanSeparation curve
+jordanSeparation curve = ExactlyTwoComplementComponents curve
+
+public export
+complementComponentCount : JordanSeparation curve -> Nat
+complementComponentCount (ExactlyTwoComplementComponents curve) = 2
+
+-- For Euclidean R^n, the one-point compactification is S^n.  This is a named
+-- standard fact with the relevant family indexed explicitly; it is not a
+-- generic magical compactify operation for arbitrary spaces.
+public export
+data EuclideanCompactificationFact : Nat -> Type where
+  EuclideanPlusIsSphere : (n : Nat) -> EuclideanCompactificationFact n
+
+public export
+euclideanOnePointCompactification :
+  (n : Nat) -> EuclideanCompactificationFact n
+euclideanOnePointCompactification n = EuclideanPlusIsSphere n
+
+public export
+compactifiedSphereDimension : EuclideanCompactificationFact n -> Nat
+compactifiedSphereDimension (EuclideanPlusIsSphere n) = n
