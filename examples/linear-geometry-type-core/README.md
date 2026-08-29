@@ -1,49 +1,38 @@
 # Linear geometry type core
 
-This executable slice keeps a small set of settled finite-dimensional linear/elementary geometry facts explicit in the Idriç type layer without choosing a general floating-point representation yet.
+This is the bounded second pass after the exact units/time/interval slice.  It is intentionally centered on finite-dimensional linear algebra rather than a broad inheritance hierarchy.
 
-The coordinate samples use exact integers embedded in real vector spaces.  That is only a test representation: it lets the compiler execute dimension/orientation/topology constraints exactly and does **not** claim that real coordinates are integers.
+## SETTLED and encoded here
 
-## Dimension-indexed linear algebra
+- dimension-indexed mathematical vectors: incompatible dimensions cannot be passed to subtraction, dot product, distance, or semantic-residual operations;
+- explicit approximation thresholds: the compiler checks ambient compatibility but does not invent an application-specific semantic epsilon;
+- orientation as a type index for orthogonal transformations;
+- composition rules for orientation, including reflection × reflection landing in `SO(n)`;
+- an exact first-axis reflection and a first-coordinate-plane quarter turn (a Givens rotation with `c = 0`, `s = 1`);
+- `S^n` represented with ambient dimension `n + 1`, plus the standard `O(n+1)` action preserving sphere membership;
+- integral cohomology ranks of spheres, with the `S^0` case handled separately;
+- `chi(S^n) = 1 + (-1)^n`, so odd spheres have Euler characteristic 0 and even spheres 2;
+- Hamilton quaternion multiplication on exact integer-coordinate samples, norm-one certificates, and the typed unit-quaternion-to-`SO(3)` boundary;
+- `CP^n` real dimension `2n`, the Hopf presentation `S^(2n+1) / S^1`, and additive integral cohomology ranks;
+- named theorem-library facts for Jordan separation on `S^2` and `(R^n)^+ ~= S^n` one-point compactification.
 
-`ExactRealVector n` carries ambient dimension in its type.  Addition, subtraction, dot product, norm, distance, and semantic residual require equal dimensions by construction.  Approximation thresholds remain explicit; the compiler does not invent an epsilon.
+The additive cohomology ranks of positive-dimensional odd and even spheres are deliberately **not** distinguished: both have rank one in degrees 0 and n and zero elsewhere.  Parity appears here through Euler characteristic.
 
-## O(n), SO(n), rotations, reflections
+## Executable-coordinate boundary
 
-`OrthogonalTransform n orientation` tracks ambient dimension and orientation.  There is no constructor that simply asserts an arbitrary matrix is orthogonal.  The first exact generators are:
+`ExactRealVector n` uses integer coordinates only so these tests stay exact and avoid choosing a floating-point policy.  Such points are ordinary points of `R^n`; this is an executable sample subdomain, not a claim that real coordinates are integers.  The eventual scalar layer can widen this while keeping the dimension indices and structural constraints.
 
-- a first-coordinate-axis reflection in every positive dimension;
-- a first-plane quarter-turn Givens rotation in every dimension at least two;
-- composition, whose orientation index is computed;
-- the unit-quaternion boundary into `SO(3)`.
+Likewise, the quaternion executable fixture uses integer coefficients.  It checks Hamilton multiplication and exact norm-one samples without pretending to enumerate the full `S^3` of unit quaternions.
 
-The exact first-plane convention is the 2 by 2 block `[[0,-1],[1,0]]` embedded with an identity block on all remaining coordinates.
+## OPEN / later passes
 
-The `R^128` extension on the stacked high-dimensional branch executes those two generators on sparse exact coordinate samples and checks exact images, norm/dot preservation, orientation, reflection involution, and four-quarter-turn identity.  See `HIGH_DIMENSIONAL_VERIFICATION.md` for independent SymPy and NumPy/SciPy oracle receipts.
+- the general real scalar abstraction and precision policy;
+- arbitrary-axis Householder reflections and general-angle Givens rotations;
+- concrete matrix realization and determinant/orthogonality checking for imported matrices;
+- subspaces, orthogonal projection, and projection-law certificates;
+- normalized arbitrary semantic embeddings and cosine similarity;
+- a genuine quotient representation for `CP^n` rather than only typed standard facts;
+- the cohomology ring `Z[x]/(x^(n+1))`, `|x| = 2`, rather than only additive ranks;
+- full theorem provenance/explanation traces in the elaborator.
 
-General real angles, arbitrary coordinate planes, arbitrary Householder normals, imported-matrix orthogonality certification, and complete coordinate evaluation for every `OrthogonalTransform` remain deliberately open.
-
-## Spheres
-
-`UnitSpherePoint n` means `S^n` in ambient `R^(n+1)`.  A checked coordinate point carries its norm-one equality.  An orthogonal action preserves sphere membership at the type boundary.
-
-The ordinary integral cohomology ranks of spheres are included, with the special `S^0` case explicit.  Odd and even positive-dimensional spheres have the same additive rank pattern; parity enters here through the Euler characteristic `chi(S^n) = 1 + (-1)^n`.
-
-## Quaternions / SO(3)
-
-The executable quaternion samples use exact integer coefficients and Hamilton multiplication.  `UnitQuaternion` carries a norm-one equality rather than a detachable Boolean tag.  A unit quaternion has a typed boundary into `SO(3)`; this slice does not yet implement the full coordinate action of that rotation.
-
-## CP^n and named topology facts
-
-The slice records:
-
-- `CP^n` real dimension `2n`;
-- Hopf presentation sphere dimension `2n+1` for `CP^n = S^(2n+1)/S^1`;
-- additive integral cohomology ranks of `CP^n`;
-- named standard facts for Jordan separation on `S^2` and one-point compactification `(R^n)^+ ~= S^n`.
-
-These last facts model the intended theorem-index boundary from #42: a named checked theorem/library fact may contribute a typed consequence.  Ordinary unification is not being credited with rediscovering topology.
-
-## Deliberate boundaries
-
-This is not yet a general real-scalar or numerical-linear-algebra library.  Arbitrary-angle rotations, arbitrary Householder/Givens parameters, imported matrices, subspaces/projections, full `CP^n` quotient equality, the cohomology ring, and theorem-provenance machinery remain later work.
+The theorem-shaped entries in this slice are not presented as compiler-generated proofs.  They model the intended #42 boundary: a checked/versioned mathematical knowledge layer may contribute a named fact when its hypotheses match, and inference should be able to say exactly which fact it used.
