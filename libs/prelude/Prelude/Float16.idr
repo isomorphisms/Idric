@@ -5,6 +5,7 @@ import Prelude.Basics
 import Prelude.EqOrd
 import Prelude.Num
 import Prelude.Show
+import Prelude.Types
 
 %default total
 
@@ -27,7 +28,7 @@ roundNearestEven value =
        then lower
        else if fraction > 0.5
                then prim__add_Integer lower 1
-               else if prim__mod_Integer lower 2 == 0
+               else if assert_total (prim__mod_Integer lower 2) == 0
                        then lower
                        else prim__add_Integer lower 1
 
