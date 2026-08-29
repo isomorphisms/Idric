@@ -78,16 +78,28 @@ two_reflections_land_in_so3_test =
 -- --------------------------------------------------------------------------
 
 -- These deliberately use R^128 so the test exercises a genuinely
--- high-dimensional type while keeping the arithmetic tiny and exact.  The
--- first-plane quarter turn is the block matrix [[0,-1],[1,0]] plus I_126;
--- the reflection is diag(-1,1,...,1).  The trailing 125 zeros are generated
--- structurally rather than written out.
+-- high-dimensional type while keeping the arithmetic exact.  The first-plane
+-- quarter turn is the block matrix [[0,-1],[1,0]] plus I_126; the reflection
+-- is diag(-1,1,...,1).  A nonzero final coordinate makes preservation of the
+-- far end of the 128-dimensional object part of the exact oracle too.
+
+lastCoordinate : (n : Nat) -> Integer -> ExactRealVector (S n)
+lastCoordinate Z value = VCons value VNil
+lastCoordinate (S n) value = VCons 0 (lastCoordinate n value)
+
+r128_sample_tail : ExactRealVector 126
+r128_sample_tail =
+  add (VCons 12 (zeroVector 125)) (lastCoordinate 125 9)
+
+r128_companion_tail : ExactRealVector 126
+r128_companion_tail =
+  add (VCons 7 (zeroVector 125)) (lastCoordinate 125 11)
 
 r128_sample : ExactRealVector 128
-r128_sample = VCons 3 (VCons 4 (VCons 12 (zeroVector 125)))
+r128_sample = VCons 3 (VCons 4 r128_sample_tail)
 
 r128_companion : ExactRealVector 128
-r128_companion = VCons 5 (VCons (-2) (VCons 7 (zeroVector 125)))
+r128_companion = VCons 5 (VCons (-2) r128_companion_tail)
 
 reflection_in_r128_type_test : OrthogonalTransform 128 Reversing
 reflection_in_r128_type_test = firstAxisReflection
@@ -101,34 +113,34 @@ two_reflections_land_in_so128_test =
 
 r128_reflection_exact_image_test :
   applyFirstAxisReflection r128_sample
-    = VCons (-3) (VCons 4 (VCons 12 (zeroVector 125)))
+    = VCons (-3) (VCons 4 r128_sample_tail)
 r128_reflection_exact_image_test = Refl
 
 r128_quarter_turn_exact_image_test :
   applyFirstPlaneQuarterTurn r128_sample
-    = VCons (-4) (VCons 3 (VCons 12 (zeroVector 125)))
+    = VCons (-4) (VCons 3 r128_sample_tail)
 r128_quarter_turn_exact_image_test = Refl
 
 r128_reflection_preserves_squared_norm_test :
-  squaredNorm (applyFirstAxisReflection r128_sample) = 169
+  squaredNorm (applyFirstAxisReflection r128_sample) = 250
 r128_reflection_preserves_squared_norm_test = Refl
 
 r128_quarter_turn_preserves_squared_norm_test :
-  squaredNorm (applyFirstPlaneQuarterTurn r128_sample) = 169
+  squaredNorm (applyFirstPlaneQuarterTurn r128_sample) = 250
 r128_quarter_turn_preserves_squared_norm_test = Refl
 
 r128_reflection_preserves_dot_test :
   dot
     (applyFirstAxisReflection r128_sample)
     (applyFirstAxisReflection r128_companion)
-    = 91
+    = 190
 r128_reflection_preserves_dot_test = Refl
 
 r128_quarter_turn_preserves_dot_test :
   dot
     (applyFirstPlaneQuarterTurn r128_sample)
     (applyFirstPlaneQuarterTurn r128_companion)
-    = 91
+    = 190
 r128_quarter_turn_preserves_dot_test = Refl
 
 r128_reflection_is_involution_test :
