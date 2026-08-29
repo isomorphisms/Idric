@@ -20,24 +20,30 @@ presheaf_composition_test = Refl
 -- is determined by j² = a + b j.  These three fixtures are the familiar
 -- negative/zero/positive discriminant shapes.
 complex_j_squared_test :
-  multiply complexPlane j j = Pair2 (-1) 0
+  multiply HigherMathInference.complexPlane
+    HigherMathInference.j HigherMathInference.j = MkPair2 (-1) 0
 complex_j_squared_test = Refl
 
 split_j_squared_test :
-  multiply splitPlane j j = Pair2 1 0
+  multiply HigherMathInference.splitPlane
+    HigherMathInference.j HigherMathInference.j = MkPair2 1 0
 split_j_squared_test = Refl
 
 dual_j_squared_test :
-  multiply dualNumbers j j = Pair2 0 0
+  multiply HigherMathInference.dualNumbers
+    HigherMathInference.j HigherMathInference.j = MkPair2 0 0
 dual_j_squared_test = Refl
 
-complex_shape_test : shape complexPlane = ComplexPlaneShape
+complex_shape_test :
+  shape HigherMathInference.complexPlane = ComplexPlaneShape
 complex_shape_test = Refl
 
-split_shape_test : shape splitPlane = SplitPlaneShape
+split_shape_test :
+  shape HigherMathInference.splitPlane = SplitPlaneShape
 split_shape_test = Refl
 
-dual_shape_test : shape dualNumbers = DualNumberShape
+dual_shape_test :
+  shape HigherMathInference.dualNumbers = DualNumberShape
 dual_shape_test = Refl
 
 -- 3. Ostrowski forcing example.  This is deliberately a test of the desired
@@ -91,7 +97,26 @@ matrix_times_vector_signature_test :
     = Signature FreeUpper Contracted Absent
 matrix_times_vector_signature_test = Refl
 
--- 5. Compilation-stage indexed-work contract.
+-- 5. A scripted index also generates an indexed-computation constraint.  The
+-- surrounding operator keeps elementwise multiplication distinct from strict
+-- Einstein contraction; the glyph alone does not choose machine lowering.
+elementwise_lower_i_infers_iteration_test :
+  computationFromGlyphs ElementwiseMultiply ['a', 'ᵢ', 'b', 'ᵢ']
+    = ElementwiseOver [IAxis]
+elementwise_lower_i_infers_iteration_test = Refl
+
+strict_lower_i_repetition_stays_invalid_test :
+  computationFromGlyphs StrictEinsteinProduct ['a', 'ᵢ', 'b', 'ᵢ']
+    = EinsteinProduct (Signature InvalidRepeated Absent Absent)
+strict_lower_i_repetition_stays_invalid_test = Refl
+
+elementwise_i_j_infers_two_iteration_axes_test :
+  computationFromGlyphs ElementwiseMultiply
+    ['a', 'ᵢ', 'ⱼ', 'b', 'ᵢ', 'ⱼ']
+    = ElementwiseOver [IAxis, JAxis]
+elementwise_i_j_infers_two_iteration_axes_test = Refl
+
+-- 6. Compilation-stage indexed-work contract.
 --
 -- R is a useful semantic precedent here: ordinary `x * y` is elementwise,
 -- while `%*%` is a distinct matrix product.  That is a source-language
