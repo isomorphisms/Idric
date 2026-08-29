@@ -1,0 +1,19 @@
+. ../../../testutils.sh
+
+cp ../../../../examples/higher-math-constraint-inference/HigherMathInference.idric HigherMathInference.idr
+cp ../../../../examples/higher-math-constraint-inference/CompilationStage.idric CompilationStage.idr
+cp ../../../../examples/higher-math-constraint-inference/Contraction.idric Contraction.idr
+cp ../../../../examples/higher-math-constraint-inference/PresheafTensor.idric PresheafTensor.idr
+cp ../../../../examples/higher-math-constraint-inference/Tests.idric Tests.idr
+
+"$idris2" Tests.idr -o higher-math-constraint-inference >/dev/null
+./build/exec/higher-math-constraint-inference
+
+# Negative type-checking receipt: a covector over PlaneSpace must not consume a
+# vector over ThreeSpace.  If this ever compiles, the space constraint leaked.
+if "$idris2" bad.idr >/dev/null 2>&1; then
+  echo "mismatched contraction unexpectedly typechecked" >&2
+  exit 1
+fi
+
+echo "mismatched contraction rejected"
