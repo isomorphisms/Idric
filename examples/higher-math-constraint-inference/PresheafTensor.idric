@@ -1,0 +1,135 @@
+module PresheafTensor
+
+import HigherMathInference
+
+%default total
+
+-- --------------------------------------------------------------------------
+-- Presheaf tensor product: the mathematical target
+-- --------------------------------------------------------------------------
+--
+-- For presheaves F and G of modules over a fixed commutative ring R, the
+-- pointwise tensor presheaf is
+--
+--     (F tensor G)(U) = F(U) tensor_R G(U)
+--
+-- and for V included in U its restriction is induced componentwise:
+--
+--     rho_(F tensor G)(U,V)
+--       = rho_F(U,V) tensor rho_G(U,V).
+--
+-- On an elementary tensor this says
+--
+--     s tensor t  |->  restrict(s,V) tensor restrict(t,V).
+--
+-- The identity and composition laws follow from the corresponding presheaf
+-- laws for F and G plus functoriality of tensoring maps.
+--
+-- If F and G are modules over a sheaf of rings O, the analogous presheaf uses
+-- F(U) tensor_{O(U)} G(U).  The tensor product in the category of sheaves is
+-- generally obtained by sheafifying that presheaf tensor product.  Keep that
+-- later sheafification/gluing step distinct from the presheaf construction.
+--
+-- A Cech/nerve check is therefore not needed just to define the restriction
+-- map below.  Nerves become relevant when we ask about overlap compatibility,
+-- descent, gluing, or cohomological checks; that can remain a separate layer.
+
+-- --------------------------------------------------------------------------
+-- Executable finite forcing model
+-- --------------------------------------------------------------------------
+--
+-- HigherMathInference.Section is only a tiny integer-valued presheaf fixture.
+-- The datatype below deliberately represents *elementary tensors only*; it is
+-- not pretending to implement the balanced quotient construction of a general
+-- tensor product.  That is enough to make the restriction/index laws executable
+-- without lying about the algebraic quotient.
+
+public export
+data ElementaryTensorSection : Open -> Type where
+  TensorSection : Section u -> Section u -> ElementaryTensorSection u
+
+public export
+restrictTensor :
+  Included v u ->
+  ElementaryTensorSection u ->
+  ElementaryTensorSection v
+restrictTensor inclusion (TensorSection left right) =
+  TensorSection
+    (restrict inclusion left)
+    (restrict inclusion right)
+
+-- Composition of inclusions for the tiny Whole/Patch/Point fixture.
+public export
+composeIncluded : Included w v -> Included v u -> Included w u
+composeIncluded Same vu = vu
+composeIncluded PatchWhole Same = PatchWhole
+composeIncluded PointPatch Same = PointPatch
+composeIncluded PointPatch PatchWhole = PointWhole
+composeIncluded PointWhole Same = PointWhole
+
+-- Identity restriction is pointwise definitional computation in this model.
+-- This is the type-checking/normalization analogue of what the conversation
+-- called "reducing to the identity map".  It is not runtime lazy evaluation:
+-- the checker sees the constructor Same and normalizes the pure term.
+public export
+tensorRestrictionIdentity :
+  (tensor : ElementaryTensorSection u) ->
+  restrictTensor Same tensor = tensor
+tensorRestrictionIdentity (TensorSection left right) = Refl
+
+-- Composition also reduces in the fully concrete fixture.  A generic presheaf
+-- interface should carry this as a law; an elaborator may then use the law as a
+-- named rewrite/constraint source instead of guessing it.
+public export
+tensorRestrictionComposition :
+  (wv : Included w v) ->
+  (vu : Included v u) ->
+  (tensor : ElementaryTensorSection u) ->
+  restrictTensor wv (restrictTensor vu tensor)
+    = restrictTensor (composeIncluded wv vu) tensor
+tensorRestrictionComposition Same vu tensor = Refl
+tensorRestrictionComposition PatchWhole Same
+  (TensorSection (WholeSection left) (WholeSection right)) = Refl
+tensorRestrictionComposition PointPatch Same
+  (TensorSection (PatchSection left) (PatchSection right)) = Refl
+tensorRestrictionComposition PointPatch PatchWhole
+  (TensorSection (WholeSection left) (WholeSection right)) = Refl
+tensorRestrictionComposition PointWhole Same
+  (TensorSection (WholeSection left) (WholeSection right)) = Refl
+
+-- --------------------------------------------------------------------------
+-- Intended inference / normalization boundary
+-- --------------------------------------------------------------------------
+--
+-- A useful future Idric elaboration trace for source resembling
+--
+--     restrict (s tensor t) to V
+--
+-- should be able to look like
+--
+--     tensor operation
+--       -> require s : F(?U), t : G(?U)
+--       -> result lives in (F tensor G)(?U)
+--     restriction to V
+--       -> require Included V ?U
+--       -> result lives in (F tensor G)(V)
+--       -> restriction map becomes rho_F tensor rho_G
+--
+-- If V = U is solved statically, the pointwise restriction can normalize to
+-- the original tensor section.  If two restriction steps are statically known,
+-- the composition law can normalize them to one restriction.
+--
+-- Important boundary: dependent types let the domain U/V appear in the type,
+-- and definitional equality can erase transparent identity cases.  They do not
+-- automatically invent every mathematical law.  Laws that are not definitional
+-- should enter through an explicit presheaf/module interface, a checked rewrite,
+-- or the typed mathematical knowledge layer already being explored on this
+-- branch.
+--
+-- Also distinguish pointwise equality
+--
+--     for every x, restrictTensor Same x = x
+--
+-- from equality of the two functions as first-class values.  The former is
+-- immediate here; the latter may require function extensionality or a compiler
+-- rewrite rule depending on the core equality theory.
