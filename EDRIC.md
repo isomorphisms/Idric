@@ -43,23 +43,33 @@ not use “vector” as a synonym for a list with a known or computed length.
 
 ## Floating-point source profile
 
-Edriç source files (`.idric`) do not provide `Double`, `Float`, `Float32`, or
-`Float64`. Decimal floating literals are also rejected rather than silently
-defaulting through Idris's inherited `FromDouble` path. This keeps wider
-floating precision out of ordinary Edriç source and prevents type inference
-from acquiring it merely because the host compiler or an inherited backend
-supports it.
+Edriç source files (`.idric`) use `Float16` as the ordinary floating type.
+Decimal floating literals are immediately passed through an IEEE-754 binary16
+rounding boundary, and the `Float16` arithmetic instances round again after
+addition, subtraction, multiplication, and division.
 
-`Float16` is the intended coarse floating primitive. It is deliberately not
-implemented by aliasing the abandoned binary32 `Float` experiment: until a
-real Float16 primitive and its rounding boundary exist, `.idric` decimal
-floating literals fail explicitly. Wider precisions may be added later only as
-explicit optional capabilities if a concrete program requires them.
+Type information is allowed to be ragged. An explicit `Double`, `Float`,
+`Float32`, or `Float64` spelling in `.idric` is therefore not a hard error and
+is not trusted as a demand for that physical precision. The parser normalizes
+that spelling to `Float16` and emits a nonfatal warning of the form:
 
-The compiler itself remains implemented in ordinary `.idr`, where inherited
-`Double` continues to exist. Backends may also use wider host arithmetic as an
-implementation carrier. Neither fact makes those wider values part of the
-Edriç source-language type profile.
+```text
+Idriç: requested Double; running this as Float16
+```
+
+The same rule applies to the other wider spellings. Canonical `Float16` and
+bare decimal literals do not produce a narrowing warning.
+
+The current implementation uses inherited `Double` only as an internal carrier
+for the `Float16` record. That carrier does not determine source semantics: the
+binary16 rounding boundary is executable and regression-tested. Direct CPU and
+GPU backends may later replace the carrier with native or unboxed Float16
+storage and instructions without changing the source-language rule.
+
+Ordinary `.idr` files retain inherited Idris `Double` behavior. Compiler
+implementation code and compatibility code may therefore continue using wider
+host arithmetic without exposing those wider precisions as the normal Idriç
+source semantics.
 
 ## Storage-neutral choices
 
@@ -219,8 +229,9 @@ A new thread working on Edric should:
 - Pinned repo-local threaded Chez Scheme bootstrap: established.
 - Focused Edric handoff test: checked in.
 - Idriç source extension: `.idric`; `.idr` remains accepted for Idris compatibility.
-- `.idric` rejects `Double`, `Float`, `Float32`, `Float64`, and decimal floating literals; ordinary `.idr` keeps inherited `Double` for compiler and compatibility use.
-- `Float16` is the only intended ordinary floating primitive; it is not yet implemented, and no binary32 alias is used as a substitute.
+- `.idric` uses `Float16` as its ordinary floating type; decimal literals cross a binary16 rounding boundary and Float16 arithmetic rounds after each basic operation.
+- `.idric` accepts `Double`, `Float`, `Float32`, and `Float64` as ragged precision requests, coerces them to `Float16`, and emits a nonfatal narrowing warning; ordinary `.idr` keeps inherited `Double` behavior.
+- The present Float16 implementation uses a wider internal carrier; native/unboxed Float16 CPU and GPU lowering remains backend work rather than a source-language prerequisite.
 - Storage-neutral, lower snake_case `choice ... one_of` syntax: implemented for `.idric` only.
 - Ordinary `.idr` use of `choice` and `one_of` as identifiers: preserved and regression-tested.
 - Idriç source accepts `→`, `⇒`, `←`, and `≤` as compact aliases for `->`, `=>`, `<-`, and `<=`; the ASCII spellings remain accepted.
