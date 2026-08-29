@@ -1,0 +1,9 @@
+module Float16Rounding
+
+boundary : Float16
+boundary = 2048.0 + 1.0
+
+main : IO ()
+main = if boundary == 2048.0
+          then putStrLn "float16-rounding: PASS"
+          else putStrLn "float16-rounding: FAIL"
