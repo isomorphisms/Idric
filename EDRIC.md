@@ -41,6 +41,26 @@ The inherited Idris 2 names `Vect` and `Data.Vect` remain where upstream
 compatibility requires them. New Edriç APIs, examples, and explanations must
 not use “vector” as a synonym for a list with a known or computed length.
 
+## Floating-point source profile
+
+Edriç source files (`.idric`) do not provide `Double`, `Float`, `Float32`, or
+`Float64`. Decimal floating literals are also rejected rather than silently
+defaulting through Idris's inherited `FromDouble` path. This keeps wider
+floating precision out of ordinary Edriç source and prevents type inference
+from acquiring it merely because the host compiler or an inherited backend
+supports it.
+
+`Float16` is the intended coarse floating primitive. It is deliberately not
+implemented by aliasing the abandoned binary32 `Float` experiment: until a
+real Float16 primitive and its rounding boundary exist, `.idric` decimal
+floating literals fail explicitly. Wider precisions may be added later only as
+explicit optional capabilities if a concrete program requires them.
+
+The compiler itself remains implemented in ordinary `.idr`, where inherited
+`Double` continues to exist. Backends may also use wider host arithmetic as an
+implementation carrier. Neither fact makes those wider values part of the
+Edriç source-language type profile.
+
 ## Storage-neutral choices
 
 Files ending in `.idric` may declare a non-parameterized choice with lower
@@ -146,6 +166,7 @@ make test only=idris2/basic/edric003
 make test only=idris2/basic/edric004
 make test only=idris2/basic/edric005
 make test only=idris2/basic/edric006
+make test only=idris2/basic/edric007
 ```
 
 ## Idriç koans
@@ -198,6 +219,8 @@ A new thread working on Edric should:
 - Pinned repo-local threaded Chez Scheme bootstrap: established.
 - Focused Edric handoff test: checked in.
 - Idriç source extension: `.idric`; `.idr` remains accepted for Idris compatibility.
+- `.idric` rejects `Double`, `Float`, `Float32`, `Float64`, and decimal floating literals; ordinary `.idr` keeps inherited `Double` for compiler and compatibility use.
+- `Float16` is the only intended ordinary floating primitive; it is not yet implemented, and no binary32 alias is used as a substitute.
 - Storage-neutral, lower snake_case `choice ... one_of` syntax: implemented for `.idric` only.
 - Ordinary `.idr` use of `choice` and `one_of` as identifiers: preserved and regression-tested.
 - Idriç source accepts `→`, `⇒`, `←`, and `≤` as compact aliases for `->`, `=>`, `<-`, and `<=`; the ASCII spellings remain accepted.
