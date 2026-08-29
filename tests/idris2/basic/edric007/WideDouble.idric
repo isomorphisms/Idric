@@ -1,0 +1,4 @@
+module WideDouble
+
+wide : Double
+wide = 0
