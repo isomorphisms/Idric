@@ -5,11 +5,15 @@ on:
     paths:
       - 'edric'
       - 'scripts/ensure-chez.sh'
+      - 'src/Parser/Source.idr'
+      - 'tests/idris2/basic/edric007/**'
       - '.github/workflows/ci-edric-wrapper.yml'
   pull_request:
     paths:
       - 'edric'
       - 'scripts/ensure-chez.sh'
+      - 'src/Parser/Source.idr'
+      - 'tests/idris2/basic/edric007/**'
       - '.github/workflows/ci-edric-wrapper.yml'
 
 jobs:
@@ -54,3 +58,19 @@ jobs:
           chmod +x "$fake_make"
 
           EDRIC_TOOLCHAIN_DIR="$toolchain" MAKE="$fake_make" ./edric bootstrap
+
+  source-profile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Chez Scheme
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chezscheme
+
+      - name: Bootstrap compiler
+        run: make bootstrap SCHEME=scheme
+
+      - name: Check Idriç floating source profile
+        run: make test only=idris2/basic/edric007
