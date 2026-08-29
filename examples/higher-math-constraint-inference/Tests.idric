@@ -1,0 +1,53 @@
+module Tests
+
+import HigherMathInference
+
+%default total
+
+-- 1. Presheaf: restriction should infer the smaller open from the inclusion
+-- witness, and identity/composition should compute as the ordinary laws say.
+presheaf_identity_test :
+  restrict Same (PatchSection 7) = PatchSection 7
+presheaf_identity_test = Refl
+
+presheaf_composition_test :
+  restrict PointPatch (restrict PatchWhole (WholeSection 7))
+    = restrict PointWhole (WholeSection 7)
+presheaf_composition_test = Refl
+
+-- 2. Two-dimensional unital algebras: once 1 is the identity, multiplication
+-- is determined by j² = a + b j.  These three fixtures are the familiar
+-- negative/zero/positive discriminant shapes.
+complex_j_squared_test :
+  multiply complexPlane j j = Pair2 (-1) 0
+complex_j_squared_test = Refl
+
+split_j_squared_test :
+  multiply splitPlane j j = Pair2 1 0
+split_j_squared_test = Refl
+
+dual_j_squared_test :
+  multiply dualNumbers j j = Pair2 0 0
+dual_j_squared_test = Refl
+
+complex_shape_test : shape complexPlane = ComplexPlaneShape
+complex_shape_test = Refl
+
+split_shape_test : shape splitPlane = SplitPlaneShape
+split_shape_test = Refl
+
+dual_shape_test : shape dualNumbers = DualNumberShape
+dual_shape_test = Refl
+
+-- 3. Ostrowski forcing example.  This is deliberately a test of the desired
+-- classification boundary, not a fake proof of Ostrowski's theorem.
+ostrowski_usual_example_test :
+  classifyRationalAbsoluteValueExample UsualExample = UsualArchimedean
+ostrowski_usual_example_test = Refl
+
+ostrowski_5_adic_example_test :
+  classifyRationalAbsoluteValueExample (PAdicExample 5) = PAdic 5
+ostrowski_5_adic_example_test = Refl
+
+main : IO ()
+main = putStrLn "higher-math constraint inference sketches: ok"
