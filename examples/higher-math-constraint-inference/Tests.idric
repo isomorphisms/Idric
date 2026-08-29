@@ -49,5 +49,45 @@ ostrowski_5_adic_example_test :
   classifyRationalAbsoluteValueExample (PAdicExample 5) = PAdic 5
 ostrowski_5_adic_example_test = Refl
 
+-- 4. Einstein index notation from the programmer-keyboard glyph inventory.
+-- The surface spelling itself supplies useful constraints:
+--   ᵢ ⱼ ₖ are lower indices; ⁱ ʲ ᵏ are upper indices.
+-- An index occurring once is free.  The same index occurring exactly once
+-- lower and exactly once upper is contracted.  Repetition at the same height
+-- is rejected by this strict sketch instead of being silently summed.
+sub_i_is_lower_test :
+  indexFromGlyph 'ᵢ' = Just (Occurs IAxis Lower)
+sub_i_is_lower_test = Refl
+
+sup_i_is_upper_test :
+  indexFromGlyph 'ⁱ' = Just (Occurs IAxis Upper)
+sup_i_is_upper_test = Refl
+
+free_lower_j_test :
+  roleFor JAxis (occurrencesFromGlyphs ['A', 'ⱼ']) = FreeLower
+free_lower_j_test = Refl
+
+free_upper_k_test :
+  roleFor KAxis (occurrencesFromGlyphs ['v', 'ᵏ']) = FreeUpper
+free_upper_k_test = Refl
+
+contract_i_test :
+  roleFor IAxis (occurrencesFromGlyphs ['A', 'ᵢ', 'B', 'ⁱ']) = Contracted
+contract_i_test = Refl
+
+same_tensor_trace_test :
+  roleFor IAxis (occurrencesFromGlyphs ['T', 'ⁱ', 'ᵢ']) = Contracted
+same_tensor_trace_test = Refl
+
+duplicate_lower_is_invalid_test :
+  roleFor IAxis (occurrencesFromGlyphs ['A', 'ᵢ', 'B', 'ᵢ'])
+    = InvalidRepeated
+duplicate_lower_is_invalid_test = Refl
+
+matrix_times_vector_signature_test :
+  signatureFromGlyphs ['T', 'ⁱ', 'ⱼ', 'v', 'ʲ']
+    = Signature FreeUpper Contracted Absent
+matrix_times_vector_signature_test = Refl
+
 main : IO ()
 main = putStrLn "higher-math constraint inference sketches: ok"
