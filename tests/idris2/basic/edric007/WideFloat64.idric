@@ -1,0 +1,4 @@
+module WideFloat64
+
+wide : Float64
+wide = 0
