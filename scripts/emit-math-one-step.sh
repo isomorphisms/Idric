@@ -23,18 +23,36 @@ output=$3
   exit 2
 }
 
-# `./edric bootstrap` builds the libraries in-tree rather than installing them
-# into a user's global package directory.  Use exactly those bootstrapped
-# libraries for the checked source boundary and the subsequent execution.
+caller_pwd=$(pwd)
+source_dir=$(CDPATH='' cd -- "$(dirname -- "$source")" && pwd)
+source_name=$(basename -- "$source")
+source_path="$source_dir/$source_name"
+case "$output" in
+  /*) output_path=$output ;;
+  *) output_path="$caller_pwd/$output" ;;
+esac
+mkdir -p "$(dirname -- "$output_path")"
+
+# `./edric bootstrap` builds the libraries in-tree. Use exactly those
+# bootstrapped libraries for the checked source boundary and subsequent
+# execution. Enter the source directory so a module named R128Pipeline is
+# checked as R128Pipeline even though the repository fixture lives below an
+# examples directory whose descriptive name is not an Idric namespace.
 idric_library_path="$repo_root/libs/prelude/build/ttc:$repo_root/libs/base/build/ttc:$repo_root/libs/linear/build/ttc:$repo_root/libs/network/build/ttc:$repo_root/libs/contrib/build/ttc:$repo_root/libs/test/build/ttc:"
 
-# First establish the ordinary compiler boundary.  The emitter body is an Idric
+# First establish the ordinary compiler boundary. The emitter body is an Idric
 # value in the source module and is executed only after this check succeeds.
-IDRIS2_PATH="$idric_library_path" "$compiler" --check "$source"
-body=$(IDRIS2_PATH="$idric_library_path" "$compiler" --no-banner --quiet --exec emit_math_one_step "$source")
+(
+  cd "$source_dir"
+  IDRIS2_PATH="$idric_library_path" "$compiler" --check "$source_name"
+)
+body=$(
+  cd "$source_dir"
+  IDRIS2_PATH="$idric_library_path" "$compiler" --no-banner --quiet --exec emit_math_one_step "$source_name"
+)
 [ -n "$body" ] || { echo "Idric math emitter: emit_math_one_step produced no artifact body" >&2; exit 1; }
 
-set -- $(sha256sum "$source")
+set -- $(sha256sum "$source_path")
 source_sha256=$1
 compiler_head=$(git -C "$repo_root" rev-parse HEAD)
 case "$compiler_head" in
@@ -42,8 +60,7 @@ case "$compiler_head" in
   *) echo "Idric math emitter: malformed git head: $compiler_head" >&2; exit 1 ;;
 esac
 
-mkdir -p "$(dirname -- "$output")"
-tmp="$output.tmp.$$"
+tmp="$output_path.tmp.$$"
 trap 'rm -f "$tmp"' EXIT HUP INT TERM
 {
   printf 'EDRIC_MATH_ONE_STEP\t1\n'
@@ -52,5 +69,5 @@ trap 'rm -f "$tmp"' EXIT HUP INT TERM
   printf 'core_typecheck\tPASS\n'
   printf '%s\n' "$body"
 } > "$tmp"
-mv "$tmp" "$output"
+mv "$tmp" "$output_path"
 trap - EXIT HUP INT TERM
