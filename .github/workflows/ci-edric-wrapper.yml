@@ -2,11 +2,15 @@ name: Edric wrapper
 
 on:
   push:
+    branches:
+      - 'Idriç'
     paths:
       - 'edric'
       - 'scripts/ensure-chez.sh'
       - '.github/workflows/ci-edric-wrapper.yml'
   pull_request:
+    branches:
+      - 'Idriç'
     paths:
       - 'edric'
       - 'scripts/ensure-chez.sh'
@@ -17,8 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Verify private Scheme owns bootstrap PATH
+      - name: Verify private Scheme owns bootstrap and test codegen
         shell: bash
         run: |
           set -euo pipefail
@@ -43,10 +49,15 @@ jobs:
               echo "expected private scheme at $expected, got ${actual:-<none>}" >&2
               exit 1
           fi
+          if [ "${CHEZ:-}" != "$expected" ]; then
+              echo "expected CHEZ=$expected, got ${CHEZ:-<unset>}" >&2
+              exit 1
+          fi
           case " $* " in
-              *" SCHEME=$expected "*) ;;
+              *" bootstrap SCHEME=$expected "*) ;;
+              *" test only=idris2/basic/edric008 "*) ;;
               *)
-                  echo "bootstrap did not receive SCHEME=$expected: $*" >&2
+                  echo "unexpected wrapper make invocation: $*" >&2
                   exit 1
                   ;;
           esac
@@ -54,3 +65,5 @@ jobs:
           chmod +x "$fake_make"
 
           EDRIC_TOOLCHAIN_DIR="$toolchain" MAKE="$fake_make" ./edric bootstrap
+          EDRIC_TOOLCHAIN_DIR="$toolchain" MAKE="$fake_make" \
+            ./edric test --only idris2/basic/edric008

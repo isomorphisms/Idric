@@ -1,2 +1,3 @@
-higher-math constraint inference sketches: ok
-mismatched contraction rejected
+shared-space contraction and mismatch diagnostics: checked
+no implicit vector-to-covector conversion: checked
+presheaf tensor restriction identity/composition: checked

@@ -39,9 +39,10 @@ import HigherMathInference
 -- --------------------------------------------------------------------------
 --
 -- HigherMathInference.Section is only a tiny integer-valued presheaf fixture.
--- The datatype below deliberately represents *elementary tensors only*; it is
--- not pretending to implement the balanced quotient construction of a general
--- tensor product.  That is enough to make the restriction/index laws executable
+-- The datatype below represents formal elementary-generator pairs for
+-- Section(U) tensor Section(U).  It does not identify sums or impose the
+-- bilinearity and balancing relations that construct a genuine tensor product.
+-- That narrow model is enough to make the restriction/index laws executable
 -- without lying about the algebraic quotient.
 
 public export
@@ -53,10 +54,28 @@ restrictTensor :
   Included v u ->
   ElementaryTensorSection u ->
   ElementaryTensorSection v
+restrictTensor Same tensor = tensor
 restrictTensor inclusion (TensorSection left right) =
   TensorSection
     (restrict inclusion left)
     (restrict inclusion right)
+
+-- The named pointwise law keeps the componentwise meaning inspectable even
+-- though the implementation equations already compute it definitionally.
+public export
+tensorRestrictionPointwise :
+  (inclusion : Included v u) ->
+  (left : Section u) ->
+  (right : Section u) ->
+  restrictTensor inclusion (TensorSection left right)
+    = TensorSection (restrict inclusion left) (restrict inclusion right)
+tensorRestrictionPointwise Same left right = Refl
+tensorRestrictionPointwise PatchWhole
+  (WholeSection left) (WholeSection right) = Refl
+tensorRestrictionPointwise PointPatch
+  (PatchSection left) (PatchSection right) = Refl
+tensorRestrictionPointwise PointWhole
+  (WholeSection left) (WholeSection right) = Refl
 
 -- Composition of inclusions for the tiny Whole/Patch/Point fixture.
 public export
@@ -67,15 +86,16 @@ composeIncluded PointPatch Same = PointPatch
 composeIncluded PointPatch PatchWhole = PointWhole
 composeIncluded PointWhole Same = PointWhole
 
--- Identity restriction is pointwise definitional computation in this model.
--- This is the type-checking/normalization analogue of what the conversation
--- called "reducing to the identity map".  It is not runtime lazy evaluation:
--- the checker sees the constructor Same and normalizes the pure term.
+-- Identity restriction is pointwise definitional computation in this model,
+-- even when the tensor section itself is not constructor-exposed.  This is the
+-- type-checking/normalization analogue of what the conversation called
+-- "reducing to the identity map".  It is not runtime lazy evaluation: the
+-- checker sees the inclusion constructor Same and normalizes the pure term.
 public export
 tensorRestrictionIdentity :
   (tensor : ElementaryTensorSection u) ->
   restrictTensor Same tensor = tensor
-tensorRestrictionIdentity (TensorSection left right) = Refl
+tensorRestrictionIdentity tensor = Refl
 
 -- Composition also reduces in the fully concrete fixture.  A generic presheaf
 -- interface should carry this as a law; an elaborator may then use the law as a

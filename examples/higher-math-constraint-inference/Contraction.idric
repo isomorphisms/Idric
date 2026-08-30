@@ -18,18 +18,21 @@ public export
 data LinearSpace
   = LineSpace
   | PlaneSpace
+  | ImagePlaneSpace
   | ThreeSpace
 
 public export
 data Vector : LinearSpace -> Type where
   LineVector : Integer -> Vector LineSpace
   PlaneVector : Integer -> Integer -> Vector PlaneSpace
+  ImagePlaneVector : Integer -> Integer -> Vector ImagePlaneSpace
   ThreeVector : Integer -> Integer -> Integer -> Vector ThreeSpace
 
 public export
 data Covector : LinearSpace -> Type where
   LineCovector : Integer -> Covector LineSpace
   PlaneCovector : Integer -> Integer -> Covector PlaneSpace
+  ImagePlaneCovector : Integer -> Integer -> Covector ImagePlaneSpace
   ThreeCovector : Integer -> Integer -> Integer -> Covector ThreeSpace
 
 public export
@@ -39,6 +42,10 @@ lineVector x = LineVector x
 public export
 planeVector : Integer -> Integer -> Vector PlaneSpace
 planeVector x y = PlaneVector x y
+
+public export
+imagePlaneVector : Integer -> Integer -> Vector ImagePlaneSpace
+imagePlaneVector x y = ImagePlaneVector x y
 
 public export
 threeVector : Integer -> Integer -> Integer -> Vector ThreeSpace
@@ -53,6 +60,10 @@ planeCovector : Integer -> Integer -> Covector PlaneSpace
 planeCovector a b = PlaneCovector a b
 
 public export
+imagePlaneCovector : Integer -> Integer -> Covector ImagePlaneSpace
+imagePlaneCovector a b = ImagePlaneCovector a b
+
+public export
 threeCovector : Integer -> Integer -> Integer -> Covector ThreeSpace
 threeCovector a b c = ThreeCovector a b c
 
@@ -63,6 +74,7 @@ public export
 contract : Covector space -> Vector space -> Integer
 contract (LineCovector a) (LineVector x) = a * x
 contract (PlaneCovector a b) (PlaneVector x y) = a * x + b * y
+contract (ImagePlaneCovector a b) (ImagePlaneVector x y) = a * x + b * y
 contract (ThreeCovector a b c) (ThreeVector x y z) =
   a * x + b * y + c * z
 
@@ -71,6 +83,8 @@ addVector : Vector space -> Vector space -> Vector space
 addVector (LineVector x) (LineVector y) = LineVector (x + y)
 addVector (PlaneVector x1 x2) (PlaneVector y1 y2) =
   PlaneVector (x1 + y1) (x2 + y2)
+addVector (ImagePlaneVector x1 x2) (ImagePlaneVector y1 y2) =
+  ImagePlaneVector (x1 + y1) (x2 + y2)
 addVector (ThreeVector x1 x2 x3) (ThreeVector y1 y2 y3) =
   ThreeVector (x1 + y1) (x2 + y2) (x3 + y3)
 
@@ -78,6 +92,7 @@ public export
 scaleVector : Integer -> Vector space -> Vector space
 scaleVector k (LineVector x) = LineVector (k * x)
 scaleVector k (PlaneVector x y) = PlaneVector (k * x) (k * y)
+scaleVector k (ImagePlaneVector x y) = ImagePlaneVector (k * x) (k * y)
 scaleVector k (ThreeVector x y z) = ThreeVector (k * x) (k * y) (k * z)
 
 public export
@@ -85,6 +100,8 @@ addCovector : Covector space -> Covector space -> Covector space
 addCovector (LineCovector a) (LineCovector b) = LineCovector (a + b)
 addCovector (PlaneCovector a1 a2) (PlaneCovector b1 b2) =
   PlaneCovector (a1 + b1) (a2 + b2)
+addCovector (ImagePlaneCovector a1 a2) (ImagePlaneCovector b1 b2) =
+  ImagePlaneCovector (a1 + b1) (a2 + b2)
 addCovector (ThreeCovector a1 a2 a3) (ThreeCovector b1 b2 b3) =
   ThreeCovector (a1 + b1) (a2 + b2) (a3 + b3)
 
@@ -92,6 +109,8 @@ public export
 scaleCovector : Integer -> Covector space -> Covector space
 scaleCovector k (LineCovector a) = LineCovector (k * a)
 scaleCovector k (PlaneCovector a b) = PlaneCovector (k * a) (k * b)
+scaleCovector k (ImagePlaneCovector a b) =
+  ImagePlaneCovector (k * a) (k * b)
 scaleCovector k (ThreeCovector a b c) =
   ThreeCovector (k * a) (k * b) (k * c)
 
@@ -103,3 +122,6 @@ scaleCovector k (ThreeCovector a b c) =
 -- bilinear form / metric).  The compiler must not invent that structure merely
 -- because two objects have the same number of coordinates.  Consequently two
 -- vectors do not silently become contractible through this API.
+-- `PlaneSpace` and `ImagePlaneSpace` deliberately have the same rank so the
+-- negative compiler receipt can distinguish named-space equality from a
+-- coordinate-count check.

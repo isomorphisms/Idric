@@ -136,10 +136,18 @@ That is equivalent to:
 ./edric test
 ```
 
+Run one named compiler fixture through the same pinned toolchain boundary with:
+
+```sh
+./edric test --only idris2/basic/edric008
+```
+
 The individual underlying commands remain available:
 
 ```sh
-make bootstrap SCHEME="$PWD/.tools/bin/scheme"
+export CHEZ="$PWD/.tools/bin/scheme"
+export PATH="$PWD/.tools/bin:$PATH"
+make bootstrap SCHEME="$CHEZ"
 make test only=idris2/basic/edric001
 make test only=idris2/basic/edric002
 make test only=idris2/basic/edric003

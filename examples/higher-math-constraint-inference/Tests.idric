@@ -6,6 +6,7 @@ import Contraction
 import PresheafTensor
 
 %default total
+%unbound_implicits off
 
 -- 1. Presheaf: restriction should infer the smaller open from the inclusion
 -- witness, and identity/composition should compute as the ordinary laws say.
@@ -191,10 +192,50 @@ contraction_respects_scalar_multiplication_test :
   = 3 * contract (planeCovector 5 7) (planeVector 3 4)
 contraction_respects_scalar_multiplication_test = Refl
 
+contraction_respects_covector_scalar_multiplication_test :
+  contract
+    (scaleCovector 3 (planeCovector 5 7))
+    (planeVector 3 4)
+  = 3 * contract (planeCovector 5 7) (planeVector 3 4)
+contraction_respects_covector_scalar_multiplication_test = Refl
+
+-- The compiler must reject contraction across different named spaces, and the
+-- diagnostic must expose the actual failed space equation.  A failing block
+-- makes both properties part of elaboration itself: unexpected acceptance or
+-- a different failure boundary makes this module fail to compile.
+failing "Mismatch between: ThreeSpace and PlaneSpace."
+
+  mismatched_space_contraction : Integer
+  mismatched_space_contraction =
+    contract
+      (planeCovector 1 2)
+      (threeVector 1 2 3)
+
+-- Equal coordinate counts do not erase named-space identity.
+failing "Mismatch between: ImagePlaneSpace and PlaneSpace."
+
+  equal_rank_mismatched_space_contraction : Integer
+  equal_rank_mismatched_space_contraction =
+    contract
+      (planeCovector 1 2)
+      (imagePlaneVector 3 4)
+
+-- A metric or another bilinear form would be additional data.  Without one,
+-- a vector is not silently converted to a covector merely to make this call
+-- typecheck.
+failing "Vector PlaneSpace"
+
+  vector_vector_contraction_without_metric : Integer
+  vector_vector_contraction_without_metric =
+    contract
+      (planeVector 1 2)
+      (planeVector 3 4)
+
 -- 8. Presheaf tensor restriction already sketched on this branch.
--- The finite executable model intentionally represents elementary tensors only;
--- it does not fake the balanced quotient construction of a general tensor
--- product.  What is pinned here is the restriction law that is already settled.
+-- The finite executable model intentionally represents formal elementary-
+-- generator pairs only; it does not fake the balanced quotient construction of
+-- a general tensor product.  What is pinned here is the restriction law that
+-- is already settled.
 presheaf_tensor_restriction_test :
   restrictTensor PatchWhole
     (TensorSection (WholeSection 2) (WholeSection 3))
@@ -216,4 +257,7 @@ presheaf_tensor_composition_test :
 presheaf_tensor_composition_test = Refl
 
 main : IO ()
-main = putStrLn "higher-math constraint inference sketches: ok"
+main = do
+  putStrLn "shared-space contraction and mismatch diagnostics: checked"
+  putStrLn "no implicit vector-to-covector conversion: checked"
+  putStrLn "presheaf tensor restriction identity/composition: checked"

@@ -4,10 +4,11 @@ import HigherMathInference
 import PresheafTensor
 
 %default total
+%unbound_implicits off
 
--- Tests first: the implementation module is intentionally added in the next
--- commit.  These tests state the small presheaf-tensor laws we want the type
--- checker/normalizer to see.
+-- Focused compiler receipt for the finite formal-generator model.  The edric008
+-- harness checks this module separately before building the combined executable
+-- receipt, so these laws cannot drift outside CI.
 
 whole_tensor : ElementaryTensorSection Whole
 whole_tensor =
@@ -22,23 +23,25 @@ tensor_restriction_infers_open_test =
 -- Restriction along U ⊆ U is the identity map.  In this finite executable
 -- model the equality should close by ordinary definitional reduction.
 tensor_restriction_identity_test :
-  restrictTensor Same tensor_restriction_infers_open_test
-    = tensor_restriction_infers_open_test
+  restrictTensor Same PresheafTensorTests.tensor_restriction_infers_open_test
+    = PresheafTensorTests.tensor_restriction_infers_open_test
 tensor_restriction_identity_test = Refl
 
 -- Restricting Whole -> Patch -> Point must equal the direct Whole -> Point
 -- restriction.  Again, the concrete fixture should normalize to the same term.
 tensor_restriction_composition_test :
-  restrictTensor PointPatch (restrictTensor PatchWhole whole_tensor)
-    = restrictTensor PointWhole whole_tensor
+  restrictTensor PointPatch
+    (restrictTensor PatchWhole PresheafTensorTests.whole_tensor)
+    = restrictTensor PointWhole PresheafTensorTests.whole_tensor
 tensor_restriction_composition_test = Refl
 
--- The restriction on an elementary tensor is componentwise.  This is the
--- executable shadow of rho_(F tensor G) = rho_F tensor rho_G.
+-- The restriction on a formal elementary-generator pair is componentwise.
+-- This is the executable shadow of rho_(F tensor G) = rho_F tensor rho_G.
 tensor_restriction_componentwise_test :
-  restrictTensor PatchWhole whole_tensor
+  restrictTensor PatchWhole PresheafTensorTests.whole_tensor
     = TensorSection (PatchSection 2) (PatchSection 3)
-tensor_restriction_componentwise_test = Refl
+tensor_restriction_componentwise_test =
+  tensorRestrictionPointwise PatchWhole (WholeSection 2) (WholeSection 3)
 
 main : IO ()
 main = putStrLn "presheaf tensor restriction sketches: ok"

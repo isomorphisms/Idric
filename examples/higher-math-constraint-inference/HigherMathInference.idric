@@ -383,5 +383,5 @@ computationFromGlyphs context glyphs =
 -- * dimensions and named index spaces;
 -- * explicit metric-driven raising/lowering;
 -- * more index glyphs than the keyboard's current i/j/k inventory;
--- * actual compiler acceptance of this file.  Keep status NOT_VERIFIED until
---   the checked Idriç compiler runs these tests.
+-- * integration of this user-level glyph model into the compiler's lexer,
+--   syntax tree, constraint generation, or compilation planning.

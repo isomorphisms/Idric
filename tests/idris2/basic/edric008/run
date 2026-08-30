@@ -1,26 +1,34 @@
+set -e
+
 . ../../../testutils.sh
 
-cp ../../../../examples/higher-math-constraint-inference/HigherMathInference.idric HigherMathInference.idr
-cp ../../../../examples/higher-math-constraint-inference/CompilationStage.idric CompilationStage.idr
-cp ../../../../examples/higher-math-constraint-inference/Contraction.idric Contraction.idr
-cp ../../../../examples/higher-math-constraint-inference/PresheafTensor.idric PresheafTensor.idr
-cp ../../../../examples/higher-math-constraint-inference/Tests.idric Tests.idr
+example_dir=../../../../examples/higher-math-constraint-inference
+fixture_dir=build/higher-math-fixtures
+mkdir -p "$fixture_dir"
 
-"$idris2" Tests.idr -o higher-math-constraint-inference >/dev/null
-./build/exec/higher-math-constraint-inference
+cp "$example_dir/HigherMathInference.idric" "$fixture_dir/HigherMathInference.idric"
+cp "$example_dir/CompilationStage.idric" "$fixture_dir/CompilationStage.idric"
+cp "$example_dir/Contraction.idric" "$fixture_dir/Contraction.idric"
+cp "$example_dir/PresheafTensor.idric" "$fixture_dir/PresheafTensor.idric"
+cp "$example_dir/PresheafTensorTests.idric" "$fixture_dir/PresheafTensorTests.idric"
+cp "$example_dir/Tests.idric" "$fixture_dir/Tests.idric"
 
-# Negative type-checking receipt: a covector over PlaneSpace must not consume a
-# vector over ThreeSpace.  Require the failure to name both spaces so an
-# unrelated parse/module error cannot satisfy this test by accident.
-if "$idris2" Bad.idr >/dev/null 2>bad.err; then
-  echo "mismatched contraction unexpectedly typechecked" >&2
-  exit 1
-fi
+# Keep the Idric extension all the way into the compiler: these fixtures use
+# filename-scoped Idric syntax, including the Unicode function arrow.  Check
+# the focused presheaf module as well as the combined executable receipt so no
+# added higher-math test source remains outside CI.
+(
+  cd "$fixture_dir"
 
-if ! grep -q 'PlaneSpace' bad.err || ! grep -q 'ThreeSpace' bad.err; then
-  cat bad.err >&2
-  echo "mismatched contraction failed for the wrong reason" >&2
-  exit 1
-fi
+  if ! "$idris2" --check PresheafTensorTests.idric >presheaf-check.log 2>&1; then
+    cat presheaf-check.log >&2
+    exit 1
+  fi
 
-echo "mismatched contraction rejected"
+  if ! "$idris2" Tests.idric -o higher-math-constraint-inference >combined-build.log 2>&1; then
+    cat combined-build.log >&2
+    exit 1
+  fi
+
+  ./build/exec/higher-math-constraint-inference
+)

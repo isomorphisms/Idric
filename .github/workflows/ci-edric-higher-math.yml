@@ -2,24 +2,27 @@ name: Edric higher-math smoke
 
 on:
   pull_request:
-    paths:
-      - 'examples/higher-math-constraint-inference/**'
-      - 'tests/idris2/basic/edric008/**'
-      - '.github/workflows/ci-edric-higher-math.yml'
+    branches:
+      - 'Idriç'
   push:
-    paths:
-      - 'examples/higher-math-constraint-inference/**'
-      - 'tests/idris2/basic/edric008/**'
-      - '.github/workflows/ci-edric-higher-math.yml'
+    branches:
+      - 'Idriç'
 
 jobs:
   higher-math:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
 
       - name: Bootstrap Edric
         run: ./edric bootstrap
 
       - name: Compile higher-math fixtures
-        run: make test only=idris2/basic/edric008
+        run: ./edric test --only idris2/basic/edric008
