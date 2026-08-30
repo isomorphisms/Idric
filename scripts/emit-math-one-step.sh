@@ -39,16 +39,17 @@ mkdir -p "$(dirname -- "$output_path")"
 # checked as R128Pipeline even though the repository fixture lives below an
 # examples directory whose descriptive name is not an Idric namespace.
 idric_library_path="$repo_root/libs/prelude/build/ttc:$repo_root/libs/base/build/ttc:$repo_root/libs/linear/build/ttc:$repo_root/libs/network/build/ttc:$repo_root/libs/contrib/build/ttc:$repo_root/libs/test/build/ttc:"
+idric_bootstrap_prefix="$repo_root/bootstrap-build"
 
 # First establish the ordinary compiler boundary. The emitter body is an Idric
 # value in the source module and is executed only after this check succeeds.
 (
   cd "$source_dir"
-  IDRIS2_PATH="$idric_library_path" "$compiler" --check "$source_name"
+  IDRIS2_PREFIX="$idric_bootstrap_prefix" IDRIS2_PATH="$idric_library_path" "$compiler" --check "$source_name"
 )
 body=$(
   cd "$source_dir"
-  IDRIS2_PATH="$idric_library_path" "$compiler" --no-banner --quiet --exec emit_math_one_step "$source_name"
+  IDRIS2_PREFIX="$idric_bootstrap_prefix" IDRIS2_PATH="$idric_library_path" "$compiler" --no-banner --quiet --exec emit_math_one_step "$source_name"
 )
 [ -n "$body" ] || { echo "Idric math emitter: emit_math_one_step produced no artifact body" >&2; exit 1; }
 
