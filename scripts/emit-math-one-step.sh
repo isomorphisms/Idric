@@ -23,10 +23,15 @@ output=$3
   exit 2
 }
 
+# `./edric bootstrap` builds the libraries in-tree rather than installing them
+# into a user's global package directory.  Use exactly those bootstrapped
+# libraries for the checked source boundary and the subsequent execution.
+idric_library_path="$repo_root/libs/prelude/build/ttc:$repo_root/libs/base/build/ttc:$repo_root/libs/linear/build/ttc:$repo_root/libs/network/build/ttc:$repo_root/libs/contrib/build/ttc:$repo_root/libs/test/build/ttc:"
+
 # First establish the ordinary compiler boundary.  The emitter body is an Idric
 # value in the source module and is executed only after this check succeeds.
-"$compiler" --check "$source"
-body=$("$compiler" --no-banner --quiet --exec emit_math_one_step "$source")
+IDRIS2_PATH="$idric_library_path" "$compiler" --check "$source"
+body=$(IDRIS2_PATH="$idric_library_path" "$compiler" --no-banner --quiet --exec emit_math_one_step "$source")
 [ -n "$body" ] || { echo "Idric math emitter: emit_math_one_step produced no artifact body" >&2; exit 1; }
 
 set -- $(sha256sum "$source")
