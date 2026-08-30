@@ -1,0 +1,373 @@
+module R128Pipeline
+
+%default total
+
+-- This is the canonical bounded compiler/backend handoff fixture.  The source
+-- keeps vector and covector distinct, carries ambient dimension in the types,
+-- constructs the reflection/quarter-turn sequence as typed values, and emits
+-- the checked one-step protocol only after this whole module has typechecked.
+-- It is not a parser or recognizer for Idric source.
+
+data Space = R128
+
+data Coordinates : Nat -> Type where
+  CNil : Coordinates Z
+  CCons : Integer -> Coordinates n -> Coordinates (S n)
+
+zeros : (n : Nat) -> Coordinates n
+zeros Z = CNil
+zeros (S n) = CCons 0 (zeros n)
+
+append_coordinates : Coordinates n -> Coordinates m -> Coordinates (n + m)
+append_coordinates CNil right = right
+append_coordinates (CCons x xs) right = CCons x (append_coordinates xs right)
+
+dot_coordinates : Coordinates n -> Coordinates n -> Integer
+dot_coordinates CNil CNil = 0
+dot_coordinates (CCons x xs) (CCons y ys) = x * y + dot_coordinates xs ys
+
+coordinates_string : Coordinates n -> String
+coordinates_string CNil = ""
+coordinates_string (CCons x CNil) = show x
+coordinates_string (CCons x xs) = show x ++ "," ++ coordinates_string xs
+
+record Vector (space : Space) (dimension : Nat) where
+  constructor VectorValue
+  vector_coordinates : Coordinates dimension
+
+record Covector (space : Space) (dimension : Nat) where
+  constructor CovectorValue
+  covector_coordinates : Coordinates dimension
+
+record NamedVector (space : Space) (dimension : Nat) where
+  constructor NameVector
+  vector_name : String
+  vector_value : Vector space dimension
+
+record NamedCovector (space : Space) (dimension : Nat) where
+  constructor NameCovector
+  covector_name : String
+  covector_value : Covector space dimension
+
+record NamedScalar where
+  constructor NameScalar
+  scalar_name : String
+  scalar_value : Integer
+
+contract : Covector space dimension -> Vector space dimension -> Integer
+contract (CovectorValue left) (VectorValue right) = dot_coordinates left right
+
+dot : Vector space dimension -> Vector space dimension -> Integer
+dot (VectorValue left) (VectorValue right) = dot_coordinates left right
+
+squared_norm : Vector space dimension -> Integer
+squared_norm vector = dot vector vector
+
+data Orientation = Preserving | Reversing
+
+data OrthogonalTransform : Space -> Nat -> Orientation -> Type where
+  H : OrthogonalTransform R128 128 Reversing
+  G : OrthogonalTransform R128 128 Preserving
+
+reflect_first : Coordinates (S n) -> Coordinates (S n)
+reflect_first (CCons x rest) = CCons (-x) rest
+
+quarter_turn_first_plane : Coordinates (S (S n)) -> Coordinates (S (S n))
+quarter_turn_first_plane (CCons x (CCons y rest)) = CCons (-y) (CCons x rest)
+
+apply_transform_coordinates :
+  OrthogonalTransform R128 128 orientation -> Coordinates 128 -> Coordinates 128
+apply_transform_coordinates H coordinates = reflect_first coordinates
+apply_transform_coordinates G coordinates = quarter_turn_first_plane coordinates
+
+apply_transform :
+  OrthogonalTransform R128 128 orientation -> Vector R128 128 -> Vector R128 128
+apply_transform transform (VectorValue coordinates) =
+  VectorValue (apply_transform_coordinates transform coordinates)
+
+map_named_vector :
+  String ->
+  OrthogonalTransform R128 128 orientation ->
+  NamedVector R128 128 ->
+  NamedVector R128 128
+map_named_vector name transform (NameVector _ value) =
+  NameVector name (apply_transform transform value)
+
+data SpherePoint : Space -> Nat -> Type where
+  FarBasis : SpherePoint R128 128
+  OrthogonalImage :
+    OrthogonalTransform R128 128 orientation ->
+    SpherePoint R128 128 ->
+    SpherePoint R128 128
+
+record NamedSpherePoint (space : Space) (ambient : Nat) where
+  constructor NameSpherePoint
+  sphere_name : String
+  sphere_value : SpherePoint space ambient
+
+far_basis_coordinates : Coordinates 128
+far_basis_coordinates = append_coordinates (zeros 127) (CCons 1 CNil)
+
+sphere_coordinates : SpherePoint R128 128 -> Coordinates 128
+sphere_coordinates FarBasis = far_basis_coordinates
+sphere_coordinates (OrthogonalImage transform point) =
+  apply_transform_coordinates transform (sphere_coordinates point)
+
+act_on_sphere :
+  OrthogonalTransform R128 128 orientation ->
+  SpherePoint R128 128 ->
+  SpherePoint R128 128
+act_on_sphere = OrthogonalImage
+
+-- The certificate constructors are deliberately typed.  The strings emitted
+-- below are receipts for these compiler-checked values, not a theorem solver in
+-- the x86 backend.
+data SameSpaceCertificate : Space -> Nat -> Type where
+  SameR128 : SameSpaceCertificate R128 128
+
+data OrthogonalCertificate : Orientation -> Type where
+  HIsOrthogonal : OrthogonalCertificate Reversing
+  GIsOrthogonal : OrthogonalCertificate Preserving
+
+data SphereActionCertificate : Type where
+  GActsOnS127 : SphereActionCertificate
+
+data SphereNormCertificate : Type where
+  GPreservesSphereNorm : SphereNormCertificate
+
+x_coordinates : Coordinates 128
+x_coordinates =
+  CCons 3 (CCons 4 (CCons 12 (append_coordinates (zeros 124) (CCons 9 CNil))))
+
+y_coordinates : Coordinates 128
+y_coordinates =
+  CCons 5 (CCons (-2) (CCons 7 (append_coordinates (zeros 124) (CCons 11 CNil))))
+
+phi : NamedCovector R128 128
+phi = NameCovector "phi" (CovectorValue y_coordinates)
+
+sphere_basis : NamedSpherePoint R128 128
+sphere_basis = NameSpherePoint "sphere_basis" FarBasis
+
+x : NamedVector R128 128
+x = NameVector "x" (VectorValue x_coordinates)
+
+y : NamedVector R128 128
+y = NameVector "y" (VectorValue y_coordinates)
+
+contraction : NamedScalar
+contraction = NameScalar "contraction" (contract (covector_value phi) (vector_value x))
+
+x_dot_x : NamedScalar
+x_dot_x = NameScalar "x_dot_x" (dot (vector_value x) (vector_value x))
+
+x_dot_y : NamedScalar
+x_dot_y = NameScalar "x_dot_y" (dot (vector_value x) (vector_value y))
+
+x_squared_norm : NamedScalar
+x_squared_norm = NameScalar "x_squared_norm" (squared_norm (vector_value x))
+
+hx : NamedVector R128 128
+hx = map_named_vector "hx" H x
+
+hy : NamedVector R128 128
+hy = map_named_vector "hy" H y
+
+h2x : NamedVector R128 128
+h2x = map_named_vector "h2x" H hx
+
+hx_dot_hy : NamedScalar
+hx_dot_hy = NameScalar "hx_dot_hy" (dot (vector_value hx) (vector_value hy))
+
+gx : NamedVector R128 128
+gx = map_named_vector "gx" G x
+
+gy : NamedVector R128 128
+gy = map_named_vector "gy" G y
+
+g2x : NamedVector R128 128
+g2x = map_named_vector "g2x" G gx
+
+g3x : NamedVector R128 128
+g3x = map_named_vector "g3x" G g2x
+
+g4x : NamedVector R128 128
+g4x = map_named_vector "g4x" G g3x
+
+gx_dot_gy : NamedScalar
+gx_dot_gy = NameScalar "gx_dot_gy" (dot (vector_value gx) (vector_value gy))
+
+sphere_after : NamedSpherePoint R128 128
+sphere_after = NameSpherePoint "sphere_after" (act_on_sphere G (sphere_value sphere_basis))
+
+sphere_squared_norm : NamedScalar
+sphere_squared_norm =
+  NameScalar "sphere_squared_norm"
+    (dot_coordinates (sphere_coordinates (sphere_value sphere_after))
+                     (sphere_coordinates (sphere_value sphere_after)))
+
+space_name : Space -> String
+space_name R128 = "R128"
+
+space_row : (space : Space) -> (dimension : Nat) -> String
+space_row space dimension =
+  "space\t" ++ space_name space ++ "\t" ++ show dimension
+
+vector_row : {space : Space} -> {dimension : Nat} -> NamedVector space dimension -> String
+vector_row {space} {dimension} item =
+  "value\t" ++ vector_name item ++ "\tvector\t" ++ space_name space ++ "\t" ++
+  show dimension ++ "\texact_integer\t" ++
+  coordinates_string (vector_coordinates (vector_value item))
+
+covector_row : {space : Space} -> {dimension : Nat} -> NamedCovector space dimension -> String
+covector_row {space} {dimension} item =
+  "value\t" ++ covector_name item ++ "\tcovector\t" ++ space_name space ++ "\t" ++
+  show dimension ++ "\texact_integer\t" ++
+  coordinates_string (covector_coordinates (covector_value item))
+
+sphere_row : NamedSpherePoint R128 128 -> String
+sphere_row item =
+  "value\t" ++ sphere_name item ++ "\tsphere_point\tR128\t128\texact_integer\t" ++
+  coordinates_string (sphere_coordinates (sphere_value item))
+
+same_space_certificate_row : SameSpaceCertificate R128 128 -> String
+same_space_certificate_row SameR128 =
+  "certificate\tcert_same\tSameSpace\tPASS\tunification\tregistry_version=1\tgoal=SameSpaceAndDimension_R128_128\tgenerated_by=contraction_and_dot\tgenerated_term=same_space_R128_128\tcore_typecheck=PASS\treason=unified_named_space_and_dimension\tresolved=R128_128\tresult=solved"
+
+h_certificate_row : OrthogonalCertificate Reversing -> String
+h_certificate_row HIsOrthogonal =
+  "certificate\tcert_h\tOrthogonalTransform\tPASS\tstructure_law_instance\tregistry_version=1\tgoal=OrthogonalTransform_H_R128_128_reversing\tgenerated_by=reflection\thypotheses=H_is_first_axis_reflection\tconclusion=H_is_orthogonal_reversing\tresolver=structure_law_instance\tgenerated_term=first_axis_reflection_orthogonal_H\tcore_typecheck=PASS\treason=registered_checked_law\tresolved=H_R128_128\tresult=solved\tlaw=first_axis_reflection_is_orthogonal"
+
+g_certificate_row : OrthogonalCertificate Preserving -> String
+g_certificate_row GIsOrthogonal =
+  "certificate\tcert_g\tOrthogonalTransform\tPASS\tstructure_law_instance\tregistry_version=1\tgoal=OrthogonalTransform_G_R128_128_preserving\tgenerated_by=plane_rotation\thypotheses=G_is_exact_first_plane_quarter_turn\tconclusion=G_is_orthogonal_preserving\tresolver=structure_law_instance\tgenerated_term=first_plane_quarter_turn_orthogonal_G\tcore_typecheck=PASS\treason=registered_checked_law\tresolved=G_R128_128\tresult=solved\tlaw=first_plane_quarter_turn_is_orthogonal"
+
+sphere_action_certificate_row : SphereActionCertificate -> String
+sphere_action_certificate_row GActsOnS127 =
+  "certificate\tcert_sphere\tOrthogonalSphereAction\tPASS\tnamed_theorem\tregistry_version=1\tgoal=OrthogonalSphereAction_G_127_128\tgenerated_by=act_on_sphere\thypotheses=G_OrthogonalTransform_R128_and_point_on_S127\tconclusion=G_point_on_S127\tresolver=named_theorem\tcandidates=orthogonal_preserves_unit_sphere\tselected_theorem=orthogonal_preserves_unit_sphere\tgenerated_term=orthogonal_preserves_unit_sphere_G_sphere_basis\tcore_typecheck=PASS\treason=unique_checked_candidate\tresolved=G_S127_R128\tresult=solved\ttheorem=orthogonal_preserves_unit_sphere"
+
+sphere_norm_certificate_row : SphereNormCertificate -> String
+sphere_norm_certificate_row GPreservesSphereNorm =
+  "certificate\tcert_sphere_norm\tPreservesSquaredNorm\tPASS\tnamed_theorem\tregistry_version=1\tgoal=PreservesSquaredNorm_G_128\tgenerated_by=sphere_squared_norm\thypotheses=G_OrthogonalTransform_R128_preserving\tconclusion=squared_norm_sphere_after_equals_squared_norm_sphere_basis\tresolver=named_theorem\tcandidates=orthogonal_preserves_squared_norm\tselected_theorem=orthogonal_preserves_squared_norm\tgenerated_term=orthogonal_preserves_squared_norm_G_sphere_basis\tcore_typecheck=PASS\treason=unique_checked_candidate\tresolved=G_R128_128\tresult=solved\ttheorem=orthogonal_preserves_squared_norm"
+
+h_transform_row : OrthogonalTransform R128 128 Reversing -> OrthogonalCertificate Reversing -> String
+h_transform_row H HIsOrthogonal =
+  "transform\tH\treflection\tR128\t128\treversing\taxis=0\tcertificate=cert_h"
+
+g_transform_row : OrthogonalTransform R128 128 Preserving -> OrthogonalCertificate Preserving -> String
+g_transform_row G GIsOrthogonal =
+  "transform\tG\tplane_rotation\tR128\t128\tpreserving\ti=0\tj=1\tturns=1\tcertificate=cert_g"
+
+contract_step_row : String -> NamedScalar -> NamedCovector R128 128 -> NamedVector R128 128 -> String
+contract_step_row step result left right =
+  "step\t" ++ step ++ "\t" ++ scalar_name result ++
+  "\tContract\tspace=R128\tcovector=" ++ covector_name left ++
+  "\tvector=" ++ vector_name right ++ "\tcertificate=cert_same"
+
+dot_step_row : String -> NamedScalar -> NamedVector R128 128 -> NamedVector R128 128 -> String
+dot_step_row step result left right =
+  "step\t" ++ step ++ "\t" ++ scalar_name result ++
+  "\tDot\tspace=R128\tleft=" ++ vector_name left ++
+  "\tright=" ++ vector_name right ++ "\tcertificate=cert_same"
+
+norm_step_row : String -> NamedScalar -> NamedVector R128 128 -> String
+norm_step_row step result vector =
+  "step\t" ++ step ++ "\t" ++ scalar_name result ++
+  "\tSquaredNorm\tspace=R128\tvector=" ++ vector_name vector ++
+  "\tcertificate=cert_same"
+
+reflect_step_row : String -> NamedVector R128 128 -> NamedVector R128 128 -> String
+reflect_step_row step result vector =
+  "step\t" ++ step ++ "\t" ++ vector_name result ++
+  "\tReflect\tspace=R128\taxis=0\tvector=" ++ vector_name vector ++
+  "\tcertificate=cert_h"
+
+rotate_step_row : String -> NamedVector R128 128 -> NamedVector R128 128 -> String
+rotate_step_row step result vector =
+  "step\t" ++ step ++ "\t" ++ vector_name result ++
+  "\tRotatePlane\tspace=R128\tambient=128\ti=0\tj=1\tturns=1\tvector=" ++
+  vector_name vector ++ "\tcertificate=cert_g"
+
+sphere_action_step_row : String -> NamedSpherePoint R128 128 -> NamedSpherePoint R128 128 -> String
+sphere_action_step_row step result point =
+  "step\t" ++ step ++ "\t" ++ sphere_name result ++
+  "\tActOnSphere\tsphere_dimension=127\tambient=128\tspace=R128\ttransform=G\tpoint=" ++
+  sphere_name point ++ "\tcertificate=cert_sphere"
+
+sphere_norm_step_row : String -> NamedScalar -> NamedSpherePoint R128 128 -> String
+sphere_norm_step_row step result point =
+  "step\t" ++ step ++ "\t" ++ scalar_name result ++
+  "\tSquaredNorm\tspace=R128\tvector=" ++ sphere_name point ++
+  "\tcertificate=cert_sphere_norm"
+
+plan_row : String -> String -> String
+plan_row step certificate =
+  "plan_input\t" ++ step ++
+  "\tscalar_loop,packed_vector,gpu_vector,special_instruction\tcertificate=" ++ certificate
+
+temporary_row : String -> String -> String
+temporary_row name policy = "temporary\t" ++ name ++ "\t" ++ policy
+
+emit_math_one_step : IO ()
+emit_math_one_step = do
+  putStrLn (space_row R128 128)
+  putStrLn (covector_row phi)
+  putStrLn (sphere_row sphere_basis)
+  putStrLn (vector_row x)
+  putStrLn (vector_row y)
+  putStrLn (same_space_certificate_row SameR128)
+  putStrLn (h_certificate_row HIsOrthogonal)
+  putStrLn (g_certificate_row GIsOrthogonal)
+  putStrLn (sphere_action_certificate_row GActsOnS127)
+  putStrLn (sphere_norm_certificate_row GPreservesSphereNorm)
+  putStrLn (h_transform_row H HIsOrthogonal)
+  putStrLn (g_transform_row G GIsOrthogonal)
+  putStrLn (contract_step_row "contract" contraction phi x)
+  putStrLn (dot_step_row "dot_xx" x_dot_x x x)
+  putStrLn (dot_step_row "dot_xy" x_dot_y x y)
+  putStrLn (norm_step_row "norm_x" x_squared_norm x)
+  putStrLn (reflect_step_row "reflect_x" hx x)
+  putStrLn (reflect_step_row "reflect_y" hy y)
+  putStrLn (reflect_step_row "reflect_hx" h2x hx)
+  putStrLn (dot_step_row "dot_hx_hy" hx_dot_hy hx hy)
+  putStrLn (rotate_step_row "rotate_x" gx x)
+  putStrLn (rotate_step_row "rotate_y" gy y)
+  putStrLn (rotate_step_row "rotate_gx" g2x gx)
+  putStrLn (rotate_step_row "rotate_g2x" g3x g2x)
+  putStrLn (rotate_step_row "rotate_g3x" g4x g3x)
+  putStrLn (dot_step_row "dot_gx_gy" gx_dot_gy gx gy)
+  putStrLn (sphere_action_step_row "act_sphere" sphere_after sphere_basis)
+  putStrLn (sphere_norm_step_row "sphere_norm" sphere_squared_norm sphere_after)
+  putStrLn (plan_row "contract" "cert_same")
+  putStrLn (plan_row "dot_xx" "cert_same")
+  putStrLn (plan_row "dot_xy" "cert_same")
+  putStrLn (plan_row "norm_x" "cert_same")
+  putStrLn (plan_row "reflect_x" "cert_h")
+  putStrLn (plan_row "reflect_y" "cert_h")
+  putStrLn (plan_row "reflect_hx" "cert_h")
+  putStrLn (plan_row "dot_hx_hy" "cert_same")
+  putStrLn (plan_row "rotate_x" "cert_g")
+  putStrLn (plan_row "rotate_y" "cert_g")
+  putStrLn (plan_row "rotate_gx" "cert_g")
+  putStrLn (plan_row "rotate_g2x" "cert_g")
+  putStrLn (plan_row "rotate_g3x" "cert_g")
+  putStrLn (plan_row "dot_gx_gy" "cert_same")
+  putStrLn (plan_row "act_sphere" "cert_sphere")
+  putStrLn (plan_row "sphere_norm" "cert_sphere_norm")
+  putStrLn (temporary_row "contraction" "foldable")
+  putStrLn (temporary_row "x_dot_x" "foldable")
+  putStrLn (temporary_row "x_dot_y" "foldable")
+  putStrLn (temporary_row "x_squared_norm" "foldable")
+  putStrLn (temporary_row "hx" "reusable")
+  putStrLn (temporary_row "hy" "reusable")
+  putStrLn (temporary_row "h2x" "reusable")
+  putStrLn (temporary_row "hx_dot_hy" "foldable")
+  putStrLn (temporary_row "gx" "reusable")
+  putStrLn (temporary_row "gy" "reusable")
+  putStrLn (temporary_row "g2x" "reusable")
+  putStrLn (temporary_row "g3x" "reusable")
+  putStrLn (temporary_row "g4x" "reusable")
+  putStrLn (temporary_row "gx_dot_gy" "foldable")
+  putStrLn (temporary_row "sphere_after" "reusable")
+  putStrLn (temporary_row "sphere_squared_norm" "foldable")
+  putStrLn "end"
