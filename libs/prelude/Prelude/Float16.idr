@@ -179,9 +179,9 @@ showFloat16Carrier value =
                           magnitude = if negative then prim__negate_Float value else value
                           whole = floorBounded 17 0 65536 magnitude
                           fraction = prim__sub_Float magnitude (asFloat whole)
-                          prefix = if negative then "-" else ""
+                          sign = if negative then "-" else ""
                           decimals = trimTrailingZeros (fractionDigits 8 fraction) in
-                        prefix ++ show whole ++ "." ++ decimals
+                        sign ++ show whole ++ "." ++ decimals
 
 export
 Show Float16 where
