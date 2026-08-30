@@ -15,11 +15,13 @@ export PATH
 usage() {
 	cat <<'USAGE'
 usage: ./edric [scheme|bootstrap|test|all]
+       ./edric --emit-math-one-step SOURCE -o ARTIFACT
 
-  scheme     install the pinned threaded Chez Scheme under .tools
-  bootstrap  install Chez Scheme, then bootstrap Idris 2
-  test       run the focused Edric handoff test with an existing build
-  all        install Chez Scheme, bootstrap Idris 2, and run the handoff test
+  scheme                install the pinned threaded Chez Scheme under .tools
+  bootstrap             install Chez Scheme, then bootstrap Idris 2
+  test                  run the focused Edric handoff test with an existing build
+  all                   install Chez Scheme, bootstrap Idris 2, and run the handoff test
+  --emit-math-one-step  typecheck SOURCE, execute its checked emitter, and write ARTIFACT
 
 With no command, all is used.
 USAGE
@@ -58,6 +60,10 @@ test)
 all)
 	bootstrap
 	smoke_test
+	;;
+--emit-math-one-step)
+	shift
+	exec sh "$repo_root/scripts/emit-math-one-step.sh" "$@"
 	;;
 -h | --help | help)
 	usage
