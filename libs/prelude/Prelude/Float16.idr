@@ -4,6 +4,7 @@ import Builtin
 import Prelude.Basics
 import Prelude.EqOrd
 import Prelude.Num
+import Prelude.Show
 import Prelude.Types
 
 %default total
@@ -26,13 +27,13 @@ private
 half : Float
 half = assert_total (prim__div_Float (asFloat 1) (asFloat 2))
 
-||| `scaled` is always in [0, 2048) for a finite binary16 candidate. Find its
-||| integer floor by a fixed-depth binary search so the Prelude never needs a
-||| floating-to-integer primitive.
+||| Find the integer floor of a nonnegative primitive floating value inside a
+||| known integer interval. The recursion depth is supplied explicitly so the
+||| Prelude never needs a floating-to-integer primitive.
 private
-floorScaled : Nat -> Integer -> Integer -> Float -> Integer
-floorScaled Z lower upper value = lower
-floorScaled (S fuel) lower upper value =
+floorBounded : Nat -> Integer -> Integer -> Float -> Integer
+floorBounded Z lower upper value = lower
+floorBounded (S fuel) lower upper value =
   let width = prim__sub_Integer upper lower in
     if width <= 1
        then lower
@@ -42,13 +43,13 @@ floorScaled (S fuel) lower upper value =
                           (assert_total (prim__div_Integer width 2))
              midpointValue = asFloat midpoint in
            if midpointValue <= value
-              then floorScaled fuel midpoint upper value
-              else floorScaled fuel lower midpoint value
+              then floorBounded fuel midpoint upper value
+              else floorBounded fuel lower midpoint value
 
 private
 roundNearestEven : Float -> Integer
 roundNearestEven value =
-  let lower = floorScaled 12 0 2048 value
+  let lower = floorBounded 12 0 2048 value
       lowerValue = asFloat lower
       fraction = prim__sub_Float value lowerValue in
     if fraction < half
@@ -136,3 +137,52 @@ Ord Float16 where
   (MkFloat16 left) <= (MkFloat16 right) = left <= right
   (MkFloat16 left) > (MkFloat16 right) = left > right
   (MkFloat16 left) >= (MkFloat16 right) = left >= right
+
+private
+fractionDigits : Nat -> Float -> String
+fractionDigits Z fraction = ""
+fractionDigits (S fuel) fraction =
+  let scaled = prim__mul_Float fraction (asFloat 10)
+      digit = floorBounded 4 0 10 scaled
+      rest = prim__sub_Float scaled (asFloat digit) in
+    show digit ++ fractionDigits fuel rest
+
+private
+stripLeadingZeros : List Char -> List Char
+stripLeadingZeros ('0' :: rest) = stripLeadingZeros rest
+stripLeadingZeros rest = rest
+
+private
+trimTrailingZeros : String -> String
+trimTrailingZeros digits =
+  let trimmed = reverse (stripLeadingZeros (reverse (unpack digits))) in
+    case trimmed of
+      [] => "0"
+      _ => pack trimmed
+
+||| Format the binary16 value without routing through the inherited wide
+||| floating primitive. Eight fractional decimal digits are enough to
+||| distinguish every finite binary16 value; trailing zeroes are removed.
+private
+showFloat16Carrier : Float -> String
+showFloat16Carrier value =
+  if value /= value
+     then "NaN"
+     else
+       let infinity = assert_total (prim__div_Float (asFloat 1) (asFloat 0)) in
+         if value == infinity
+            then "Infinity"
+            else if value == prim__negate_Float infinity
+                    then "-Infinity"
+                    else
+                      let negative = value < asFloat 0
+                          magnitude = if negative then prim__negate_Float value else value
+                          whole = floorBounded 17 0 65536 magnitude
+                          fraction = prim__sub_Float magnitude (asFloat whole)
+                          prefix = if negative then "-" else ""
+                          decimals = trimTrailingZeros (fractionDigits 8 fraction) in
+                        prefix ++ show whole ++ "." ++ decimals
+
+export
+Show Float16 where
+  showPrec _ (MkFloat16 value) = showFloat16Carrier value
