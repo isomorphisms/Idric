@@ -14,9 +14,10 @@ import System.File
 
 %default total
 
-promoteIdricKeyword : Token -> Token
-promoteIdricKeyword (Ident "choice") = Keyword "choice"
-promoteIdricKeyword tok = tok
+canonicalizeIdricToken : Token -> Token
+canonicalizeIdricToken (Ident "choice") = Keyword "choice"
+canonicalizeIdricToken (Ident "ℕ") = Ident "Nat"
+canonicalizeIdricToken tok = tok
 
 sourceSyntax : Maybe String -> SourceSyntax
 sourceSyntax (Just fname) = if isSuffixOf ".idric" fname
@@ -27,7 +28,7 @@ sourceSyntax Nothing = IdrisSyntax
 sourceTokens : Maybe String -> List (WithBounds Token) -> List (WithBounds Token)
 sourceTokens (Just fname) toks
     = if isSuffixOf ".idric" fname
-         then map (map promoteIdricKeyword) toks
+         then map (map canonicalizeIdricToken) toks
          else toks
 sourceTokens Nothing toks = toks
 

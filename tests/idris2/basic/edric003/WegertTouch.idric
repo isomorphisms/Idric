@@ -2,9 +2,9 @@ module WegertTouch
 
 public export
 choice existing_touch_target one_of
-  fixed_value Nat
-  zero Nat
-  pole Nat
+  fixed_value ℕ
+  zero ℕ
+  pole ℕ
 
 public export
 choice touch_beginning one_of

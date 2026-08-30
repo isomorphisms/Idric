@@ -2,7 +2,7 @@ module Main
 
 %default total
 
-increment : Nat → Nat
+increment : ℕ → ℕ
 increment = \number ⇒ ?incremented
 
 twice : (a → a) → a → a
