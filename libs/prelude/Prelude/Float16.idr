@@ -4,7 +4,6 @@ import Builtin
 import Prelude.Basics
 import Prelude.EqOrd
 import Prelude.Num
-import Prelude.Show
 import Prelude.Types
 
 %default total
@@ -109,8 +108,3 @@ Ord Float16 where
   (MkFloat16 left) <= (MkFloat16 right) = left <= right
   (MkFloat16 left) > (MkFloat16 right) = left > right
   (MkFloat16 left) >= (MkFloat16 right) = left >= right
-
-export
-Show Float16 where
-  showPrec precedence (MkFloat16 value) =
-    showPrec precedence (prim__cast_FloatDouble value)
