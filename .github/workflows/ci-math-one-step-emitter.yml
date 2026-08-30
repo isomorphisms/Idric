@@ -32,9 +32,6 @@ jobs:
           artifact=build/r128.math-one-step
           ./edric --emit-math-one-step "$source" -o "$artifact"
 
-          awk -F '\t' '$1 == "step" { steps++ } $1 == "plan_input" { plans++ } $1 == "temporary" { temporaries++ } END { printf "artifact_counts step=%d plan_input=%d temporary=%d\n", steps, plans, temporaries }' "$artifact"
-          cat "$artifact"
-
           compiler_head=$(git rev-parse HEAD)
           source_sha=$(sha256sum "$source" | cut -d' ' -f1)
           test "$(head -n 1 "$artifact")" = $'EDRIC_MATH_ONE_STEP\t1'
