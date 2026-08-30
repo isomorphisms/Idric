@@ -37,6 +37,16 @@ expect_float16_warning WideFloat64.idric Float64
 expect_no_float16_warning CanonicalFloat16.idric
 expect_no_float16_warning Decimal.idric
 
+# The internal primitive Float is the carrier below the Prelude's Float16
+# wrapper. Prove the restored primitive arithmetic actually executes before
+# relying on it for binary16 quantization.
+primitive=$(run PrimitiveFloat.idr)
+if [ "$primitive" != "primitive-float: PASS" ]; then
+    printf '%s\n' "$primitive"
+    echo "primitive Float carrier arithmetic failed"
+    exit 1
+fi
+
 rounding=$(run Float16Rounding.idric)
 if [ "$rounding" != "float16-rounding: PASS" ]; then
     printf '%s\n' "$rounding"
