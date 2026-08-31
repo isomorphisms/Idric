@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+
+. ../../../testutils.sh
+
+example_dir=../../../../examples/unified-higher-mathematics
+fixture_dir=build/unified-higher-mathematics
+mkdir -p "$fixture_dir"
+
+cp "$example_dir/MathematicalSpaces.idric" "$fixture_dir/MathematicalSpaces.idric"
+cp "$example_dir/EuclideanGeometry.idric" "$fixture_dir/EuclideanGeometry.idric"
+cp "$example_dir/TopologyFacts.idric" "$fixture_dir/TopologyFacts.idric"
+cp "$example_dir/PresheafRestriction.idric" "$fixture_dir/PresheafRestriction.idric"
+cp "$example_dir/NamedFacts.idric" "$fixture_dir/NamedFacts.idric"
+cp "$example_dir/Tests.idric" "$fixture_dir/Tests.idric"
+
+# Preserve .idric all the way into the bootstrapped compiler. The previous
+# geometry runner renamed its sources to .idr; this receipt exercises the
+# filename-scoped Idric frontend and avoids both old edric008 fixtures.
+(
+  cd "$fixture_dir"
+
+  if ! "$idris2" --check Tests.idric >typecheck.log 2>&1; then
+    cat typecheck.log >&2
+    exit 1
+  fi
+
+  if ! "$idris2" Tests.idric -o unified-higher-mathematics >build.log 2>&1; then
+    cat build.log >&2
+    exit 1
+  fi
+
+  ./build/exec/unified-higher-mathematics
+)
