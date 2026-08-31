@@ -20,6 +20,49 @@ ascii_order = 1 <= 2
 syntax_literal : String
 syntax_literal = "-> => → ⇒ ← ≤"
 
+case_simple : Either Integer Integer→Integer
+case_simple result =
+  case result of
+    Left problem ⇒ problem
+    Right headers ⇒ headers + 1
+
+case_right_do : Either Integer Integer→IO Integer
+case_right_do result =
+  case result of
+    Left problem ⇒ pure problem
+    Right headers ⇒ do
+      pure (headers + 1)
+
+case_do_boundary : Either Integer Integer→IO Integer
+case_do_boundary result =
+  case result of
+    Left problem ⇒ do
+      first←pure (problem + 1)
+      pure (first + 1)
+    Right headers ⇒ pure (headers + 10)
+
+nested_case_do : Either Integer (Either Integer Integer)→IO Integer
+nested_case_do result =
+  case result of
+    Left problem ⇒ pure problem
+    Right headers ⇒ do
+      let marker = 1
+      case headers of
+        Left problem ⇒ pure (problem + marker)
+        Right value ⇒ do
+          first←pure (value + marker)
+          pure (first + 1)
+
+case_let_case : Either Integer Integer→IO Integer
+case_let_case result =
+  case result of
+    Left problem ⇒ pure problem
+    Right headers ⇒ do
+      let metadata = case headers of
+            0 ⇒ 10
+            _ ⇒ 20
+      pure metadata
+
 main : IO ()
 main = do
   unicode_text←pure "unicode bind"
@@ -33,3 +76,16 @@ main = do
   printLn ascii_order
   printLn idris_compat_value
   putStrLn syntax_literal
+  printLn (case_simple (Right 4))
+  right_do←case_right_do (Right 6)
+  printLn right_do
+  boundary_left←case_do_boundary (Left 3)
+  boundary_right←case_do_boundary (Right 3)
+  printLn boundary_left
+  printLn boundary_right
+  nested_left←nested_case_do (Right (Left 5))
+  nested_right←nested_case_do (Right (Right 5))
+  printLn nested_left
+  printLn nested_right
+  let_case←case_let_case (Right 0)
+  printLn let_case
