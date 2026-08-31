@@ -150,6 +150,7 @@ make test only=idris2/basic/edric003
 make test only=idris2/basic/edric004
 make test only=idris2/basic/edric005
 make test only=idris2/basic/edric006
+make test only=idris2/basic/edric009
 ```
 
 ## Idriç koans
@@ -212,3 +213,9 @@ A new thread working on Edric should:
 - Twelve progressive Idriç koans cover holes, dependent types, quantitative
   multiplicities, storage-neutral choices, compatibility boundaries, and a
   small Wegert model; their exercises and solutions are compiler-tested.
+- The focused `edric009` example reconciles nominal finite-space identity,
+  rank-indexed names, distinct exact vector/covector samples, explicit
+  standard-coordinate Euclidean structure, typed contraction, connected exact
+  `R^128` orthogonal generators, the finite presheaf restriction model, and one
+  provenance-labelled named fact.  It is a bounded semantic example, not a
+  complete real-scalar model or general mathematics engine.

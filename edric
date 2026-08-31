@@ -9,16 +9,20 @@ make_command=${MAKE:-make}
 # Bootstrap stage 2 runs the compiler produced by stage 1. That compiler
 # invokes its Chez backend as `scheme`, so the private pinned toolchain must be
 # visible on PATH as well as passed to the stage-1 make invocation.
+CHEZ="$scheme"
+export CHEZ
 PATH="$toolchain_dir/bin:$PATH"
 export PATH
 
 usage() {
 	cat <<'USAGE'
 usage: ./edric [scheme|bootstrap|test|all]
+       ./edric test --only TEST_FILTER
 
   scheme     install the pinned threaded Chez Scheme under .tools
   bootstrap  install Chez Scheme, then bootstrap Idris 2
   test       run the focused Edric handoff test with an existing build
+             or run one test selected by --only
   all        install Chez Scheme, bootstrap Idris 2, and run the handoff test
 
 With no command, all is used.
@@ -34,32 +38,61 @@ bootstrap() {
 	"$make_command" -C "$repo_root" bootstrap SCHEME="$scheme"
 }
 
+run_test() {
+	test_filter=$1
+	"$make_command" -C "$repo_root" test only="$test_filter"
+}
+
 smoke_test() {
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric001
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric002
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric003
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric004
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric005
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric006
+	run_test idris2/basic/edric001
+	run_test idris2/basic/edric002
+	run_test idris2/basic/edric003
+	run_test idris2/basic/edric004
+	run_test idris2/basic/edric005
+	run_test idris2/basic/edric006
+	run_test idris2/basic/edric009
 }
 
 command=${1:-all}
+if [ "$#" -gt 0 ]; then
+	shift
+fi
+
 case "$command" in
 scheme)
+	[ "$#" -eq 0 ] || { usage >&2; exit 2; }
 	install_scheme
 	printf '%s\n' "$scheme"
 	;;
 bootstrap)
+	[ "$#" -eq 0 ] || { usage >&2; exit 2; }
 	bootstrap
 	;;
 test)
-	smoke_test
+	case "$#" in
+	0)
+		smoke_test
+		;;
+	2)
+		if [ "$1" != "--only" ] || [ "$2" = "" ]; then
+			usage >&2
+			exit 2
+		fi
+		run_test "$2"
+		;;
+	*)
+		usage >&2
+		exit 2
+		;;
+	esac
 	;;
 all)
+	[ "$#" -eq 0 ] || { usage >&2; exit 2; }
 	bootstrap
 	smoke_test
 	;;
 -h | --help | help)
+	[ "$#" -eq 0 ] || { usage >&2; exit 2; }
 	usage
 	;;
 *)
