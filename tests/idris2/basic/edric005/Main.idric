@@ -33,6 +33,13 @@ case_right_do result =
     Right headers ⇒ do
       pure (headers + 1)
 
+ascii_case_right_do : Either Integer Integer -> IO Integer
+ascii_case_right_do result =
+  case result of
+    Left problem => pure problem
+    Right headers => do
+      pure (headers + 2)
+
 case_do_boundary : Either Integer Integer→IO Integer
 case_do_boundary result =
   case result of
@@ -117,6 +124,8 @@ main = do
   printLn (case_simple (Right 4))
   right_do←case_right_do (Right 6)
   printLn right_do
+  ascii_right_do <- ascii_case_right_do (Right 6)
+  printLn ascii_right_do
   boundary_left←case_do_boundary (Left 3)
   boundary_right←case_do_boundary (Right 3)
   printLn boundary_left
