@@ -63,6 +63,44 @@ case_let_case result =
             _ ⇒ 20
       pure metadata
 
+fetch_like : Integer→Integer→Integer→Integer→IO (Either Integer Integer)
+fetch_like request headers body_path metadata_path =
+  pure (Right 0)
+
+right_result : Integer→IO (Either Integer Integer)
+right_result value = pure (Right value)
+
+cleanup_like : Integer→Integer→IO ()
+cleanup_like body_path metadata_path = pure ()
+
+downstream_shape : Either Integer Integer→IO (Either Integer Integer)
+downstream_shape result =
+  case result of
+    Left problem ⇒ pure (Left problem)
+    Right headers ⇒ do
+      let body = headers + 1
+      pid←pure 2
+      temp_root←pure 3
+      let prefix = temp_root + pid
+      let body_path = prefix + 1
+      let metadata_path = prefix + 2
+      fetch_result←fetch_like
+        (body + headers) headers body_path metadata_path
+      case fetch_result of
+        Left problem ⇒ pure (Left problem)
+        Right result_code ⇒ do
+          metadata_result←right_result metadata_path
+          body_result←right_result body_path
+          cleanup_like body_path metadata_path
+          let metadata = case metadata_result of
+                Left _ ⇒ 0
+                Right text ⇒ text
+          if result_code /= 0
+            then pure (Left metadata)
+            else case body_result of
+              Left _ ⇒ pure (Left 100)
+              Right response_body ⇒ pure (Right (metadata + response_body))
+
 main : IO ()
 main = do
   unicode_text←pure "unicode bind"
@@ -89,3 +127,5 @@ main = do
   printLn nested_right
   let_case←case_let_case (Right 0)
   printLn let_case
+  downstream←downstream_shape (Right 1)
+  printLn downstream
