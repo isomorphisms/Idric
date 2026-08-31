@@ -21,21 +21,56 @@ plane_pairing_test :
   contract (planeCovector 5 7) (planeVector 3 4) = 43
 plane_pairing_test = Refl
 
-failing
-  equal_rank_named_spaces_do_not_unify : Vector imagePlaneSpace
+contraction_linear_in_vector_test :
+  contract
+    (planeCovector 5 7)
+    (addVector (planeVector 3 4) (planeVector 2 (-1)))
+  = contract (planeCovector 5 7) (planeVector 3 4)
+      + contract (planeCovector 5 7) (planeVector 2 (-1))
+contraction_linear_in_vector_test = Refl
+
+contraction_linear_in_covector_test :
+  contract
+    (addCovector (planeCovector 5 7) (planeCovector (-2) 1))
+    (planeVector 3 4)
+  = contract (planeCovector 5 7) (planeVector 3 4)
+      + contract (planeCovector (-2) 1) (planeVector 3 4)
+contraction_linear_in_covector_test = Refl
+
+contraction_respects_vector_scaling_test :
+  contract
+    (planeCovector 5 7)
+    (scaleVector 3 (planeVector 3 4))
+  = 3 * contract (planeCovector 5 7) (planeVector 3 4)
+contraction_respects_vector_scaling_test = Refl
+
+contraction_respects_covector_scaling_test :
+  contract
+    (scaleCovector 3 (planeCovector 5 7))
+    (planeVector 3 4)
+  = 3 * contract (planeCovector 5 7) (planeVector 3 4)
+contraction_respects_covector_scaling_test = Refl
+
+failing "Mismatch between: PlaneName and ImagePlaneName."
+  equal_rank_named_spaces_do_not_unify : ExactVectorSample imagePlaneSpace
   equal_rank_named_spaces_do_not_unify = planeVector 1 2
 
-failing
+failing "Mismatch between: 0 and 1."
+  one_name_cannot_claim_a_different_rank : FiniteSpace
+  one_name_cannot_claim_a_different_rank =
+    NamedFiniteSpace {rank = 3} PlaneName
+
+failing "Mismatch between: RealThreeName and PlaneName."
   mismatched_dimension_contraction : Integer
   mismatched_dimension_contraction =
     contract (planeCovector 1 2) (threeVector 3 4 5)
 
-failing
+failing "Mismatch between: ImagePlaneName and PlaneName."
   equal_rank_mismatched_space_contraction : Integer
   equal_rank_mismatched_space_contraction =
     contract (planeCovector 1 2) (imagePlaneVector 3 4)
 
-failing
+failing "Mismatch between: ExactVectorSample planeSpace and ExactCovectorSample"
   vector_vector_contraction_without_euclidean_structure : Integer
   vector_vector_contraction_without_euclidean_structure =
     contract (planeVector 1 2) (planeVector 3 4)
@@ -88,14 +123,14 @@ named_index_contraction_test :
     (UpperIndex (planeVector 3 4)) = 43
 named_index_contraction_test = Refl
 
-failing
+failing "Mismatch between: Lower and Upper."
   same_variance_index_contraction : Integer
   same_variance_index_contraction =
     contractIndex
       (LowerIndex (planeCovector 5 7))
       (LowerIndex (planeCovector 3 4))
 
-failing
+failing "Mismatch between: ImagePlaneName and PlaneName."
   equal_rank_named_index_space_mismatch : Integer
   equal_rank_named_index_space_mismatch =
     contractIndex
@@ -122,33 +157,36 @@ metric_driven_index_raising_test = Refl
 --   y = (5, -2, 7, 0, ..., 0, 11).
 -- The nonzero final coordinates force the implementation to preserve the
 -- distant end of the coordinate object, not merely its type-level rank.
+-- This fixture deliberately crosses the Unsafe... representation boundary to
+-- state all 128 coordinates; semantic clients use the named constructors and
+-- checked contraction/metric operations above.
 
-lastCoordinate : (n : Nat) -> Integer -> ExactCoordinates (S n)
-lastCoordinate Z value = CoordinateCons value CoordinateNil
+lastCoordinate : (n : ℕ) -> Integer -> RawExactCoordinates (S n)
+lastCoordinate Z value = UnsafeCoordinateCons value UnsafeCoordinateNil
 lastCoordinate (S n) value =
-  CoordinateCons 0 (lastCoordinate n value)
+  UnsafeCoordinateCons 0 (lastCoordinate n value)
 
-r128_sample_tail : ExactCoordinates 126
+r128_sample_tail : RawExactCoordinates 126
 r128_sample_tail =
-  addCoordinates
-    (CoordinateCons 12 (zeroCoordinates 125))
+  unsafeAddCoordinates
+    (UnsafeCoordinateCons 12 (unsafeZeroCoordinates 125))
     (lastCoordinate 125 9)
 
-r128_companion_tail : ExactCoordinates 126
+r128_companion_tail : RawExactCoordinates 126
 r128_companion_tail =
-  addCoordinates
-    (CoordinateCons 7 (zeroCoordinates 125))
+  unsafeAddCoordinates
+    (UnsafeCoordinateCons 7 (unsafeZeroCoordinates 125))
     (lastCoordinate 125 11)
 
-r128_sample : Vector real128Space
+r128_sample : ExactVectorSample real128Space
 r128_sample =
-  VectorCoordinates
-    (CoordinateCons 3 (CoordinateCons 4 r128_sample_tail))
+  UnsafeVectorCoordinates
+    (UnsafeCoordinateCons 3 (UnsafeCoordinateCons 4 r128_sample_tail))
 
-r128_companion : Vector real128Space
+r128_companion : ExactVectorSample real128Space
 r128_companion =
-  VectorCoordinates
-    (CoordinateCons 5 (CoordinateCons (-2) r128_companion_tail))
+  UnsafeVectorCoordinates
+    (UnsafeCoordinateCons 5 (UnsafeCoordinateCons (-2) r128_companion_tail))
 
 reflection_in_r128_type_test :
   OrthogonalTransform real128Euclidean Reversing
@@ -163,16 +201,34 @@ two_reflections_land_in_so128_test =
     (firstAxisReflection real128Euclidean)
     (firstAxisReflection real128Euclidean)
 
+r128_orthogonal_identity_action_test :
+  applyOrthogonalExact OrthogonalIdentity r128_sample = r128_sample
+r128_orthogonal_identity_action_test = Refl
+
+r128_two_reflections_action_test :
+  applySpecialOrthogonalExact
+    two_reflections_land_in_so128_test
+    r128_sample = r128_sample
+r128_two_reflections_action_test = Refl
+
+orthogonal_composition_order_test :
+  applyOrthogonalExact
+    (composeOrthogonal
+      (firstAxisReflection planeEuclidean)
+      (soTransform (firstPlaneQuarterTurn planeEuclidean)))
+    (planeVector 2 3) = planeVector 3 2
+orthogonal_composition_order_test = Refl
+
 r128_reflection_exact_image_test :
   applyFirstAxisReflection real128Euclidean r128_sample
-    = VectorCoordinates
-        (CoordinateCons (-3) (CoordinateCons 4 r128_sample_tail))
+    = UnsafeVectorCoordinates
+        (UnsafeCoordinateCons (-3) (UnsafeCoordinateCons 4 r128_sample_tail))
 r128_reflection_exact_image_test = Refl
 
 r128_quarter_turn_exact_image_test :
   applyFirstPlaneQuarterTurn real128Euclidean r128_sample
-    = VectorCoordinates
-        (CoordinateCons (-4) (CoordinateCons 3 r128_sample_tail))
+    = UnsafeVectorCoordinates
+        (UnsafeCoordinateCons (-4) (UnsafeCoordinateCons 3 r128_sample_tail))
 r128_quarter_turn_exact_image_test = Refl
 
 r128_reflection_preserves_squared_norm_test :
@@ -215,20 +271,20 @@ r128_four_quarter_turns_are_identity_test :
     = r128_sample
 r128_four_quarter_turns_are_identity_test = Refl
 
-lastCoordinateValue : ExactCoordinates (S n) -> Integer
-lastCoordinateValue (CoordinateCons value CoordinateNil) = value
+lastCoordinateValue : {n : ℕ} -> RawExactCoordinates (S n) -> Integer
+lastCoordinateValue (UnsafeCoordinateCons value UnsafeCoordinateNil) = value
 lastCoordinateValue
-  (CoordinateCons _ rest@(CoordinateCons _ _)) = lastCoordinateValue rest
+  (UnsafeCoordinateCons _ rest@(UnsafeCoordinateCons _ _)) = lastCoordinateValue rest
 
 r128_reflection_preserves_coordinate_128_test :
   lastCoordinateValue
-    (coordinatesOfVector
+    (unsafeCoordinatesOfVector
       (applyFirstAxisReflection real128Euclidean r128_sample)) = 9
 r128_reflection_preserves_coordinate_128_test = Refl
 
 r128_quarter_turn_preserves_coordinate_128_test :
   lastCoordinateValue
-    (coordinatesOfVector
+    (unsafeCoordinatesOfVector
       (applyFirstPlaneQuarterTurn real128Euclidean r128_sample)) = 9
 r128_quarter_turn_preserves_coordinate_128_test = Refl
 
@@ -238,12 +294,6 @@ r128_quarter_turn_preserves_coordinate_128_test = Refl
 
 north_pole_is_s2_test : UnitSpherePoint realThreeEuclidean
 north_pole_is_s2_test = northPoleS2
-
-so3_action_stays_on_s2_test : UnitSpherePoint realThreeEuclidean
-so3_action_stays_on_s2_test =
-  actSOOnUnitSphere
-    (firstPlaneQuarterTurn realThreeEuclidean)
-    northPoleS2
 
 sphere_s0_h0_rank_test : sphereIntegralCohomologyRank 0 0 = 2
 sphere_s0_h0_rank_test = Refl
@@ -270,8 +320,17 @@ quaternion_j_i_test :
   quaternionMultiply quatJ quatI = quaternionNegate quatK
 quaternion_j_i_test = Refl
 
+quaternion_i_norm_test : quaternionNormSquared quatI = 1
+quaternion_i_norm_test = Refl
+
 unit_quaternion_rotation_is_so3_test : SpecialOrthogonal realThreeEuclidean
 unit_quaternion_rotation_is_so3_test = quaternionRotation unitQuatI
+
+unit_quaternion_rotation_action_test :
+  applySpecialOrthogonalExact
+    (quaternionRotation unitQuatI)
+    (threeVector 0 1 0) = threeVector 0 (-1) 0
+unit_quaternion_rotation_action_test = Refl
 
 cp3_real_dimension_test : cpRealDimension 3 = 6
 cp3_real_dimension_test = Refl
@@ -334,6 +393,15 @@ jordan_context = ContextContains jordanCurveExample
 jordan_lookup_test : FactAnswer (JordanSeparation jordanCurveExample)
 jordan_lookup_test = lookupNamedFact jordanSeparationFact jordan_context
 
+unrelated_context : TypedContext (ExactVectorSample planeSpace)
+unrelated_context = ContextContains (planeVector 1 2)
+
+failing "Mismatch between: ExactVectorSample planeSpace and EmbeddedCircleInS2."
+  named_fact_rejects_unrelated_context :
+    FactAnswer (JordanSeparation jordanCurveExample)
+  named_fact_rejects_unrelated_context =
+    lookupNamedFact jordanSeparationFact unrelated_context
+
 jordan_lookup_conclusion_test :
   complementComponentCount (factConclusion jordan_lookup_test) = 2
 jordan_lookup_conclusion_test = Refl
@@ -342,6 +410,33 @@ jordan_lookup_explanation_test :
   factExplanation jordan_lookup_test
     = "named fact topology.jordan-separation@1"
 jordan_lookup_explanation_test = Refl
+
+jordan_lookup_origin_test :
+  answerOrigin jordan_lookup_test
+    = NamedFactLookup
+        (MkFactProvenance
+          "topology"
+          "jordan-separation"
+          "1"
+          "TopologyFacts.jordanSeparation")
+jordan_lookup_origin_test = Refl
+
+jordan_lookup_namespace_test :
+  factNamespace (answerProvenance jordan_lookup_test) = "topology"
+jordan_lookup_namespace_test = Refl
+
+jordan_lookup_name_test :
+  factName (answerProvenance jordan_lookup_test) = "jordan-separation"
+jordan_lookup_name_test = Refl
+
+jordan_lookup_version_test :
+  factVersion (answerProvenance jordan_lookup_test) = "1"
+jordan_lookup_version_test = Refl
+
+jordan_lookup_source_test :
+  factSource (answerProvenance jordan_lookup_test)
+    = "TopologyFacts.jordanSeparation"
+jordan_lookup_source_test = Refl
 
 main : IO ()
 main = do

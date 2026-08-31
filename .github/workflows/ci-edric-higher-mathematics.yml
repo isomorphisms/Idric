@@ -1,0 +1,46 @@
+name: Idric higher-mathematics semantics
+
+on:
+  pull_request:
+    branches:
+      - 'Idriç'
+    paths:
+      - 'examples/unified-higher-mathematics/**'
+      - 'tests/idris2/basic/edric009/**'
+      - 'edric'
+      - '.github/workflows/ci-edric-higher-mathematics.yml'
+  push:
+    branches:
+      - 'Idriç'
+    paths:
+      - 'examples/unified-higher-mathematics/**'
+      - 'tests/idris2/basic/edric009/**'
+      - 'edric'
+      - '.github/workflows/ci-edric-higher-mathematics.yml'
+
+jobs:
+  unified-semantics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install bootstrap prerequisite
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libgmp-dev
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Bootstrap Idric
+        run: ./edric bootstrap
+
+      - name: Run focused higher-mathematics receipt
+        run: ./edric test --only idris2/basic/edric009
+
+      - name: Run secondary exact R128 check
+        run: python3 examples/unified-higher-mathematics/verify_r128.py
