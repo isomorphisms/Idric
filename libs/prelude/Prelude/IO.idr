@@ -92,35 +92,41 @@ prim__getStr : PrimIO String
          "browser:lambda:x=>console.log(x)"
 prim__putStr : String -> PrimIO ()
 
-||| Output a string to stdout without a trailing newline.
-%inline export
-putStr : HasIO io => String -> io ()
-putStr str = primIO (prim__putStr str)
+-- These descriptive snake_case names are the canonical language-facing names.
+-- Alternate naming styles live in Prelude.Aliases.* and only derive aliases
+-- from these definitions.
 
-||| Output a string to stdout with a trailing newline.
-export
-%inline putStrLn : HasIO io => String -> io ()
-putStrLn str = putStr (prim__strAppend str "\n")
-
-||| Read one line of input from stdin, without the trailing newline.
+||| Write a string of characters to stdout without a trailing newline.
 %inline export
-getLine : HasIO io => io String
-getLine = primIO prim__getStr
+write_out_string_of_characters : HasIO io => String -> io ()
+write_out_string_of_characters characters = primIO (prim__putStr characters)
+
+||| Write a string of characters to stdout followed by a newline.
+%inline export
+write_out_string_of_characters_with_newline : HasIO io => String -> io ()
+write_out_string_of_characters_with_newline characters =
+  write_out_string_of_characters (prim__strAppend characters "\n")
+
+||| Ingest one line of characters from stdin, without the trailing newline.
+%inline export
+ingest_line_of_characters : HasIO io => io String
+ingest_line_of_characters = primIO prim__getStr
 
 ||| Write one single-byte character to stdout.
 %inline export
-putChar : HasIO io => Char -> io ()
-putChar c = primIO (prim__putChar c)
+write_out_character : HasIO io => Char -> io ()
+write_out_character character = primIO (prim__putChar character)
 
-||| Write one multi-byte character to stdout, with a trailing newline.
+||| Write one single-byte character to stdout followed by a newline.
 %inline export
-putCharLn : HasIO io => Char -> io ()
-putCharLn c = putStrLn (prim__cast_CharString c)
+write_out_character_with_newline : HasIO io => Char -> io ()
+write_out_character_with_newline character =
+  write_out_string_of_characters_with_newline (prim__cast_CharString character)
 
-||| Read one single-byte character from stdin.
+||| Ingest one single-byte character from stdin.
 %inline export
-getChar : HasIO io => io Char
-getChar = primIO prim__getChar
+ingest_character : HasIO io => io Char
+ingest_character = primIO prim__getChar
 
 %foreign "scheme:blodwen-thread"
          "C:refc_fork"
@@ -139,12 +145,12 @@ export
 threadWait : (1 threadID : ThreadID) -> IO ()
 threadWait threadID = fromPrim (prim__threadWait threadID)
 
-||| Output something showable to stdout, without a trailing newline.
+||| Write a showable value to stdout without a trailing newline.
 %inline export
-print : HasIO io => Show a => a -> io ()
-print = putStr . show
+write_out_showable_value : HasIO io => Show a => a -> io ()
+write_out_showable_value = write_out_string_of_characters . show
 
-||| Output something showable to stdout, with a trailing newline.
+||| Write a showable value to stdout followed by a newline.
 %inline export
-printLn : HasIO io => Show a => a -> io ()
-printLn = putStrLn . show
+write_out_showable_value_with_newline : HasIO io => Show a => a -> io ()
+write_out_showable_value_with_newline = write_out_string_of_characters_with_newline . show
