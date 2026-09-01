@@ -1,0 +1,40 @@
+name: Idric compiler one-step emitter
+
+on:
+  push:
+    paths:
+      - 'edric'
+      - 'idris2api.ipkg'
+      - 'src/Compiler/IdricOneStep.idr'
+      - 'src/Core/Options.idr'
+      - 'src/Core/TTC.idr'
+      - 'src/Idris/ProcessIdr.idr'
+      - 'scripts/emit-one-step.sh'
+      - 'scripts/test-one-step-emitter.sh'
+      - 'examples/compiler-one-step/**'
+      - '.github/workflows/ci-one-step-emitter.yml'
+  pull_request:
+    paths:
+      - 'edric'
+      - 'idris2api.ipkg'
+      - 'src/Compiler/IdricOneStep.idr'
+      - 'src/Core/Options.idr'
+      - 'src/Core/TTC.idr'
+      - 'src/Idris/ProcessIdr.idr'
+      - 'scripts/emit-one-step.sh'
+      - 'scripts/test-one-step-emitter.sh'
+      - 'examples/compiler-one-step/**'
+      - '.github/workflows/ci-one-step-emitter.yml'
+
+jobs:
+  checked-one-step-emitter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bootstrap Idric
+        run: ./edric bootstrap
+
+      - name: Check deterministic compiler-owned handoff
+        run: scripts/test-one-step-emitter.sh

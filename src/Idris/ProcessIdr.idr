@@ -1,6 +1,7 @@
 module Idris.ProcessIdr
 
 import Compiler.RefC.RefC
+import Compiler.IdricOneStep
 import Compiler.Scheme.Chez
 import Compiler.Scheme.ChezSep
 import Compiler.Scheme.Racket
@@ -274,6 +275,7 @@ getCG Gambit = pure $ Just codegenGambit
 getCG Node = pure $ Just codegenNode
 getCG Javascript = pure $ Just codegenJavascript
 getCG RefC = pure $ Just codegenRefC
+getCG IdricOneStep = pure $ Just codegenIdricOneStep
 getCG VMCodeInterp = pure $ Just codegenVMCodeInterp
 getCG (Other s) = getCodegen s
 

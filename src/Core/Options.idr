@@ -60,6 +60,7 @@ data CG = Chez
         | Node
         | Javascript
         | RefC
+        | IdricOneStep
         | VMCodeInterp
         | Other String
 
@@ -72,6 +73,7 @@ Eq CG where
   Node == Node = True
   Javascript == Javascript = True
   RefC == RefC = True
+  IdricOneStep == IdricOneStep = True
   VMCodeInterp == VMCodeInterp = True
   Other s == Other t = s == t
   _ == _ = False
@@ -85,6 +87,7 @@ Show CG where
   show Node = "node"
   show Javascript = "javascript"
   show RefC = "refc"
+  show IdricOneStep = "idric-one-step"
   show VMCodeInterp = "vmcode-interp"
   show (Other s) = s
 
@@ -231,6 +234,7 @@ availableCGs o
        ("node", Node),
        ("javascript", Javascript),
        ("refc", RefC),
+       ("idric-one-step", IdricOneStep),
        ("gambit", Gambit),
        ("vmcode-interp", VMCodeInterp)] ++ additionalCGs o
 

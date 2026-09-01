@@ -18,12 +18,18 @@ usage() {
 	cat <<'USAGE'
 usage: ./edric [scheme|bootstrap|test|all]
        ./edric test --only TEST_FILTER
+       ./edric --emit-one-step SOURCE -o ARTIFACT
+       ./edric --emit-math-one-step SOURCE -o ARTIFACT
 
   scheme     install the pinned threaded Chez Scheme under .tools
   bootstrap  install Chez Scheme, then bootstrap Idris 2
   test       run the focused Edric handoff test with an existing build
              or run one test selected by --only
   all        install Chez Scheme, bootstrap Idris 2, and run the handoff test
+  --emit-one-step
+             check SOURCE and emit the compiler's one-step-at-a-time form
+  --emit-math-one-step
+             preserve the bounded checked R128 regression artifact
 
 With no command, all is used.
 USAGE
@@ -51,6 +57,7 @@ smoke_test() {
 	run_test idris2/basic/edric005
 	run_test idris2/basic/edric006
 	run_test idris2/basic/edric009
+	sh "$repo_root/scripts/test-one-step-emitter.sh"
 }
 
 command=${1:-all}
@@ -90,6 +97,12 @@ all)
 	[ "$#" -eq 0 ] || { usage >&2; exit 2; }
 	bootstrap
 	smoke_test
+	;;
+--emit-one-step)
+	exec sh "$repo_root/scripts/emit-one-step.sh" "$@"
+	;;
+--emit-math-one-step)
+	exec sh "$repo_root/scripts/emit-math-one-step.sh" "$@"
 	;;
 -h | --help | help)
 	[ "$#" -eq 0 ] || { usage >&2; exit 2; }

@@ -1,0 +1,46 @@
+name: Idric math one-step emitter
+
+on:
+  push:
+    paths:
+      - 'edric'
+      - 'scripts/emit-math-one-step.sh'
+      - 'examples/mathematical-one-step/**'
+      - '.github/workflows/ci-math-one-step-emitter.yml'
+  pull_request:
+    paths:
+      - 'edric'
+      - 'scripts/emit-math-one-step.sh'
+      - 'examples/mathematical-one-step/**'
+      - '.github/workflows/ci-math-one-step-emitter.yml'
+
+jobs:
+  checked-r128-emitter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bootstrap Idric
+        run: ./edric bootstrap
+
+      - name: Emit checked canonical R128 artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=examples/mathematical-one-step/R128Pipeline.idric
+          artifact=build/r128.math-one-step
+          ./edric --emit-math-one-step "$source" -o "$artifact"
+
+          compiler_head=$(git rev-parse HEAD)
+          source_sha=$(sha256sum "$source" | cut -d' ' -f1)
+          test "$(head -n 1 "$artifact")" = $'EDRIC_MATH_ONE_STEP\t1'
+          grep -Fx $'source_sha256\t'"$source_sha" "$artifact"
+          grep -Fx $'compiler_head\tisomorphisms/Idric\t'"$compiler_head" "$artifact"
+          grep -Fx $'core_typecheck\tPASS' "$artifact"
+          test "$(grep -c $'^step\t' "$artifact")" -eq 16
+          test "$(grep -c $'^plan_input\t' "$artifact")" -eq 16
+          test "$(grep -c $'^temporary\t' "$artifact")" -eq 16
+          grep -Fx $'step\tcontract\tcontraction\tContract\tspace=R128\tcovector=phi\tvector=x\tcertificate=cert_same' "$artifact"
+          grep -Fx $'step\tact_sphere\tsphere_after\tActOnSphere\tsphere_dimension=127\tambient=128\tspace=R128\ttransform=G\tpoint=sphere_basis\tcertificate=cert_sphere' "$artifact"
+          test "$(tail -n 1 "$artifact")" = end
