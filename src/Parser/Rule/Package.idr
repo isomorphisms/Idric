@@ -18,9 +18,10 @@ EmptyRule = Grammar () Token False
 
 export
 equals : Rule ()
-equals = terminal "Expected equals" $
+equals = terminal "Expected equals or 'on'" $
                   \case
                     Equals => Just ()
+                    DotSepIdent Nothing "on" => Just ()
                     _ => Nothing
 
 export
