@@ -1,5 +1,5 @@
 named space and Euclidean semantics: PASS
 R^128 exact orthogonal oracle: PASS
-invalid contractions rejected by the compiler: PASS
+invalid contractions and transform applications rejected by the compiler: PASS
 finite presheaf restriction laws: PASS
 provenance-aware named fact lookup: PASS

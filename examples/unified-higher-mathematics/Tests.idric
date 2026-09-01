@@ -137,6 +137,13 @@ failing "Mismatch between: ImagePlaneName and PlaneName."
       (LowerIndex (planeCovector 5 7))
       (UpperIndex (imagePlaneVector 3 4))
 
+failing "Mismatch between: ImagePlaneName and PlaneName."
+  equal_rank_named_space_transform_mismatch : ExactVectorSample imagePlaneSpace
+  equal_rank_named_space_transform_mismatch =
+    applyOrthogonalExact
+      (firstAxisReflection planeEuclidean)
+      (imagePlaneVector 3 4)
+
 metric_driven_index_lowering_test :
   contractIndex
     (lowerIndexed planeEuclidean (UpperIndex (planeVector 5 7)))
@@ -442,6 +449,6 @@ main : IO ()
 main = do
   putStrLn "named space and Euclidean semantics: PASS"
   putStrLn "R^128 exact orthogonal oracle: PASS"
-  putStrLn "invalid contractions rejected by the compiler: PASS"
+  putStrLn "invalid contractions and transform applications rejected by the compiler: PASS"
   putStrLn "finite presheaf restriction laws: PASS"
   putStrLn "provenance-aware named fact lookup: PASS"

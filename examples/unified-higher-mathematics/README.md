@@ -114,7 +114,8 @@ modules without renaming their `.idric` suffixes, runs the bootstrapped Idric
 compiler's `--check` path, builds an executable, and checks its output.  The
 negative declarations use `failing`, so the receipt also requires the
 compiler to reject space conflation, dimension mismatch, same-variance
-contraction, and vector-vector contraction without a metric.
+contraction, vector-vector contraction without a metric, and application of a
+transform to an equal-rank but differently named space.
 
 Using `edric009` resolves the inherited fixture collision: the #45/#47 and
 #46 experiments both used an `edric008` fixture on separate branches.  Their
