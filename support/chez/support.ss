@@ -2,7 +2,7 @@
 
 (define (blodwen-os)
   (case (machine-type)
-    [(i3le ti3le a6le ta6le tarm64le) "unix"]  ; GNU/Linux
+    [(i3le ti3le a6le ta6le arm7le tarm7le tarm64le) "unix"]  ; GNU/Linux/Android
     [(i3ob ti3ob a6ob ta6ob tarm64ob) "unix"]  ; OpenBSD
     [(i3fb ti3fb a6fb ta6fb tarm64fb) "unix"]  ; FreeBSD
     [(i3nb ti3nb a6nb ta6nb tarm64nb) "unix"]  ; NetBSD
