@@ -56,24 +56,24 @@ parameters (f : RawImp' nm -> RawImp' nm)
 
   export
   mapImpDecl : ImpDecl' nm -> ImpDecl' nm
-  mapImpDecl (IClaim (MkWithData fc (MkIClaimData rig vis opts ty)))
-    = IClaim (MkWithData fc (MkIClaimData rig vis (map mapFnOpt opts) (map mapTTImp ty)))
-  mapImpDecl (IData fc vis mtreq dat) = IData fc vis mtreq (mapImpData dat)
-  mapImpDecl (IDef fc n cls) = IDef fc n (map mapImpClause cls)
-  mapImpDecl (IParameters fc params xs) = IParameters fc params (assert_total $ map mapImpDecl xs)
-  mapImpDecl (IRecord fc mstr x y rec) = IRecord fc mstr x y (map mapImpRecord rec)
-  mapImpDecl (IFail fc mstr xs) = IFail fc mstr (assert_total $ map mapImpDecl xs)
-  mapImpDecl (INamespace fc mi xs) = INamespace fc mi (assert_total $ map mapImpDecl xs)
-  mapImpDecl (ITransform fc n t u) = ITransform fc n (mapTTImp t) (mapTTImp u)
-  mapImpDecl (IRunElabDecl fc t) = IRunElabDecl fc (mapTTImp t)
-  mapImpDecl (IPragma fc ns g) = IPragma fc ns g
-  mapImpDecl (ILog x) = ILog x
-  mapImpDecl (IBuiltin fc x n) = IBuiltin fc x n
+  mapImpDecl (Elaboratable_Claim (MkWithData fc (Make_Elaboratable_Claim_Data rig vis opts ty)))
+    = Elaboratable_Claim (MkWithData fc (Make_Elaboratable_Claim_Data rig vis (map mapFnOpt opts) (map mapTTImp ty)))
+  mapImpDecl (Elaboratable_Data_Declaration fc vis mtreq dat) = Elaboratable_Data_Declaration fc vis mtreq (mapImpData dat)
+  mapImpDecl (Elaboratable_Definition fc n cls) = Elaboratable_Definition fc n (map mapImpClause cls)
+  mapImpDecl (Elaboratable_Parameter_Block fc params xs) = Elaboratable_Parameter_Block fc params (assert_total $ map mapImpDecl xs)
+  mapImpDecl (Elaboratable_Record_Declaration fc mstr x y rec) = Elaboratable_Record_Declaration fc mstr x y (map mapImpRecord rec)
+  mapImpDecl (Elaboratable_Expected_Failure fc mstr xs) = Elaboratable_Expected_Failure fc mstr (assert_total $ map mapImpDecl xs)
+  mapImpDecl (Elaboratable_Namespace_Block fc mi xs) = Elaboratable_Namespace_Block fc mi (assert_total $ map mapImpDecl xs)
+  mapImpDecl (Elaboratable_Transformation fc n t u) = Elaboratable_Transformation fc n (mapTTImp t) (mapTTImp u)
+  mapImpDecl (Elaboratable_Run_Elaborator_Declaration fc t) = Elaboratable_Run_Elaborator_Declaration fc (mapTTImp t)
+  mapImpDecl (Elaboratable_Pragma fc ns g) = Elaboratable_Pragma fc ns g
+  mapImpDecl (Elaboratable_Logging x) = Elaboratable_Logging x
+  mapImpDecl (Elaboratable_Builtin_Declaration fc x n) = Elaboratable_Builtin_Declaration fc x n
 
   export
-  mapIFieldUpdate : IFieldUpdate' nm -> IFieldUpdate' nm
-  mapIFieldUpdate (ISetField path t) = ISetField path (mapTTImp t)
-  mapIFieldUpdate (ISetFieldApp path t) = ISetFieldApp path (mapTTImp t)
+  mapIFieldUpdate : Elaboratable_Field_Update' nm -> Elaboratable_Field_Update' nm
+  mapIFieldUpdate (Elaboratable_Set_Field path t) = Elaboratable_Set_Field path (mapTTImp t)
+  mapIFieldUpdate (Elaboratable_Apply_To_Field path t) = Elaboratable_Apply_To_Field path (mapTTImp t)
 
   export
   mapAltType : AltType' nm -> AltType' nm
@@ -81,42 +81,42 @@ parameters (f : RawImp' nm -> RawImp' nm)
   mapAltType Unique = Unique
   mapAltType (UniqueDefault t) = UniqueDefault (mapTTImp t)
 
-  mapTTImp t@(IVar {}) = f t
-  mapTTImp (IPi fc rig pinfo x argTy retTy)
-    = f $ IPi fc rig (mapPiInfo pinfo) x (mapTTImp argTy) (mapTTImp retTy)
-  mapTTImp (ILam fc rig pinfo x argTy lamTy)
-    = f $ ILam fc rig (mapPiInfo pinfo) x (mapTTImp argTy) (mapTTImp lamTy)
-  mapTTImp (ILet fc lhsFC rig n nTy nVal scope)
-    = f $ ILet fc lhsFC rig n (mapTTImp nTy) (mapTTImp nVal) (mapTTImp scope)
-  mapTTImp (ICase fc opts t ty cls)
-    = f $ ICase fc opts (mapTTImp t) (mapTTImp ty) (assert_total $ map mapImpClause cls)
-  mapTTImp (ILocal fc xs t)
-    = f $ ILocal fc (assert_total $ map mapImpDecl xs) (mapTTImp t)
-  mapTTImp (ICaseLocal fc unm inm args t) = f $ ICaseLocal fc unm inm args (mapTTImp t)
-  mapTTImp (IUpdate fc upds t) = f $ IUpdate fc (assert_total map mapIFieldUpdate upds) (mapTTImp t)
-  mapTTImp (IApp fc t u) = f $ IApp fc (mapTTImp t) (mapTTImp u)
-  mapTTImp (IAutoApp fc t u) = f $ IAutoApp fc (mapTTImp t) (mapTTImp u)
-  mapTTImp (INamedApp fc t n u) = f $ INamedApp fc (mapTTImp t) n (mapTTImp u)
-  mapTTImp (IWithApp fc t u) = f $ IWithApp fc (mapTTImp t) (mapTTImp u)
-  mapTTImp (ISearch fc depth) = f $ ISearch fc depth
-  mapTTImp (IAlternative fc alt ts) = f $ IAlternative fc (mapAltType alt) (assert_total map mapTTImp ts)
-  mapTTImp (IRewrite fc t u) = f $ IRewrite fc (mapTTImp t) (mapTTImp u)
-  mapTTImp (ICoerced fc t) = f $ ICoerced fc (mapTTImp t)
-  mapTTImp (IBindHere fc bm t) = f $ IBindHere fc bm (mapTTImp t)
-  mapTTImp (IBindVar fc str) = f $ IBindVar fc str
-  mapTTImp (IAs fc nameFC side n t) = f $ IAs fc nameFC side n (mapTTImp t)
-  mapTTImp (IMustUnify fc x t) = f $ IMustUnify fc x (mapTTImp t)
-  mapTTImp (IDelayed fc lz t) = f $ IDelayed fc lz (mapTTImp t)
-  mapTTImp (IDelay fc t) = f $ IDelay fc (mapTTImp t)
-  mapTTImp (IForce fc t) = f $ IForce fc (mapTTImp t)
-  mapTTImp (IQuote fc t) = f $ IQuote fc (mapTTImp t)
-  mapTTImp (IQuoteName fc n) = f $ IQuoteName fc n
-  mapTTImp (IQuoteDecl fc xs) = f $ IQuoteDecl fc (assert_total $ map mapImpDecl xs)
-  mapTTImp (IUnquote fc t) = f $ IUnquote fc (mapTTImp t)
-  mapTTImp (IRunElab fc re t) = f $ IRunElab fc re (mapTTImp t)
-  mapTTImp (IPrimVal fc c) = f $ IPrimVal fc c
-  mapTTImp (IType fc) = f $ IType fc
-  mapTTImp (IHole fc str) = f $ IHole fc str
-  mapTTImp (IUnifyLog fc x t) = f $ IUnifyLog fc x (mapTTImp t)
+  mapTTImp t@(Elaboratable_Name {}) = f t
+  mapTTImp (Elaboratable_Dependent_Function_Type fc rig pinfo x argTy retTy)
+    = f $ Elaboratable_Dependent_Function_Type fc rig (mapPiInfo pinfo) x (mapTTImp argTy) (mapTTImp retTy)
+  mapTTImp (Elaboratable_Lambda fc rig pinfo x argTy lamTy)
+    = f $ Elaboratable_Lambda fc rig (mapPiInfo pinfo) x (mapTTImp argTy) (mapTTImp lamTy)
+  mapTTImp (Elaboratable_Binding fc lhsFC rig n nTy nVal scope)
+    = f $ Elaboratable_Binding fc lhsFC rig n (mapTTImp nTy) (mapTTImp nVal) (mapTTImp scope)
+  mapTTImp (Elaboratable_Case fc opts t ty cls)
+    = f $ Elaboratable_Case fc opts (mapTTImp t) (mapTTImp ty) (assert_total $ map mapImpClause cls)
+  mapTTImp (Elaboratable_Local_Definitions fc xs t)
+    = f $ Elaboratable_Local_Definitions fc (assert_total $ map mapImpDecl xs) (mapTTImp t)
+  mapTTImp (Elaboratable_Case_Local_Definition fc unm inm args t) = f $ Elaboratable_Case_Local_Definition fc unm inm args (mapTTImp t)
+  mapTTImp (Elaboratable_Record_Update fc upds t) = f $ Elaboratable_Record_Update fc (assert_total map mapIFieldUpdate upds) (mapTTImp t)
+  mapTTImp (Elaboratable_Apply fc t u) = f $ Elaboratable_Apply fc (mapTTImp t) (mapTTImp u)
+  mapTTImp (Elaboratable_Automatic_Apply fc t u) = f $ Elaboratable_Automatic_Apply fc (mapTTImp t) (mapTTImp u)
+  mapTTImp (Elaboratable_Named_Apply fc t n u) = f $ Elaboratable_Named_Apply fc (mapTTImp t) n (mapTTImp u)
+  mapTTImp (Elaboratable_With_Apply fc t u) = f $ Elaboratable_With_Apply fc (mapTTImp t) (mapTTImp u)
+  mapTTImp (Elaboratable_Search fc depth) = f $ Elaboratable_Search fc depth
+  mapTTImp (Elaboratable_Alternative fc alt ts) = f $ Elaboratable_Alternative fc (mapAltType alt) (assert_total map mapTTImp ts)
+  mapTTImp (Elaboratable_Rewrite fc t u) = f $ Elaboratable_Rewrite fc (mapTTImp t) (mapTTImp u)
+  mapTTImp (Elaboratable_Coerced fc t) = f $ Elaboratable_Coerced fc (mapTTImp t)
+  mapTTImp (Elaboratable_Bind_Here fc bm t) = f $ Elaboratable_Bind_Here fc bm (mapTTImp t)
+  mapTTImp (Elaboratable_Bind_Name fc str) = f $ Elaboratable_Bind_Name fc str
+  mapTTImp (Elaboratable_As_Pattern fc nameFC side n t) = f $ Elaboratable_As_Pattern fc nameFC side n (mapTTImp t)
+  mapTTImp (Elaboratable_Must_Unify fc x t) = f $ Elaboratable_Must_Unify fc x (mapTTImp t)
+  mapTTImp (Elaboratable_Delayed_Type fc lz t) = f $ Elaboratable_Delayed_Type fc lz (mapTTImp t)
+  mapTTImp (Elaboratable_Delay fc t) = f $ Elaboratable_Delay fc (mapTTImp t)
+  mapTTImp (Elaboratable_Force fc t) = f $ Elaboratable_Force fc (mapTTImp t)
+  mapTTImp (Elaboratable_Quote fc t) = f $ Elaboratable_Quote fc (mapTTImp t)
+  mapTTImp (Elaboratable_Quote_Name fc n) = f $ Elaboratable_Quote_Name fc n
+  mapTTImp (Elaboratable_Quote_Declarations fc xs) = f $ Elaboratable_Quote_Declarations fc (assert_total $ map mapImpDecl xs)
+  mapTTImp (Elaboratable_Unquote fc t) = f $ Elaboratable_Unquote fc (mapTTImp t)
+  mapTTImp (Elaboratable_Run_Elaborator fc re t) = f $ Elaboratable_Run_Elaborator fc re (mapTTImp t)
+  mapTTImp (Elaboratable_Primitive_Value fc c) = f $ Elaboratable_Primitive_Value fc c
+  mapTTImp (Elaboratable_Type_Universe fc) = f $ Elaboratable_Type_Universe fc
+  mapTTImp (Elaboratable_Hole fc str) = f $ Elaboratable_Hole fc str
+  mapTTImp (Elaboratable_Unification_Log fc x t) = f $ Elaboratable_Unification_Log fc x (mapTTImp t)
   mapTTImp (Implicit fc bindIfUnsolved) = f $ Implicit fc bindIfUnsolved
-  mapTTImp (IWithUnambigNames fc xs t) = f $ IWithUnambigNames fc xs (mapTTImp t)
+  mapTTImp (Elaboratable_With_Unambiguous_Names fc xs t) = f $ Elaboratable_With_Unambiguous_Names fc xs (mapTTImp t)

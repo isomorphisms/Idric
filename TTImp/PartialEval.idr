@@ -135,8 +135,8 @@ getSpecPats fc pename fn stk fnty args sargs pats
         -- on the lhs, and using the specialised function application on the rhs.
         -- Then, this will get evaluated on elaboration.
         dynnames <- mkDynNames args
-        let lhs = apply (IVar fc pename) (map (IBindVar fc) dynnames)
-        rhs <- mkRHSargs fnty (IVar fc fn) dynnames args
+        let lhs = apply (Elaboratable_Name fc pename) (map (Elaboratable_Bind_Name fc) dynnames)
+        rhs <- mkRHSargs fnty (Elaboratable_Name fc fn) dynnames args
         pure (Just [PatClause fc lhs rhs])
   where
     mkDynNames : List (Nat, ArgMode) -> Core (List Name)
@@ -152,51 +152,51 @@ getSpecPats fc pename fn stk fnty args sargs pats
     mkRHSargs (NBind _ x (Pi _ _ Explicit _) sc) app (a :: as) ((_, Dynamic) :: ds)
         = do defs <- get Ctxt
              sc' <- sc defs (toClosure defaultOpts Env.empty (Erased fc Placeholder))
-             mkRHSargs sc' (IApp fc app (IVar fc a)) as ds
+             mkRHSargs sc' (Elaboratable_Apply fc app (Elaboratable_Name fc a)) as ds
     mkRHSargs (NBind _ x (Pi {}) sc) app (a :: as) ((_, Dynamic) :: ds)
         = do defs <- get Ctxt
              sc' <- sc defs (toClosure defaultOpts Env.empty (Erased fc Placeholder))
-             mkRHSargs sc' (INamedApp fc app x (IVar fc a)) as ds
+             mkRHSargs sc' (Elaboratable_Named_Apply fc app x (Elaboratable_Name fc a)) as ds
     mkRHSargs (NBind _ x (Pi _ _ Explicit _) sc) app as ((_, Static tm) :: ds)
         = do defs <- get Ctxt
              sc' <- sc defs (toClosure defaultOpts Env.empty (Erased fc Placeholder))
              tm' <- unelabNoSugar Env.empty tm
-             mkRHSargs sc' (IApp fc app (map rawName tm')) as ds
+             mkRHSargs sc' (Elaboratable_Apply fc app (map rawName tm')) as ds
     mkRHSargs (NBind _ x (Pi _ _ Implicit _) sc) app as ((_, Static tm) :: ds)
         = do defs <- get Ctxt
              sc' <- sc defs (toClosure defaultOpts Env.empty (Erased fc Placeholder))
              tm' <- unelabNoSugar Env.empty tm
-             mkRHSargs sc' (INamedApp fc app x (map rawName tm')) as ds
+             mkRHSargs sc' (Elaboratable_Named_Apply fc app x (map rawName tm')) as ds
     mkRHSargs (NBind _ _ (Pi _ _ AutoImplicit _) sc) app as ((_, Static tm) :: ds)
         = do defs <- get Ctxt
              sc' <- sc defs (toClosure defaultOpts Env.empty (Erased fc Placeholder))
              tm' <- unelabNoSugar Env.empty tm
-             mkRHSargs sc' (IAutoApp fc app (map rawName tm')) as ds
+             mkRHSargs sc' (Elaboratable_Automatic_Apply fc app (map rawName tm')) as ds
     -- Type will depend on the value here (we assume a variadic function) but
     -- the argument names are still needed
     mkRHSargs ty app (a :: as) ((_, Dynamic) :: ds)
-        = mkRHSargs ty (IApp fc app (IVar fc a)) as ds
+        = mkRHSargs ty (Elaboratable_Apply fc app (Elaboratable_Name fc a)) as ds
     mkRHSargs _ app _ _
         = pure app
 
     getRawArgs : List (Arg' Name) -> RawImp -> List (Arg' Name)
-    getRawArgs args (IApp fc f arg) = getRawArgs (Explicit fc arg :: args) f
-    getRawArgs args (INamedApp fc f n arg)
+    getRawArgs args (Elaboratable_Apply fc f arg) = getRawArgs (Explicit fc arg :: args) f
+    getRawArgs args (Elaboratable_Named_Apply fc f n arg)
         = getRawArgs (Named fc n arg :: args) f
-    getRawArgs args (IAutoApp fc f arg)
+    getRawArgs args (Elaboratable_Automatic_Apply fc f arg)
         = getRawArgs (Auto fc arg :: args) f
     getRawArgs args tm = args
 
     reapply : RawImp -> List (Arg' Name) -> RawImp
     reapply f [] = f
-    reapply f (Explicit fc arg :: args) = reapply (IApp fc f arg) args
+    reapply f (Explicit fc arg :: args) = reapply (Elaboratable_Apply fc f arg) args
     reapply f (Named fc n arg :: args)
-        = reapply (INamedApp fc f n arg) args
+        = reapply (Elaboratable_Named_Apply fc f n arg) args
     reapply f (Auto fc arg :: args)
-        = reapply (IAutoApp fc f arg) args
+        = reapply (Elaboratable_Automatic_Apply fc f arg) args
 
     dropArgs : Name -> RawImp -> RawImp
-    dropArgs pename tm = reapply (IVar fc pename) (dropSpec 0 sargs (getRawArgs [] tm))
+    dropArgs pename tm = reapply (Elaboratable_Name fc pename) (dropSpec 0 sargs (getRawArgs [] tm))
 
     unelabPat : Name -> (vs ** (Env Term vs, Term vs, Term vs)) ->
                 Core ImpClause
@@ -209,7 +209,7 @@ getSpecPats fc pename fn stk fnty args sargs pats
              rhs <- normaliseArgHoles defs env rhs
              rhs <- unelabNoSugar env rhs
              let rhs = flip mapTTImp rhs $ \case
-                      IHole fc _ => Implicit fc False
+                      Elaboratable_Hole fc _ => Implicit fc False
                       tm => tm
              pure (PatClause fc lhs' (map rawName rhs))
 
@@ -306,7 +306,7 @@ mkSpecDef {vars} fc gdef pename sargs fn stk
            log "specialise" 5 $ "New patterns for " ++ show pename ++ ":\n" ++
                     showSep "\n" (map showPat newpats)
            processDecl [InPartialEval] (MkNested []) Env.empty
-                       (IDef fc (Resolved peidx) newpats)
+                       (Elaboratable_Definition fc (Resolved peidx) newpats)
            setAllPublic False
            pure peapp)
            -- If the partially evaluated definition fails, just use the initial
@@ -342,10 +342,10 @@ mkSpecDef {vars} fc gdef pename sargs fn stk
     getAllRefs ns [] = ns
 
     updateApp : Name -> RawImp -> RawImp
-    updateApp n (IApp fc f a) = IApp fc (updateApp n f) a
-    updateApp n (IAutoApp fc f a) = IAutoApp fc (updateApp n f) a
-    updateApp n (INamedApp fc f m a) = INamedApp fc (updateApp n f) m a
-    updateApp n f = IVar fc n
+    updateApp n (Elaboratable_Apply fc f a) = Elaboratable_Apply fc (updateApp n f) a
+    updateApp n (Elaboratable_Automatic_Apply fc f a) = Elaboratable_Automatic_Apply fc (updateApp n f) a
+    updateApp n (Elaboratable_Named_Apply fc f m a) = Elaboratable_Named_Apply fc (updateApp n f) m a
+    updateApp n f = Elaboratable_Name fc n
 
     unelabDef : (vs ** (Env Term vs, Term vs, Term vs)) ->
                 Core ImpClause

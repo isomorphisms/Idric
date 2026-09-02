@@ -66,17 +66,17 @@ checkFamily loc cn tn env nf
            _ => throw $ BadDataConType loc cn tn
 
 updateNS : Name -> Name -> RawImp -> RawImp
-updateNS orig ns (IPi fc c p n ty sc) = IPi fc c p n ty (updateNS orig ns sc)
+updateNS orig ns (Elaboratable_Dependent_Function_Type fc c p n ty sc) = Elaboratable_Dependent_Function_Type fc c p n ty (updateNS orig ns sc)
 updateNS orig ns tm = updateNSApp tm
   where
     updateNSApp : RawImp -> RawImp
-    updateNSApp (IVar fc n) -- data type type, must be defined in this namespace
+    updateNSApp (Elaboratable_Name fc n) -- data type type, must be defined in this namespace
         = if n == orig
-             then IVar fc ns
-             else IVar fc n
-    updateNSApp (IApp fc f arg) = IApp fc (updateNSApp f) arg
-    updateNSApp (IAutoApp fc f arg) = IAutoApp fc (updateNSApp f) arg
-    updateNSApp (INamedApp fc f n arg) = INamedApp fc (updateNSApp f) n arg
+             then Elaboratable_Name fc ns
+             else Elaboratable_Name fc n
+    updateNSApp (Elaboratable_Apply fc f arg) = Elaboratable_Apply fc (updateNSApp f) arg
+    updateNSApp (Elaboratable_Automatic_Apply fc f arg) = Elaboratable_Automatic_Apply fc (updateNSApp f) arg
+    updateNSApp (Elaboratable_Named_Apply fc f n arg) = Elaboratable_Named_Apply fc (updateNSApp f) n arg
     updateNSApp t = t
 
 checkCon : {vars : _} ->
@@ -104,7 +104,7 @@ checkCon {vars} opts nest env vis tn_in tn ty_raw
          ty <-
              wrapErrorC opts (InCon cn_in) $
                    checkTerm !(resolveName cn) InType opts nest env
-                              (IBindHere fc (PI erased) ty_raw)
+                              (Elaboratable_Bind_Here fc (PI erased) ty_raw)
                               (gType fc u)
 
          -- Check 'ty' returns something in the right family
@@ -414,7 +414,7 @@ processData {vars} eopts nest env fc def_vis mbtot (MkImpLater dfc n_in ty_raw)
          (ty, _) <-
              wrapErrorC eopts (InCon $ MkFCVal dfc n) $
                     elabTerm !(resolveName n) InType eopts nest env
-                              (IBindHere fc (PI erased) ty_raw)
+                              (Elaboratable_Bind_Here fc (PI erased) ty_raw)
                               (Just (gType dfc u))
          let fullty = abstractEnvType dfc env ty
          logTermNF "declare.data" 5 ("data " ++ show n) Env.empty fullty
@@ -456,7 +456,7 @@ processData {vars} eopts nest env fc def_vis mbtot (MkImpData dfc n_in mty_raw o
            (ty, _) <-
                wrapErrorC eopts (InCon $ MkFCVal fc n) $
                       elabTerm !(resolveName n) InType eopts nest env
-                                (IBindHere fc (PI erased) ty_raw)
+                                (Elaboratable_Bind_Here fc (PI erased) ty_raw)
                                 (Just (gType dfc u))
            checkIsType fc n env !(nf defs env ty)
 

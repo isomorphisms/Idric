@@ -71,7 +71,7 @@ mutual
                Env Term vars ->
                Name ->
                List (Term vars) ->
-               Core (Maybe IRawImp)
+               Core (Maybe Kinded_Elaboratable_Term)
   unelabCase nest env n args
       = do defs <- get Ctxt
            Just glob <- lookupCtxtExact n (gamma defs)
@@ -128,7 +128,7 @@ mutual
       mkClause : FC -> Nat ->
                  List (Term vars) ->
                  (vs ** (Env Term vs, Term vs, Term vs)) ->
-                 Core (Maybe IImpClause)
+                 Core (Maybe Kinded_Elaboratable_Clause)
       mkClause fc argpos args (vs ** (clauseEnv, lhs, rhs))
           = do logTerm "unelab.case.clause" 20 "Unelaborating clause" lhs
                let patArgs = snd (getFnArgs lhs)
@@ -149,7 +149,7 @@ mutual
       ||| Once we have the scrutinee `e`, we can form `case e of` and so focus
       ||| on manufacturing the clauses.
       mkCase : List (vs ** (Env Term vs, Term vs, Term vs)) ->
-               (argpos : Nat) -> List (Term vars) -> Core (Maybe IRawImp)
+               (argpos : Nat) -> List (Term vars) -> Core (Maybe Kinded_Elaboratable_Term)
       mkCase pats argpos args
           = do unless (null args) $ log "unelab.case.clause" 20 $
                  unwords $ "Ignoring" :: map show args
@@ -160,23 +160,23 @@ mutual
                Just pats' <- map sequence $ traverse (mkClause fc argpos args) pats
                  | _ => pure Nothing
                -- TODO: actually grab the fnopts?
-               pure $ Just $ ICase fc [] tm (Implicit fc False) pats'
+               pure $ Just $ Elaboratable_Case fc [] tm (Implicit fc False) pats'
 
-  dropParams : List (Name, Nat) -> (IRawImp, Glued vars) ->
-               Core (IRawImp, Glued vars)
+  dropParams : List (Name, Nat) -> (Kinded_Elaboratable_Term, Glued vars) ->
+               Core (Kinded_Elaboratable_Term, Glued vars)
   dropParams nest (tm, ty)
      = case getFnArgs tm [] of
-            (IVar fc n, args) =>
+            (Elaboratable_Name fc n, args) =>
                 case lookup (rawName n) nest of
                      Nothing => pure (tm, ty)
-                     Just i => pure $ (apply (IVar fc n) (drop i args), ty)
+                     Just i => pure $ (apply (Elaboratable_Name fc n) (drop i args), ty)
             _ => pure (tm, ty)
     where
-      apply : IRawImp -> List IArg -> IRawImp
+      apply : Kinded_Elaboratable_Term -> List IArg -> Kinded_Elaboratable_Term
       apply tm [] = tm
-      apply tm (Explicit fc a :: args) = apply (IApp fc tm a) args
-      apply tm (Auto fc a :: args) = apply (IAutoApp fc tm a) args
-      apply tm (Named fc n a :: args) = apply (INamedApp fc tm n a) args
+      apply tm (Explicit fc a :: args) = apply (Elaboratable_Apply fc tm a) args
+      apply tm (Auto fc a :: args) = apply (Elaboratable_Automatic_Apply fc tm a) args
+      apply tm (Named fc n a :: args) = apply (Elaboratable_Named_Apply fc tm n a) args
 
   -- Turn a term back into an unannotated TTImp. Returns the type of the
   -- unelaborated term so that we can work out where to put the implicit
@@ -188,7 +188,7 @@ mutual
              (umode : UnelabMode) ->
              (nest : List (Name, Nat)) ->
              Env Term vars -> Term vars ->
-             Core (IRawImp, Glued vars)
+             Core (Kinded_Elaboratable_Term, Glued vars)
   unelabTy umode nest env tm
       = dropParams nest !(unelabTy' umode nest env tm)
 
@@ -197,18 +197,18 @@ mutual
               (umode : UnelabMode) ->
               (nest : List (Name, Nat)) ->
               Env Term vars -> Term vars ->
-              Core (IRawImp, Glued vars)
+              Core (Kinded_Elaboratable_Term, Glued vars)
   unelabTy' umode nest env (Local fc _ idx p)
       = do let nm = nameAt p
            log "unelab.case" 20 $ "Found local name: " ++ show nm
            let ty = gnf env (binderType (getBinder p env))
-           pure (IVar fc (MkKindedName (Just Bound) nm nm), ty)
+           pure (Elaboratable_Name fc (MkKindedName (Just Bound) nm nm), ty)
   unelabTy' umode nest env (Ref fc nt n)
       = do defs <- get Ctxt
            Just ty <- lookupTyExact n (gamma defs)
                | Nothing => case umode of
                                  ImplicitHoles => pure (Implicit fc True, gErased fc)
-                                 _ => pure (IVar fc (MkKindedName (Just nt) n n), gErased fc)
+                                 _ => pure (Elaboratable_Name fc (MkKindedName (Just nt) n n), gErased fc)
            fn <- getFullName n
            n' <- case umode of
                       NoSugar _ => pure fn
@@ -219,14 +219,14 @@ mutual
                      , "sugared to", show n'
                      ]
 
-           pure (IVar fc (MkKindedName (Just nt) fn n'), gnf env (embed ty))
+           pure (Elaboratable_Name fc (MkKindedName (Just nt) fn n'), gnf env (embed ty))
   unelabTy' umode nest env (Meta fc n i args)
       = do defs <- get Ctxt
            let mkn = nameRoot n
            def <- lookupDefExact (Resolved i) (gamma defs)
            let term = case def of
-                              (Just (BySearch _ d _)) => ISearch fc d
-                              _ => IHole fc mkn
+                              (Just (BySearch _ d _)) => Elaboratable_Search fc d
+                              _ => Elaboratable_Hole fc mkn
            Just ty <- lookupTyExact (Resolved i) (gamma defs)
                | Nothing => case umode of
                                  ImplicitHoles => pure (Implicit fc True, gErased fc)
@@ -276,46 +276,46 @@ mutual
            case fnty of
                 NBind _ x (Pi _ rig Explicit ty) sc
                   => do sc' <- sc defs (toClosure defaultOpts env arg)
-                        pure (IApp fc fn' arg',
+                        pure (Elaboratable_Apply fc fn' arg',
                                 glueBack defs env sc')
                 NBind _ x (Pi _ rig p ty) sc
                   => do sc' <- sc defs (toClosure defaultOpts env arg)
-                        pure (INamedApp fc fn' x arg',
+                        pure (Elaboratable_Named_Apply fc fn' x arg',
                                 glueBack defs env sc')
-                _ => pure (IApp fc fn' arg', gErased fc)
+                _ => pure (Elaboratable_Apply fc fn' arg', gErased fc)
   unelabTy' umode nest env (As fc s p tm)
       = do (p', _) <- unelabTy' umode nest env p
            (tm', ty) <- unelabTy' umode nest env tm
            case p' of
-                IVar _ n =>
+                Elaboratable_Name _ n =>
                     case umode of
-                         NoSugar _ => pure (IAs fc (getLoc p) s n.rawName tm', ty)
+                         NoSugar _ => pure (Elaboratable_As_Pattern fc (getLoc p) s n.rawName tm', ty)
                          _ => pure (tm', ty)
                 _ => pure (tm', ty) -- Should never happen!
   unelabTy' umode nest env (TDelayed fc r tm)
       = do (tm', ty) <- unelabTy' umode nest env tm
            defs <- get Ctxt
-           pure (IDelayed fc r tm', gErased fc)
+           pure (Elaboratable_Delayed_Type fc r tm', gErased fc)
   unelabTy' umode nest env (TDelay fc r _ tm)
       = do (tm', ty) <- unelabTy' umode nest env tm
            defs <- get Ctxt
-           pure (IDelay fc tm', gErased fc)
+           pure (Elaboratable_Delay fc tm', gErased fc)
   unelabTy' umode nest env (TForce fc r tm)
       = do (tm', ty) <- unelabTy' umode nest env tm
            defs <- get Ctxt
-           pure (IForce fc tm', gErased fc)
-  unelabTy' umode nest env (PrimVal fc c) = pure (IPrimVal fc c, gErased fc)
+           pure (Elaboratable_Force fc tm', gErased fc)
+  unelabTy' umode nest env (PrimVal fc c) = pure (Elaboratable_Primitive_Value fc c, gErased fc)
   unelabTy' umode nest env (Erased fc (Dotted t))
     = unelabTy' umode nest env t
   unelabTy' umode nest env (Erased fc _) = pure (Implicit fc True, gErased fc)
-  unelabTy' umode nest env (TType fc _) = pure (IType fc, gType fc (MN "top" 0))
+  unelabTy' umode nest env (TType fc _) = pure (Elaboratable_Type_Universe fc, gType fc (MN "top" 0))
 
   unelabPi : {vars : _} ->
              {auto c : Ref Ctxt Defs} ->
              (umode : UnelabMode) ->
              (nest : List (Name, Nat)) ->
              Env Term vars -> PiInfo (Term vars) ->
-             Core (PiInfo IRawImp)
+             Core (PiInfo Kinded_Elaboratable_Term)
   unelabPi umode nest env Explicit = pure Explicit
   unelabPi umode nest env Implicit = pure Implicit
   unelabPi umode nest env AutoImplicit = pure AutoImplicit
@@ -329,17 +329,17 @@ mutual
                  (nest : List (Name, Nat)) ->
                  FC -> Env Term vars -> (x : Name) ->
                  Binder (Term vars) -> Term (x :: vars) ->
-                 IRawImp -> Term (x :: vars) ->
-                 Core (IRawImp, Glued vars)
+                 Kinded_Elaboratable_Term -> Term (x :: vars) ->
+                 Core (Kinded_Elaboratable_Term, Glued vars)
   unelabBinder umode nest fc env x (Lam fc' rig p ty) sctm sc scty
       = do (ty', _) <- unelabTy umode nest env ty
            p' <- unelabPi umode nest env p
-           pure (ILam fc rig p' (Just x) ty' sc,
+           pure (Elaboratable_Lambda fc rig p' (Just x) ty' sc,
                     gnf env (Bind fc x (Pi fc' rig p ty) scty))
   unelabBinder umode nest fc env x (Let fc' rig val ty) sctm sc scty
       = do (val', vty) <- unelabTy umode nest env val
            (ty', _) <- unelabTy umode nest env ty
-           pure (ILet fc EmptyFC rig x ty' val' sc,
+           pure (Elaboratable_Binding fc EmptyFC rig x ty' val' sc,
                     gnf env (Bind fc x (Let fc' rig val ty) scty))
   unelabBinder umode nest fc env x (Pi _ rig p ty) sctm sc scty
       = do (ty', _) <- unelabTy umode nest env ty
@@ -349,7 +349,7 @@ mutual
                        else if rig /= top || isDefImp p
                                then Just (UN Underscore)
                                else Nothing
-           pure (IPi fc rig p' nm ty' sc, gType fc (MN "top" 0))
+           pure (Elaboratable_Dependent_Function_Type fc rig p' nm ty' sc, gType fc (MN "top" 0))
     where
       isNoSugar : UnelabMode -> Bool
       isNoSugar (NoSugar _) = True
@@ -363,7 +363,7 @@ mutual
   unelabBinder umode nest fc env x (PLet fc' rig val ty) sctm sc scty
       = do (val', vty) <- unelabTy umode nest env val
            (ty', _) <- unelabTy umode nest env ty
-           pure (ILet fc EmptyFC rig x ty' val' sc,
+           pure (Elaboratable_Binding fc EmptyFC rig x ty' val' sc,
                     gnf env (Bind fc x (PLet fc' rig val ty) scty))
   unelabBinder umode nest fc env x (PVTy _ rig ty) sctm sc scty
       = do (ty', _) <- unelabTy umode nest env ty
@@ -372,7 +372,7 @@ mutual
 export
 unelabNoSugar : {vars : _} ->
                 {auto c : Ref Ctxt Defs} ->
-                Env Term vars -> Term vars -> Core IRawImp
+                Env Term vars -> Term vars -> Core Kinded_Elaboratable_Term
 unelabNoSugar env tm
     = do tm' <- unelabTy (NoSugar False) [] env tm
          pure $ fst tm'
@@ -380,7 +380,7 @@ unelabNoSugar env tm
 export
 unelabUniqueBinders : {vars : _} ->
                 {auto c : Ref Ctxt Defs} ->
-                Env Term vars -> Term vars -> Core IRawImp
+                Env Term vars -> Term vars -> Core Kinded_Elaboratable_Term
 unelabUniqueBinders env tm
     = do tm' <- unelabTy (NoSugar True) [] env tm
          pure $ fst tm'
@@ -388,7 +388,7 @@ unelabUniqueBinders env tm
 export
 unelabNoPatvars : {vars : _} ->
                   {auto c : Ref Ctxt Defs} ->
-                  Env Term vars -> Term vars -> Core IRawImp
+                  Env Term vars -> Term vars -> Core Kinded_Elaboratable_Term
 unelabNoPatvars env tm
     = do tm' <- unelabTy ImplicitHoles [] env tm
          pure $ fst tm'
@@ -399,10 +399,10 @@ unelabNest : {vars : _} ->
              UnelabMode ->
              List (Name, Nat) ->
              Env Term vars ->
-             Term vars -> Core IRawImp
+             Term vars -> Core Kinded_Elaboratable_Term
 unelabNest mode nest env (Meta fc n i args)
     = do let mkn = nameRoot n ++ showScope args
-         pure (IHole fc mkn)
+         pure (Elaboratable_Hole fc mkn)
   where
     toName : Term vars -> Maybe Name
     toName (Local _ _ idx p) = Just (nameAt p)
@@ -423,5 +423,5 @@ export
 unelab : {vars : _} ->
          {auto c : Ref Ctxt Defs} ->
          Env Term vars ->
-         Term vars -> Core IRawImp
+         Term vars -> Core Kinded_Elaboratable_Term
 unelab = unelabNest Full []
