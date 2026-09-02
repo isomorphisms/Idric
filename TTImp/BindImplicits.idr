@@ -16,105 +16,105 @@ export
 renameIBinds : (renames : List String) ->
                (used : List String) ->
                RawImp -> State (List (String, String)) RawImp
-renameIBinds rs us (IPi fc c p (Just un@(UN (Basic n))) ty sc)
+renameIBinds rs us (Elaboratable_Dependent_Function_Type fc c p (Just un@(UN (Basic n))) ty sc)
     = if n `elem` rs
          then let n' = genUniqueStr (rs ++ us) n
                   un' = UN (Basic n')
                   sc' = substNames (map (UN . Basic) (filter (/= n) us))
-                                   [(un, IVar fc un')] sc in
+                                   [(un, Elaboratable_Name fc un')] sc in
              do scr <- renameIBinds rs (n' :: us) sc'
                 ty' <- renameIBinds rs us ty
                 upds <- get
                 put ((n, n') :: upds)
-                pure $ IPi fc c p (Just un') ty' scr
+                pure $ Elaboratable_Dependent_Function_Type fc c p (Just un') ty' scr
          else do scr <- renameIBinds rs us sc
                  ty' <- renameIBinds rs us ty
-                 pure $ IPi fc c p (Just un) ty' scr
-renameIBinds rs us (IPi fc c p n ty sc)
-    = pure $ IPi fc c p n !(renameIBinds rs us ty) !(renameIBinds rs us sc)
-renameIBinds rs us (ILam fc c p n ty sc)
-    = pure $ ILam fc c p n !(renameIBinds rs us ty) !(renameIBinds rs us sc)
-renameIBinds rs us (IApp fc fn arg)
-    = pure $ IApp fc !(renameIBinds rs us fn) !(renameIBinds rs us arg)
-renameIBinds rs us (IAutoApp fc fn arg)
-    = pure $ IAutoApp fc !(renameIBinds rs us fn) !(renameIBinds rs us arg)
-renameIBinds rs us (INamedApp fc fn n arg)
-    = pure $ INamedApp fc !(renameIBinds rs us fn) n !(renameIBinds rs us arg)
-renameIBinds rs us (IWithApp fc fn arg)
-    = pure $ IWithApp fc !(renameIBinds rs us fn) !(renameIBinds rs us arg)
-renameIBinds rs us (IAs fc nameFC s n pat)
-    = pure $ IAs fc nameFC s n !(renameIBinds rs us pat)
-renameIBinds rs us (IMustUnify fc r pat)
-    = pure $ IMustUnify fc r !(renameIBinds rs us pat)
-renameIBinds rs us (IDelayed fc r t)
-    = pure $ IDelayed fc r !(renameIBinds rs us t)
-renameIBinds rs us (IDelay fc t)
-    = pure $ IDelay fc !(renameIBinds rs us t)
-renameIBinds rs us (IForce fc t)
-    = pure $ IForce fc !(renameIBinds rs us t)
-renameIBinds rs us (IUpdate fc updates tm)
-    = pure $ IUpdate fc !(traverse f updates) !(renameIBinds rs us tm)
+                 pure $ Elaboratable_Dependent_Function_Type fc c p (Just un) ty' scr
+renameIBinds rs us (Elaboratable_Dependent_Function_Type fc c p n ty sc)
+    = pure $ Elaboratable_Dependent_Function_Type fc c p n !(renameIBinds rs us ty) !(renameIBinds rs us sc)
+renameIBinds rs us (Elaboratable_Lambda fc c p n ty sc)
+    = pure $ Elaboratable_Lambda fc c p n !(renameIBinds rs us ty) !(renameIBinds rs us sc)
+renameIBinds rs us (Elaboratable_Apply fc fn arg)
+    = pure $ Elaboratable_Apply fc !(renameIBinds rs us fn) !(renameIBinds rs us arg)
+renameIBinds rs us (Elaboratable_Automatic_Apply fc fn arg)
+    = pure $ Elaboratable_Automatic_Apply fc !(renameIBinds rs us fn) !(renameIBinds rs us arg)
+renameIBinds rs us (Elaboratable_Named_Apply fc fn n arg)
+    = pure $ Elaboratable_Named_Apply fc !(renameIBinds rs us fn) n !(renameIBinds rs us arg)
+renameIBinds rs us (Elaboratable_With_Apply fc fn arg)
+    = pure $ Elaboratable_With_Apply fc !(renameIBinds rs us fn) !(renameIBinds rs us arg)
+renameIBinds rs us (Elaboratable_As_Pattern fc nameFC s n pat)
+    = pure $ Elaboratable_As_Pattern fc nameFC s n !(renameIBinds rs us pat)
+renameIBinds rs us (Elaboratable_Must_Unify fc r pat)
+    = pure $ Elaboratable_Must_Unify fc r !(renameIBinds rs us pat)
+renameIBinds rs us (Elaboratable_Delayed_Type fc r t)
+    = pure $ Elaboratable_Delayed_Type fc r !(renameIBinds rs us t)
+renameIBinds rs us (Elaboratable_Delay fc t)
+    = pure $ Elaboratable_Delay fc !(renameIBinds rs us t)
+renameIBinds rs us (Elaboratable_Force fc t)
+    = pure $ Elaboratable_Force fc !(renameIBinds rs us t)
+renameIBinds rs us (Elaboratable_Record_Update fc updates tm)
+    = pure $ Elaboratable_Record_Update fc !(traverse f updates) !(renameIBinds rs us tm)
   where
-      f : IFieldUpdate -> State (List (String, String)) IFieldUpdate
-      f (ISetField path x)    = ISetField path <$> renameIBinds rs us x
-      f (ISetFieldApp path x) = ISetFieldApp path <$> renameIBinds rs us x
-renameIBinds rs us (IAlternative fc u alts)
-    = pure $ IAlternative fc !(renameAlt u)
+      f : Elaboratable_Field_Update -> State (List (String, String)) Elaboratable_Field_Update
+      f (Elaboratable_Set_Field path x)    = Elaboratable_Set_Field path <$> renameIBinds rs us x
+      f (Elaboratable_Apply_To_Field path x) = Elaboratable_Apply_To_Field path <$> renameIBinds rs us x
+renameIBinds rs us (Elaboratable_Alternative fc u alts)
+    = pure $ Elaboratable_Alternative fc !(renameAlt u)
                              !(traverse (renameIBinds rs us) alts)
   where
     renameAlt : AltType -> State (List (String, String)) AltType
     renameAlt (UniqueDefault t) = pure $ UniqueDefault !(renameIBinds rs us t)
     renameAlt u = pure u
-renameIBinds rs us (IBindVar fc nm@(UN (Basic n)))
+renameIBinds rs us (Elaboratable_Bind_Name fc nm@(UN (Basic n)))
     = if n `elem` rs
          then do let n' = genUniqueStr (rs ++ us) n
                  upds <- get
                  put ((n, n') :: upds)
-                 pure $ IBindVar fc (UN (Basic n'))
-         else pure $ IBindVar fc nm
+                 pure $ Elaboratable_Bind_Name fc (UN (Basic n'))
+         else pure $ Elaboratable_Bind_Name fc nm
 renameIBinds rs us tm = pure $ tm
 
 export
 doBind : List (Name, Name) -> RawImp -> RawImp
 doBind [] tm = tm
-doBind ns (IVar fc nm)
-    = maybe (IVar fc nm) (IBindVar fc) (lookup nm ns)
-doBind ns (IPi fc rig p mn aty retty)
+doBind ns (Elaboratable_Name fc nm)
+    = maybe (Elaboratable_Name fc nm) (Elaboratable_Bind_Name fc) (lookup nm ns)
+doBind ns (Elaboratable_Dependent_Function_Type fc rig p mn aty retty)
     = let ns' = case mn of
                      Just nm => filter (\x => fst x /= nm) ns
                      _ => ns in
-          IPi fc rig p mn (doBind ns' aty) (doBind ns' retty)
-doBind ns (ILam fc rig p mn aty sc)
+          Elaboratable_Dependent_Function_Type fc rig p mn (doBind ns' aty) (doBind ns' retty)
+doBind ns (Elaboratable_Lambda fc rig p mn aty sc)
     = let ns' = case mn of
                      Just nm => filter (\x => fst x /= nm) ns
                      _ => ns in
-          ILam fc rig p mn (doBind ns' aty) (doBind ns' sc)
-doBind ns (IApp fc fn av)
-    = IApp fc (doBind ns fn) (doBind ns av)
-doBind ns (IAutoApp fc fn av)
-    = IAutoApp fc (doBind ns fn) (doBind ns av)
-doBind ns (INamedApp fc fn n av)
-    = INamedApp fc (doBind ns fn) n (doBind ns av)
-doBind ns (IWithApp fc fn av)
-    = IWithApp fc (doBind ns fn) (doBind ns av)
-doBind ns (IAs fc nameFC s n pat)
-    = IAs fc nameFC s n (doBind ns pat)
-doBind ns (IMustUnify fc r pat)
-    = IMustUnify fc r (doBind ns pat)
-doBind ns (IDelayed fc r ty)
-    = IDelayed fc r (doBind ns ty)
-doBind ns (IDelay fc tm)
-    = IDelay fc (doBind ns tm)
-doBind ns (IForce fc tm)
-    = IForce fc (doBind ns tm)
-doBind ns (IQuote fc tm)
-    = IQuote fc (doBind ns tm)
-doBind ns (IUnquote fc tm)
-    = IUnquote fc (doBind ns tm)
-doBind ns (IAlternative fc u alts)
-    = IAlternative fc (mapAltType (doBind ns) u) (map (doBind ns) alts)
-doBind ns (IUpdate fc updates tm)
-    = IUpdate fc (map (mapFieldUpdateTerm $ doBind ns) updates) (doBind ns tm)
+          Elaboratable_Lambda fc rig p mn (doBind ns' aty) (doBind ns' sc)
+doBind ns (Elaboratable_Apply fc fn av)
+    = Elaboratable_Apply fc (doBind ns fn) (doBind ns av)
+doBind ns (Elaboratable_Automatic_Apply fc fn av)
+    = Elaboratable_Automatic_Apply fc (doBind ns fn) (doBind ns av)
+doBind ns (Elaboratable_Named_Apply fc fn n av)
+    = Elaboratable_Named_Apply fc (doBind ns fn) n (doBind ns av)
+doBind ns (Elaboratable_With_Apply fc fn av)
+    = Elaboratable_With_Apply fc (doBind ns fn) (doBind ns av)
+doBind ns (Elaboratable_As_Pattern fc nameFC s n pat)
+    = Elaboratable_As_Pattern fc nameFC s n (doBind ns pat)
+doBind ns (Elaboratable_Must_Unify fc r pat)
+    = Elaboratable_Must_Unify fc r (doBind ns pat)
+doBind ns (Elaboratable_Delayed_Type fc r ty)
+    = Elaboratable_Delayed_Type fc r (doBind ns ty)
+doBind ns (Elaboratable_Delay fc tm)
+    = Elaboratable_Delay fc (doBind ns tm)
+doBind ns (Elaboratable_Force fc tm)
+    = Elaboratable_Force fc (doBind ns tm)
+doBind ns (Elaboratable_Quote fc tm)
+    = Elaboratable_Quote fc (doBind ns tm)
+doBind ns (Elaboratable_Unquote fc tm)
+    = Elaboratable_Unquote fc (doBind ns tm)
+doBind ns (Elaboratable_Alternative fc u alts)
+    = Elaboratable_Alternative fc (mapAltType (doBind ns) u) (map (doBind ns) alts)
+doBind ns (Elaboratable_Record_Update fc updates tm)
+    = Elaboratable_Record_Update fc (map (mapFieldUpdateTerm $ doBind ns) updates) (doBind ns tm)
 doBind ns tm = tm
 
 export
@@ -152,7 +152,7 @@ getUsings ns u = concatMap (flip getUsing u) ns
 bindUsings : List (RigCount, PiInfo RawImp, Maybe Name, RawImp) -> RawImp -> RawImp
 bindUsings [] tm = tm
 bindUsings ((rig, p, mn, ty) :: us) tm
-    = IPi (getFC ty) rig p mn ty (bindUsings us tm)
+    = Elaboratable_Dependent_Function_Type (getFC ty) rig p mn ty (bindUsings us tm)
 
 addUsing : List (Maybe Name, RawImp) ->
            RawImp -> RawImp
@@ -195,5 +195,5 @@ piBindNames loc env tm
     piBind : List Name -> RawImp -> RawImp
     piBind [] ty = ty
     piBind (n :: ns) ty
-       = IPi loc erased Implicit (Just n) (Implicit loc False)
+       = Elaboratable_Dependent_Function_Type loc erased Implicit (Just n) (Implicit loc False)
        $ piBind ns ty

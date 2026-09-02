@@ -10,73 +10,73 @@ mutual
 
   export
   Functor RawImp' where
-    map f (IVar fc nm) = IVar fc (f nm)
-    map f (IPi fc rig info nm a sc)
-      = IPi fc rig (map (map f) info) nm (map f a) (map f sc)
-    map f (ILam fc rig info nm a sc)
-      = ILam fc rig (map (map f) info) nm (map f a) (map f sc)
-    map f (ILet fc lhsFC rig nm ty val sc)
-      = ILet fc lhsFC rig nm (map f ty) (map f val) (map f sc)
-    map f (ICase fc opts sc ty cls)
-      = ICase fc (map (map f) opts) (map f sc) (map f ty) (map (map f) cls)
-    map f (ILocal fc ds sc)
-      = ILocal fc (map (map f) ds) (map f sc)
-    map f (ICaseLocal fc userN intN args sc)
-      = ICaseLocal fc userN intN args (map f sc)
-    map f (IUpdate fc upds rec)
-      = IUpdate fc (map (map f) upds) (map f rec)
-    map f (IApp fc fn t)
-      = IApp fc (map f fn) (map f t)
-    map f (IAutoApp fc fn t)
-      = IAutoApp fc (map f fn) (map f t)
-    map f (INamedApp fc fn nm t)
-      = INamedApp fc (map f fn) nm (map f t)
-    map f (IWithApp fc fn t)
-      = IWithApp fc (map f fn) (map f t)
-    map f (ISearch fc n)
-      = ISearch fc n
-    map f (IAlternative fc alt ts)
-      = IAlternative fc (map f alt) (map (map f) ts)
-    map f (IRewrite fc e t)
-      = IRewrite fc (map f e) (map f t)
-    map f (ICoerced fc e)
-      = ICoerced fc (map f e)
-    map f (IBindHere fc bd t)
-      = IBindHere fc bd (map f t)
-    map f (IBindVar fc str)
-      = IBindVar fc str
-    map f (IAs fc nmFC side nm t)
-      = IAs fc nmFC side nm (map f t)
-    map f (IMustUnify fc reason t)
-      = IMustUnify fc reason (map f t)
-    map f (IDelayed fc reason t)
-      = IDelayed fc reason (map f t)
-    map f (IDelay fc t)
-      = IDelay fc (map f t)
-    map f (IForce fc t)
-      = IForce fc (map f t)
-    map f (IQuote fc t)
-      = IQuote fc (map f t)
-    map f (IQuoteName fc nm)
-      = IQuoteName fc nm
-    map f (IQuoteDecl fc ds)
-      = IQuoteDecl fc (map (map f) ds)
-    map f (IUnquote fc t)
-      = IUnquote fc (map f t)
-    map f (IRunElab fc re t)
-      = IRunElab fc re (map f t)
-    map f (IPrimVal fc c)
-      = IPrimVal fc c
-    map f (IType fc)
-      = IType fc
-    map f (IHole fc str)
-      = IHole fc str
-    map f (IUnifyLog fc lvl t)
-      = IUnifyLog fc lvl (map f t)
+    map f (Elaboratable_Name fc nm) = Elaboratable_Name fc (f nm)
+    map f (Elaboratable_Dependent_Function_Type fc rig info nm a sc)
+      = Elaboratable_Dependent_Function_Type fc rig (map (map f) info) nm (map f a) (map f sc)
+    map f (Elaboratable_Lambda fc rig info nm a sc)
+      = Elaboratable_Lambda fc rig (map (map f) info) nm (map f a) (map f sc)
+    map f (Elaboratable_Binding fc lhsFC rig nm ty val sc)
+      = Elaboratable_Binding fc lhsFC rig nm (map f ty) (map f val) (map f sc)
+    map f (Elaboratable_Case fc opts sc ty cls)
+      = Elaboratable_Case fc (map (map f) opts) (map f sc) (map f ty) (map (map f) cls)
+    map f (Elaboratable_Local_Definitions fc ds sc)
+      = Elaboratable_Local_Definitions fc (map (map f) ds) (map f sc)
+    map f (Elaboratable_Case_Local_Definition fc userN intN args sc)
+      = Elaboratable_Case_Local_Definition fc userN intN args (map f sc)
+    map f (Elaboratable_Record_Update fc upds rec)
+      = Elaboratable_Record_Update fc (map (map f) upds) (map f rec)
+    map f (Elaboratable_Apply fc fn t)
+      = Elaboratable_Apply fc (map f fn) (map f t)
+    map f (Elaboratable_Automatic_Apply fc fn t)
+      = Elaboratable_Automatic_Apply fc (map f fn) (map f t)
+    map f (Elaboratable_Named_Apply fc fn nm t)
+      = Elaboratable_Named_Apply fc (map f fn) nm (map f t)
+    map f (Elaboratable_With_Apply fc fn t)
+      = Elaboratable_With_Apply fc (map f fn) (map f t)
+    map f (Elaboratable_Search fc n)
+      = Elaboratable_Search fc n
+    map f (Elaboratable_Alternative fc alt ts)
+      = Elaboratable_Alternative fc (map f alt) (map (map f) ts)
+    map f (Elaboratable_Rewrite fc e t)
+      = Elaboratable_Rewrite fc (map f e) (map f t)
+    map f (Elaboratable_Coerced fc e)
+      = Elaboratable_Coerced fc (map f e)
+    map f (Elaboratable_Bind_Here fc bd t)
+      = Elaboratable_Bind_Here fc bd (map f t)
+    map f (Elaboratable_Bind_Name fc str)
+      = Elaboratable_Bind_Name fc str
+    map f (Elaboratable_As_Pattern fc nmFC side nm t)
+      = Elaboratable_As_Pattern fc nmFC side nm (map f t)
+    map f (Elaboratable_Must_Unify fc reason t)
+      = Elaboratable_Must_Unify fc reason (map f t)
+    map f (Elaboratable_Delayed_Type fc reason t)
+      = Elaboratable_Delayed_Type fc reason (map f t)
+    map f (Elaboratable_Delay fc t)
+      = Elaboratable_Delay fc (map f t)
+    map f (Elaboratable_Force fc t)
+      = Elaboratable_Force fc (map f t)
+    map f (Elaboratable_Quote fc t)
+      = Elaboratable_Quote fc (map f t)
+    map f (Elaboratable_Quote_Name fc nm)
+      = Elaboratable_Quote_Name fc nm
+    map f (Elaboratable_Quote_Declarations fc ds)
+      = Elaboratable_Quote_Declarations fc (map (map f) ds)
+    map f (Elaboratable_Unquote fc t)
+      = Elaboratable_Unquote fc (map f t)
+    map f (Elaboratable_Run_Elaborator fc re t)
+      = Elaboratable_Run_Elaborator fc re (map f t)
+    map f (Elaboratable_Primitive_Value fc c)
+      = Elaboratable_Primitive_Value fc c
+    map f (Elaboratable_Type_Universe fc)
+      = Elaboratable_Type_Universe fc
+    map f (Elaboratable_Hole fc str)
+      = Elaboratable_Hole fc str
+    map f (Elaboratable_Unification_Log fc lvl t)
+      = Elaboratable_Unification_Log fc lvl (map f t)
     map f (Implicit fc b)
       = Implicit fc b
-    map f (IWithUnambigNames fc ns t)
-      = IWithUnambigNames fc ns (map f t)
+    map f (Elaboratable_With_Unambiguous_Names fc ns t)
+      = Elaboratable_With_Unambiguous_Names fc ns (map f t)
 
   export
   Functor ImpClause' where
@@ -88,33 +88,33 @@ mutual
       = ImpossibleClause fc (map f lhs)
 
   export
-  Functor IClaimData where
-    map f (MkIClaimData rig vis opts ty)
-      = MkIClaimData rig vis (map (map f) opts) (map (map f) ty)
+  Functor Elaboratable_Claim_Data where
+    map f (Make_Elaboratable_Claim_Data rig vis opts ty)
+      = Make_Elaboratable_Claim_Data rig vis (map (map f) opts) (map (map f) ty)
 
   export
   Functor ImpDecl' where
-    map f (IClaim c)
-      = IClaim (map (map f) c)
-    map f (IData fc vis mbtot dt)
-      = IData fc vis mbtot (map f dt)
-    map f (IDef fc nm cls)
-      = IDef fc nm (map (map f) cls)
-    map f (IParameters fc ps ds)
-      = IParameters fc (map (map (map (map f))) ps) (map (map f) ds)
-    map f (IRecord fc cs vis mbtot rec)
-      = IRecord fc cs vis mbtot (map (map f) rec)
-    map f (IFail fc msg ds)
-      = IFail fc msg (map (map f) ds)
-    map f (INamespace fc ns ds)
-      = INamespace fc ns (map (map f) ds)
-    map f (ITransform fc n lhs rhs)
-      = ITransform fc n (map f lhs) (map f rhs)
-    map f (IRunElabDecl fc t)
-      = IRunElabDecl fc (map f t)
-    map f (IPragma fc xs k) = IPragma fc xs k
-    map f (ILog x) = ILog x
-    map f (IBuiltin fc ty n) = IBuiltin fc ty n
+    map f (Elaboratable_Claim c)
+      = Elaboratable_Claim (map (map f) c)
+    map f (Elaboratable_Data_Declaration fc vis mbtot dt)
+      = Elaboratable_Data_Declaration fc vis mbtot (map f dt)
+    map f (Elaboratable_Definition fc nm cls)
+      = Elaboratable_Definition fc nm (map (map f) cls)
+    map f (Elaboratable_Parameter_Block fc ps ds)
+      = Elaboratable_Parameter_Block fc (map (map (map (map f))) ps) (map (map f) ds)
+    map f (Elaboratable_Record_Declaration fc cs vis mbtot rec)
+      = Elaboratable_Record_Declaration fc cs vis mbtot (map (map f) rec)
+    map f (Elaboratable_Expected_Failure fc msg ds)
+      = Elaboratable_Expected_Failure fc msg (map (map f) ds)
+    map f (Elaboratable_Namespace_Block fc ns ds)
+      = Elaboratable_Namespace_Block fc ns (map (map f) ds)
+    map f (Elaboratable_Transformation fc n lhs rhs)
+      = Elaboratable_Transformation fc n (map f lhs) (map f rhs)
+    map f (Elaboratable_Run_Elaborator_Declaration fc t)
+      = Elaboratable_Run_Elaborator_Declaration fc (map f t)
+    map f (Elaboratable_Pragma fc xs k) = Elaboratable_Pragma fc xs k
+    map f (Elaboratable_Logging x) = Elaboratable_Logging x
+    map f (Elaboratable_Builtin_Declaration fc ty n) = Elaboratable_Builtin_Declaration fc ty n
 
   export
   Functor FnOpt' where
@@ -147,9 +147,9 @@ mutual
                     (map (map (map (map (map f)))) body)
 
   export
-  Functor IFieldUpdate' where
-    map f (ISetField path t) = ISetField path (map f t)
-    map f (ISetFieldApp path t) = ISetFieldApp path (map f t)
+  Functor Elaboratable_Field_Update' where
+    map f (Elaboratable_Set_Field path t) = Elaboratable_Set_Field path (map f t)
+    map f (Elaboratable_Apply_To_Field path t) = Elaboratable_Apply_To_Field path (map f t)
 
   export
   Functor AltType' where

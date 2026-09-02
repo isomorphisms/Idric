@@ -25,52 +25,52 @@ mutual
                {auto u : Ref UST UState} ->
                RawImp ->
                Core RawImp
-  getUnquote (IPi fc c p n arg ret)
-      = pure $ IPi fc c p n !(getUnquote arg) !(getUnquote ret)
-  getUnquote (ILam fc c p n arg sc)
-      = pure $ ILam fc c p n !(getUnquote arg) !(getUnquote sc)
-  getUnquote (ILet fc lhsFC c n ty val sc)
-      = pure $ ILet fc lhsFC c n !(getUnquote ty) !(getUnquote val) !(getUnquote sc)
-  getUnquote (ICase fc opts sc ty cs)
-      = pure $ ICase fc opts
+  getUnquote (Elaboratable_Dependent_Function_Type fc c p n arg ret)
+      = pure $ Elaboratable_Dependent_Function_Type fc c p n !(getUnquote arg) !(getUnquote ret)
+  getUnquote (Elaboratable_Lambda fc c p n arg sc)
+      = pure $ Elaboratable_Lambda fc c p n !(getUnquote arg) !(getUnquote sc)
+  getUnquote (Elaboratable_Binding fc lhsFC c n ty val sc)
+      = pure $ Elaboratable_Binding fc lhsFC c n !(getUnquote ty) !(getUnquote val) !(getUnquote sc)
+  getUnquote (Elaboratable_Case fc opts sc ty cs)
+      = pure $ Elaboratable_Case fc opts
                 !(getUnquote sc) !(getUnquote ty)
                 !(traverse getUnquoteClause cs)
-  getUnquote (ILocal fc ds sc)
-      = pure $ ILocal fc !(traverse getUnquoteDecl ds) !(getUnquote sc)
-  getUnquote (IUpdate fc ds sc)
-      = pure $ IUpdate fc !(traverse getUnquoteUpdate ds) !(getUnquote sc)
-  getUnquote (IApp fc f a)
-      = pure $ IApp fc !(getUnquote f) !(getUnquote a)
-  getUnquote (IAutoApp fc f a)
-      = pure $ IAutoApp fc !(getUnquote f) !(getUnquote a)
-  getUnquote (INamedApp fc f n a)
-      = pure $ INamedApp fc !(getUnquote f) n !(getUnquote a)
-  getUnquote (IWithApp fc f a)
-      = pure $ IWithApp fc !(getUnquote f) !(getUnquote a)
-  getUnquote (IAlternative fc at as)
-      = pure $ IAlternative fc at !(traverse getUnquote as)
-  getUnquote (IRewrite fc f a)
-      = pure $ IRewrite fc !(getUnquote f) !(getUnquote a)
-  getUnquote (ICoerced fc t)
-      = pure $ ICoerced fc !(getUnquote t)
-  getUnquote (IBindHere fc m t)
-      = pure $ IBindHere fc m !(getUnquote t)
-  getUnquote (IAs fc nameFC u nm t)
-      = pure $ IAs fc nameFC u nm !(getUnquote t)
-  getUnquote (IMustUnify fc r t)
-      = pure $ IMustUnify fc r !(getUnquote t)
-  getUnquote (IDelayed fc r t)
-      = pure $ IDelayed fc r !(getUnquote t)
-  getUnquote (IDelay fc t)
-      = pure $ IDelay fc !(getUnquote t)
-  getUnquote (IForce fc t)
-      = pure $ IForce fc !(getUnquote t)
-  getUnquote (IQuote fc t)
-      = pure $ IQuote fc !(getUnquote t)
-  getUnquote (IUnquote fc tm)
+  getUnquote (Elaboratable_Local_Definitions fc ds sc)
+      = pure $ Elaboratable_Local_Definitions fc !(traverse getUnquoteDecl ds) !(getUnquote sc)
+  getUnquote (Elaboratable_Record_Update fc ds sc)
+      = pure $ Elaboratable_Record_Update fc !(traverse getUnquoteUpdate ds) !(getUnquote sc)
+  getUnquote (Elaboratable_Apply fc f a)
+      = pure $ Elaboratable_Apply fc !(getUnquote f) !(getUnquote a)
+  getUnquote (Elaboratable_Automatic_Apply fc f a)
+      = pure $ Elaboratable_Automatic_Apply fc !(getUnquote f) !(getUnquote a)
+  getUnquote (Elaboratable_Named_Apply fc f n a)
+      = pure $ Elaboratable_Named_Apply fc !(getUnquote f) n !(getUnquote a)
+  getUnquote (Elaboratable_With_Apply fc f a)
+      = pure $ Elaboratable_With_Apply fc !(getUnquote f) !(getUnquote a)
+  getUnquote (Elaboratable_Alternative fc at as)
+      = pure $ Elaboratable_Alternative fc at !(traverse getUnquote as)
+  getUnquote (Elaboratable_Rewrite fc f a)
+      = pure $ Elaboratable_Rewrite fc !(getUnquote f) !(getUnquote a)
+  getUnquote (Elaboratable_Coerced fc t)
+      = pure $ Elaboratable_Coerced fc !(getUnquote t)
+  getUnquote (Elaboratable_Bind_Here fc m t)
+      = pure $ Elaboratable_Bind_Here fc m !(getUnquote t)
+  getUnquote (Elaboratable_As_Pattern fc nameFC u nm t)
+      = pure $ Elaboratable_As_Pattern fc nameFC u nm !(getUnquote t)
+  getUnquote (Elaboratable_Must_Unify fc r t)
+      = pure $ Elaboratable_Must_Unify fc r !(getUnquote t)
+  getUnquote (Elaboratable_Delayed_Type fc r t)
+      = pure $ Elaboratable_Delayed_Type fc r !(getUnquote t)
+  getUnquote (Elaboratable_Delay fc t)
+      = pure $ Elaboratable_Delay fc !(getUnquote t)
+  getUnquote (Elaboratable_Force fc t)
+      = pure $ Elaboratable_Force fc !(getUnquote t)
+  getUnquote (Elaboratable_Quote fc t)
+      = pure $ Elaboratable_Quote fc !(getUnquote t)
+  getUnquote (Elaboratable_Unquote fc tm)
       = do qv <- genVarName "q"
            update Unq ((qv, fc, tm) ::)
-           pure (IUnquote fc (IVar fc qv)) -- turned into just qv when reflecting
+           pure (Elaboratable_Unquote fc (Elaboratable_Name fc qv)) -- turned into just qv when reflecting
   getUnquote tm = pure tm
 
   getUnquoteClause : {auto c : Ref Ctxt Defs} ->
@@ -95,10 +95,10 @@ mutual
   getUnquoteUpdate : {auto c : Ref Ctxt Defs} ->
                      {auto q : Ref Unq (List (Name, FC, RawImp))} ->
                      {auto u : Ref UST UState} ->
-                     IFieldUpdate ->
-                     Core IFieldUpdate
-  getUnquoteUpdate (ISetField p t) = pure $ ISetField p !(getUnquote t)
-  getUnquoteUpdate (ISetFieldApp p t) = pure $ ISetFieldApp p !(getUnquote t)
+                     Elaboratable_Field_Update ->
+                     Core Elaboratable_Field_Update
+  getUnquoteUpdate (Elaboratable_Set_Field p t) = pure $ Elaboratable_Set_Field p !(getUnquote t)
+  getUnquoteUpdate (Elaboratable_Apply_To_Field p t) = pure $ Elaboratable_Apply_To_Field p !(getUnquote t)
 
   getUnquoteRecord : {auto c : Ref Ctxt Defs} ->
                      {auto q : Ref Unq (List (Name, FC, RawImp))} ->
@@ -126,22 +126,22 @@ mutual
                    {auto u : Ref UST UState} ->
                    ImpDecl ->
                    Core ImpDecl
-  getUnquoteDecl (IClaim (MkWithData fc (MkIClaimData c v opts ty)))
-      = pure $ IClaim (MkWithData fc (MkIClaimData c v opts !(traverse getUnquote ty)))
-  getUnquoteDecl (IData fc v mbt d)
-      = pure $ IData fc v mbt !(getUnquoteData d)
-  getUnquoteDecl (IDef fc v d)
-      = pure $ IDef fc v !(traverse getUnquoteClause d)
-  getUnquoteDecl (IParameters fc ps ds)
-      = pure $ IParameters fc -- We also unquote default arguments here too
+  getUnquoteDecl (Elaboratable_Claim (MkWithData fc (Make_Elaboratable_Claim_Data c v opts ty)))
+      = pure $ Elaboratable_Claim (MkWithData fc (Make_Elaboratable_Claim_Data c v opts !(traverse getUnquote ty)))
+  getUnquoteDecl (Elaboratable_Data_Declaration fc v mbt d)
+      = pure $ Elaboratable_Data_Declaration fc v mbt !(getUnquoteData d)
+  getUnquoteDecl (Elaboratable_Definition fc v d)
+      = pure $ Elaboratable_Definition fc v !(traverse getUnquoteClause d)
+  getUnquoteDecl (Elaboratable_Parameter_Block fc ps ds)
+      = pure $ Elaboratable_Parameter_Block fc -- We also unquote default arguments here too
                            !(traverseList1 (traverse (traverse getUnquote)) ps)
                            !(traverse getUnquoteDecl ds)
-  getUnquoteDecl (IRecord fc ns v mbt d)
-      = pure $ IRecord fc ns v mbt !(traverse getUnquoteRecord d)
-  getUnquoteDecl (INamespace fc ns ds)
-      = pure $ INamespace fc ns !(traverse getUnquoteDecl ds)
-  getUnquoteDecl (ITransform fc n l r)
-      = pure $ ITransform fc n !(getUnquote l) !(getUnquote r)
+  getUnquoteDecl (Elaboratable_Record_Declaration fc ns v mbt d)
+      = pure $ Elaboratable_Record_Declaration fc ns v mbt !(traverse getUnquoteRecord d)
+  getUnquoteDecl (Elaboratable_Namespace_Block fc ns ds)
+      = pure $ Elaboratable_Namespace_Block fc ns !(traverse getUnquoteDecl ds)
+  getUnquoteDecl (Elaboratable_Transformation fc n l r)
+      = pure $ Elaboratable_Transformation fc n !(getUnquote l) !(getUnquote r)
   getUnquoteDecl d = pure d
 
 bindUnqs : {vars : _} ->

@@ -252,33 +252,33 @@ addNS _ n = n
 bindFun : FC -> Maybe Namespace -> RawImp -> RawImp -> RawImp
 bindFun fc ns ma f =
   let fc = virtualiseFC fc in
-  IApp fc (IApp fc (IVar fc (addNS ns $ UN $ Basic ">>=")) ma) f
+  Elaboratable_Apply fc (Elaboratable_Apply fc (Elaboratable_Name fc (addNS ns $ UN $ Basic ">>=")) ma) f
 
 seqFun : FC -> Maybe Namespace -> RawImp -> RawImp -> RawImp
 seqFun fc ns ma mb =
   let fc = virtualiseFC fc in
-  IApp fc (IApp fc (IVar fc (addNS ns (UN $ Basic ">>"))) ma) mb
+  Elaboratable_Apply fc (Elaboratable_Apply fc (Elaboratable_Name fc (addNS ns (UN $ Basic ">>"))) ma) mb
 
 bindBangs : List (Name, FC, RawImp) -> Maybe Namespace -> RawImp -> RawImp
 bindBangs [] ns tm = tm
 bindBangs ((n, fc, btm) :: bs) ns tm
     = bindBangs bs ns
     $ bindFun fc ns btm
-    $ ILam EmptyFC top Explicit (Just n) (Implicit fc False) tm
+    $ Elaboratable_Lambda EmptyFC top Explicit (Just n) (Implicit fc False) tm
 
 idiomise : FC -> Maybe Namespace -> Maybe Namespace -> RawImp -> RawImp
-idiomise fc dons mns (IAlternative afc u alts)
-  = IAlternative afc (mapAltType (idiomise afc dons mns) u) (idiomise afc dons mns <$> alts)
-idiomise fc dons mns (IApp afc f a)
+idiomise fc dons mns (Elaboratable_Alternative afc u alts)
+  = Elaboratable_Alternative afc (mapAltType (idiomise afc dons mns) u) (idiomise afc dons mns <$> alts)
+idiomise fc dons mns (Elaboratable_Apply afc f a)
   = let fc  = virtualiseFC fc
         app = UN $ Basic "<*>"
         nm  = maybe app (`NS` app) (mns <|> dons)
-     in IApp fc (IApp fc (IVar fc nm) (idiomise afc dons mns f)) a
+     in Elaboratable_Apply fc (Elaboratable_Apply fc (Elaboratable_Name fc nm) (idiomise afc dons mns f)) a
 idiomise fc dons mns fn
   = let fc  = virtualiseFC fc
         pur = UN $ Basic "pure"
         nm  = maybe pur (`NS` pur) (mns <|> dons)
-     in IApp fc (IVar fc nm) fn
+     in Elaboratable_Apply fc (Elaboratable_Name fc nm) fn
 
 data Bang : Type where
 
@@ -294,8 +294,8 @@ mutual
     let ns = mbNamespace !(get Bang)
     let pur = UN $ Basic "pure"
     case x == pur of -- implicitly add namespace to unqualified occurrences of `pure` in a qualified do-block
-      False => pure $ IVar fc x
-      True => pure $ IVar fc (maybe pur (`NS` pur) ns)
+      False => pure $ Elaboratable_Name fc x
+      True => pure $ Elaboratable_Name fc (maybe pur (`NS` pur) ns)
 
   -- Desugaring forall n1, n2, n3 . s into
   -- {0 n1 : ?} -> {0 n2 : ?} -> {0 n3 : ?} -> s
@@ -306,7 +306,7 @@ mutual
                              (names : List (WithFC Name)) -> Core RawImp
         desugarForallNames ctx [] = desugarB side ctx scope
         desugarForallNames ctx (x :: xs)
-          = IPi x.fc erased Implicit (Just x.val)
+          = Elaboratable_Dependent_Function_Type x.fc erased Implicit (Just x.val)
           <$> desugarB side ps (PImplicit x.fc)
           <*> desugarForallNames (x.val :: ctx) xs
 
@@ -322,7 +322,7 @@ mutual
           = desugarB side ctx scope
         desugarMultiBinder ctx (name :: xs)
           = let extendedCtx = name.val :: ps
-            in IPi binder.fc rig
+            in Elaboratable_Dependent_Function_Type binder.fc rig
               <$> mapDesugarPiInfo extendedCtx info
               <*> (pure (Just name.val))
               <*> desugarB side ps type
@@ -330,40 +330,40 @@ mutual
 
   desugarB side ps (PPi fc rig p mn argTy retTy)
       = let ps' = maybe ps (:: ps) mn in
-            pure $ IPi fc rig !(traverse (desugar side ps') p)
+            pure $ Elaboratable_Dependent_Function_Type fc rig !(traverse (desugar side ps') p)
                               mn !(desugarB side ps argTy)
                                  !(desugarB side ps' retTy)
   desugarB side ps (PLam fc rig p pat@(PRef prefFC n@(UN nm)) argTy scope)
       =  if isPatternVariable nm
            then do whenJust (isConcreteFC prefFC) $ \nfc
                      => addSemanticDecorations [(nfc, Bound, Just n)]
-                   pure $ ILam fc rig !(traverse (desugar AnyExpr ps) p)
+                   pure $ Elaboratable_Lambda fc rig !(traverse (desugar AnyExpr ps) p)
                            (Just n) !(desugarB AnyExpr ps argTy)
                                     !(desugar AnyExpr (n :: ps) scope)
-           else pure $ ILam EmptyFC rig !(traverse (desugar AnyExpr ps) p)
+           else pure $ Elaboratable_Lambda EmptyFC rig !(traverse (desugar AnyExpr ps) p)
                    (Just (MN "lamc" 0)) !(desugarB AnyExpr ps argTy) $
-                 ICase fc [] (IVar EmptyFC (MN "lamc" 0)) (Implicit fc False)
+                 Elaboratable_Case fc [] (Elaboratable_Name EmptyFC (MN "lamc" 0)) (Implicit fc False)
                      [snd !(desugarClause ps True (MkPatClause fc pat scope []))]
   desugarB side ps (PLam fc rig p (PRef _ n@(MN {})) argTy scope)
-      = pure $ ILam fc rig !(traverse (desugar AnyExpr ps) p)
+      = pure $ Elaboratable_Lambda fc rig !(traverse (desugar AnyExpr ps) p)
                            (Just n) !(desugarB AnyExpr ps argTy)
                                     !(desugar AnyExpr (n :: ps) scope)
   desugarB side ps (PLam fc rig p (PImplicit _) argTy scope)
-      = pure $ ILam fc rig !(traverse (desugar AnyExpr ps) p)
+      = pure $ Elaboratable_Lambda fc rig !(traverse (desugar AnyExpr ps) p)
                            Nothing !(desugarB AnyExpr ps argTy)
                                    !(desugar AnyExpr ps scope)
   desugarB side ps (PLam fc rig p pat argTy scope)
-      = pure $ ILam EmptyFC rig !(traverse (desugar AnyExpr ps) p)
+      = pure $ Elaboratable_Lambda EmptyFC rig !(traverse (desugar AnyExpr ps) p)
                    (Just (MN "lamc" 0)) !(desugarB AnyExpr ps argTy) $
-                 ICase fc [] (IVar EmptyFC (MN "lamc" 0)) (Implicit fc False)
+                 Elaboratable_Case fc [] (Elaboratable_Name EmptyFC (MN "lamc" 0)) (Implicit fc False)
                      [snd !(desugarClause ps True (MkPatClause fc pat scope []))]
   desugarB side ps (PLet fc rig (PRef prefFC n) nTy nVal scope [])
       = do whenJust (isConcreteFC prefFC) $ \nfc =>
              addSemanticDecorations [(nfc, Bound, Just n)]
-           pure $ ILet fc prefFC rig n !(desugarB side ps nTy) !(desugarB side ps nVal)
+           pure $ Elaboratable_Binding fc prefFC rig n !(desugarB side ps nTy) !(desugarB side ps nVal)
                                        !(desugar side (n :: ps) scope)
   desugarB side ps (PLet fc rig pat nTy nVal scope alts)
-      = pure $ ICase fc [] !(desugarB side ps nVal) !(desugarB side ps nTy)
+      = pure $ Elaboratable_Case fc [] !(desugarB side ps nVal) !(desugarB side ps nTy)
                         !(traverse (map snd . desugarClause ps True)
                             (MkPatClause fc pat scope [] :: alts))
   desugarB side ps (PCase fc opts scr cls)
@@ -371,13 +371,13 @@ mutual
            scr <- desugarB side ps scr
            let scrty = Implicit (virtualiseFC fc) False
            cls <- traverse (map snd . desugarClause ps True) cls
-           pure $ ICase fc opts scr scrty cls
+           pure $ Elaboratable_Case fc opts scr scrty cls
   desugarB side ps (PLocal fc xs scope)
       = let ps' = definedIn (map val xs) ++ ps in
-            pure $ ILocal fc (concat !(traverse (desugarDecl ps') xs))
+            pure $ Elaboratable_Local_Definitions fc (concat !(traverse (desugarDecl ps') xs))
                              !(desugar side ps' scope)
   desugarB side ps (PApp pfc (PUpdate fc fs) rec)
-      = pure $ IUpdate pfc !(traverse (desugarUpdate side ps) fs)
+      = pure $ Elaboratable_Record_Update pfc !(traverse (desugarUpdate side ps) fs)
                            !(desugarB side ps rec)
   desugarB side ps (PUpdate fc fs)
       = desugarB side ps
@@ -385,25 +385,25 @@ mutual
       PLam vfc top Explicit (PRef vfc (MN "rec" 0)) (PImplicit vfc)
       $ PApp vfc (PUpdate fc fs) (PRef vfc (MN "rec" 0))
   desugarB side ps (PApp fc x y)
-      = pure $ IApp fc !(desugarB side ps x) !(desugarB side ps y)
+      = pure $ Elaboratable_Apply fc !(desugarB side ps x) !(desugarB side ps y)
   desugarB side ps (PAutoApp fc x y)
-      = pure $ IAutoApp fc !(desugarB side ps x) !(desugarB side ps y)
+      = pure $ Elaboratable_Automatic_Apply fc !(desugarB side ps x) !(desugarB side ps y)
   desugarB side ps (PWithApp fc x y)
-      = pure $ IWithApp fc !(desugarB side ps x) !(desugarB side ps y)
+      = pure $ Elaboratable_With_Apply fc !(desugarB side ps x) !(desugarB side ps y)
   desugarB side ps (PNamedApp fc x argn y)
-      = pure $ INamedApp fc !(desugarB side ps x) argn !(desugarB side ps y)
+      = pure $ Elaboratable_Named_Apply fc !(desugarB side ps x) argn !(desugarB side ps y)
   desugarB side ps (PDelayed fc r ty)
-      = pure $ IDelayed fc r !(desugarB side ps ty)
+      = pure $ Elaboratable_Delayed_Type fc r !(desugarB side ps ty)
   desugarB side ps (PDelay fc tm)
-      = pure $ IDelay fc !(desugarB side ps tm)
+      = pure $ Elaboratable_Delay fc !(desugarB side ps tm)
   desugarB side ps (PForce fc tm)
-      = pure $ IForce fc !(desugarB side ps tm)
+      = pure $ Elaboratable_Force fc !(desugarB side ps tm)
   desugarB side ps (PEq fc l r)
       = do l' <- desugarB side ps l
            r' <- desugarB side ps r
-           pure $ IAlternative fc FirstSuccess
-                     [apply (IVar fc (UN $ Basic "===")) [l', r'],
-                      apply (IVar fc (UN $ Basic "~=~")) [l', r']]
+           pure $ Elaboratable_Alternative fc FirstSuccess
+                     [apply (Elaboratable_Name fc (UN $ Basic "===")) [l', r'],
+                      apply (Elaboratable_Name fc (UN $ Basic "~=~")) [l', r']]
   desugarB side ps (PBracketed fc e) = desugarB side ps e
   desugarB side ps (POp fc l op r)
       = do ts <- toTokList side (POp fc l op r)
@@ -429,59 +429,59 @@ mutual
       = desugarB side ps
           (PLam fc top Explicit (PRef fc (MN "arg" 0)) (PImplicit fc)
               (POp fc (MkFCVal op.fc $ NoBinder arg) op (PRef fc (MN "arg" 0))))
-  desugarB side ps (PSearch fc depth) = pure $ ISearch fc depth
+  desugarB side ps (PSearch fc depth) = pure $ Elaboratable_Search fc depth
   desugarB side ps (PPrimVal fc (BI x))
       = case !fromIntegerName of
              Nothing =>
-                pure $ IAlternative fc (UniqueDefault (IPrimVal fc (BI x)))
-                                [IPrimVal fc (BI x),
-                                 IPrimVal fc (I (fromInteger x))]
+                pure $ Elaboratable_Alternative fc (UniqueDefault (Elaboratable_Primitive_Value fc (BI x)))
+                                [Elaboratable_Primitive_Value fc (BI x),
+                                 Elaboratable_Primitive_Value fc (I (fromInteger x))]
              Just fi =>
                let vfc = virtualiseFC fc in
-               pure $ IApp vfc (IVar vfc fi) (IPrimVal fc (BI x))
+               pure $ Elaboratable_Apply vfc (Elaboratable_Name vfc fi) (Elaboratable_Primitive_Value fc (BI x))
   desugarB side ps (PPrimVal fc (Ch x))
       = case !fromCharName of
              Nothing =>
-                pure $ IPrimVal fc (Ch x)
+                pure $ Elaboratable_Primitive_Value fc (Ch x)
              Just f =>
                let vfc = virtualiseFC fc in
-               pure $ IApp vfc (IVar vfc f) (IPrimVal fc (Ch x))
+               pure $ Elaboratable_Apply vfc (Elaboratable_Name vfc f) (Elaboratable_Primitive_Value fc (Ch x))
   desugarB side ps (PPrimVal fc (Db x))
       = case !fromDoubleName of
              Nothing =>
-                pure $ IPrimVal fc (Db x)
+                pure $ Elaboratable_Primitive_Value fc (Db x)
              Just f =>
                let vfc = virtualiseFC fc in
-               pure $ IApp vfc (IVar vfc f) (IPrimVal fc (Db x))
-  desugarB side ps (PPrimVal fc x) = pure $ IPrimVal fc x
+               pure $ Elaboratable_Apply vfc (Elaboratable_Name vfc f) (Elaboratable_Primitive_Value fc (Db x))
+  desugarB side ps (PPrimVal fc x) = pure $ Elaboratable_Primitive_Value fc x
   desugarB side ps (PQuote fc tm)
-      = do let q = IQuote fc !(desugarB side ps tm)
+      = do let q = Elaboratable_Quote fc !(desugarB side ps tm)
            case side of
                 AnyExpr => pure $ maybeIApp fc !fromTTImpName q
                 _ => pure q
   desugarB side ps (PQuoteName fc n)
-      = do let q = IQuoteName fc n
+      = do let q = Elaboratable_Quote_Name fc n
            case side of
                 AnyExpr => pure $ maybeIApp fc !fromNameName q
                 _ => pure q
   desugarB side ps (PQuoteDecl fc x)
       = do xs <- traverse (desugarDecl ps) x
-           let dls = IQuoteDecl fc (concat xs)
+           let dls = Elaboratable_Quote_Declarations fc (concat xs)
            case side of
                 AnyExpr => pure $ maybeIApp fc !fromDeclsName dls
                 _ => pure dls
   desugarB side ps (PUnquote fc tm)
-      = pure $ IUnquote fc !(desugarB side ps tm)
+      = pure $ Elaboratable_Unquote fc !(desugarB side ps tm)
   desugarB side ps (PRunElab fc tm)
-      = pure $ IRunElab fc True !(desugarB side ps tm)
+      = pure $ Elaboratable_Run_Elaborator fc True !(desugarB side ps tm)
   desugarB side ps (PHole fc br holename)
       = do when br $ update Syn { bracketholes $= ((UN (Basic holename)) ::) }
-           pure $ IHole fc holename
-  desugarB side ps (PType fc) = pure $ IType fc
+           pure $ Elaboratable_Hole fc holename
+  desugarB side ps (PType fc) = pure $ Elaboratable_Type_Universe fc
   desugarB side ps (PAs fc nameFC vname pattern)
-      = pure $ IAs fc nameFC UseRight vname !(desugarB side ps pattern)
+      = pure $ Elaboratable_As_Pattern fc nameFC UseRight vname !(desugarB side ps pattern)
   desugarB side ps (PDotted fc x)
-      = pure $ IMustUnify fc UserDotted !(desugarB side ps x)
+      = pure $ Elaboratable_Must_Unify fc UserDotted !(desugarB side ps x)
   desugarB side ps (PImplicit fc) = pure $ Implicit fc True
   desugarB side ps (PInfer fc)
     = do when (side == LHS) $
@@ -495,10 +495,10 @@ mutual
   -- are always concatenated with other strings and therefore can never use
   -- another `fromString` implementation that differs from `id`.
   desugarB side ps (PString fc hashtag [])
-      = pure $ maybeIApp fc !fromStringName (IPrimVal fc (Str ""))
+      = pure $ maybeIApp fc !fromStringName (Elaboratable_Primitive_Value fc (Str ""))
   desugarB side ps (PString fc hashtag [StrLiteral fc' str])
       = case unescape hashtag str of
-             Just str => pure $ maybeIApp fc !fromStringName (IPrimVal fc' (Str str))
+             Just str => pure $ maybeIApp fc !fromStringName (Elaboratable_Primitive_Value fc' (Str str))
              Nothing => throw (GenericMsg fc "Invalid escape sequence: \{show str}")
   desugarB side ps (PString fc hashtag strs)
       = expandString side ps fc hashtag strs
@@ -512,7 +512,7 @@ mutual
            put Bang ({ nextName $= (+1),
                        bangNames $= ((bn, fc, itm) ::)
                      } bs)
-           pure (IVar (virtualiseFC fc) bn)
+           pure (Elaboratable_Name (virtualiseFC fc) bn)
   desugarB side ps (PIdiom fc ns term)
       = do itm <- desugarB side ps term
            logRaw "desugar.idiom" 10 "Desugaring idiom for" itm
@@ -526,40 +526,40 @@ mutual
   desugarB side ps (PPair fc l r)
       = do l' <- desugarB side ps l
            r' <- desugarB side ps r
-           let pval = apply (IVar fc mkpairname) [l', r']
-           pure $ IAlternative fc (UniqueDefault pval)
-                  [apply (IVar fc pairname) [l', r'], pval]
+           let pval = apply (Elaboratable_Name fc mkpairname) [l', r']
+           pure $ Elaboratable_Alternative fc (UniqueDefault pval)
+                  [apply (Elaboratable_Name fc pairname) [l', r'], pval]
   desugarB side ps (PDPair fc opFC (PRef nameFC n@(UN _)) (PImplicit _) r)
       = do r' <- desugarB side ps r
-           let pval = apply (IVar opFC mkdpairname) [IVar nameFC n, r']
+           let pval = apply (Elaboratable_Name opFC mkdpairname) [Elaboratable_Name nameFC n, r']
            let vfc = virtualiseFC nameFC
            whenJust (isConcreteFC nameFC) $ \nfc =>
              addSemanticDefault (nfc, Bound, Just n)
-           pure $ IAlternative fc (UniqueDefault pval)
-                  [apply (IVar opFC dpairname)
+           pure $ Elaboratable_Alternative fc (UniqueDefault pval)
+                  [apply (Elaboratable_Name opFC dpairname)
                       [Implicit vfc False,
-                       ILam nameFC top Explicit (Just n) (Implicit vfc False) r'],
+                       Elaboratable_Lambda nameFC top Explicit (Just n) (Implicit vfc False) r'],
                    pval]
   desugarB side ps (PDPair fc opFC (PRef namefc n@(UN _)) ty r)
       = do ty' <- desugarB side ps ty
            r' <- desugarB side ps r
-           pure $ apply (IVar opFC dpairname)
-                        [ty', ILam namefc top Explicit (Just n) ty' r']
+           pure $ apply (Elaboratable_Name opFC dpairname)
+                        [ty', Elaboratable_Lambda namefc top Explicit (Just n) ty' r']
   desugarB side ps (PDPair fc opFC l (PImplicit _) r)
       = do l' <- desugarB side ps l
            r' <- desugarB side ps r
-           pure $ apply (IVar opFC mkdpairname) [l', r']
+           pure $ apply (Elaboratable_Name opFC mkdpairname) [l', r']
   desugarB side ps (PDPair fc opFC l ty r)
       = throw (GenericMsg fc "Invalid dependent pair type")
   desugarB side ps (PUnit fc)
-      = pure $ IAlternative fc (UniqueDefault (IVar fc (UN $ Basic "MkUnit")))
-               [IVar fc (UN $ Basic "Unit"),
-                IVar fc (UN $ Basic "MkUnit")]
+      = pure $ Elaboratable_Alternative fc (UniqueDefault (Elaboratable_Name fc (UN $ Basic "MkUnit")))
+               [Elaboratable_Name fc (UN $ Basic "Unit"),
+                Elaboratable_Name fc (UN $ Basic "MkUnit")]
   desugarB side ps (PIfThenElse fc x t e)
       = let fc = virtualiseFC fc in
-        pure $ ICase fc [] !(desugarB side ps x) (IVar fc (UN $ Basic "Bool"))
-                   [PatClause fc (IVar fc (UN $ Basic "True")) !(desugar side ps t),
-                    PatClause fc (IVar fc (UN $ Basic "False")) !(desugar side ps e)]
+        pure $ Elaboratable_Case fc [] !(desugarB side ps x) (Elaboratable_Name fc (UN $ Basic "Bool"))
+                   [PatClause fc (Elaboratable_Name fc (UN $ Basic "True")) !(desugar side ps t),
+                    PatClause fc (Elaboratable_Name fc (UN $ Basic "False")) !(desugar side ps e)]
   desugarB side ps (PComprehension fc ret conds) = do
         let ns = mbNamespace !(get Bang)
         desugarB side ps (PDoBlock fc ns (map (guard ns) conds ++ [toPure ns ret]))
@@ -572,7 +572,7 @@ mutual
       toPure : Maybe Namespace -> PTerm -> PDo
       toPure ns tm = DoExp fc (PApp fc (PRef fc (mbApplyNS ns $ UN $ Basic "pure")) tm)
   desugarB side ps (PRewrite fc rule tm)
-      = pure $ IRewrite fc !(desugarB side ps rule) !(desugarB side ps tm)
+      = pure $ Elaboratable_Rewrite fc !(desugarB side ps rule) !(desugarB side ps tm)
   desugarB side ps (PRange fc start next end)
       = let fc = virtualiseFC fc in
         desugarB side ps $ case next of
@@ -584,7 +584,7 @@ mutual
            Nothing => papply fc (PRef fc (UN $ Basic "rangeFrom")) [start]
            Just n  => papply fc (PRef fc (UN $ Basic "rangeFromThen")) [start, n]
   desugarB side ps (PUnifyLog fc lvl tm)
-      = pure $ IUnifyLog fc lvl !(desugarB side ps tm)
+      = pure $ Elaboratable_Unification_Log fc lvl !(desugarB side ps tm)
   desugarB side ps (PPostfixApp fc rec projs)
       = desugarB side ps
       $ foldl (\x, (fc, proj) => PApp fc (PRef fc proj) x) rec projs
@@ -595,7 +595,7 @@ mutual
              PLam fc top Explicit var (PImplicit vfc) $
                foldl (\r, (fc, proj) => PApp fc (PRef fc proj) r) var projs
   desugarB side ps (PWithUnambigNames fc ns rhs)
-      = IWithUnambigNames fc ns <$> desugarB side ps rhs
+      = Elaboratable_With_Unambiguous_Names fc ns <$> desugarB side ps rhs
 
   desugarUpdate : {auto s : Ref Syn SyntaxInfo} ->
                   {auto b : Ref Bang BangData} ->
@@ -603,11 +603,11 @@ mutual
                   {auto u : Ref UST UState} ->
                   {auto m : Ref MD Metadata} ->
                   {auto o : Ref ROpts REPLOpts} ->
-                  Side -> List Name -> PFieldUpdate -> Core IFieldUpdate
+                  Side -> List Name -> PFieldUpdate -> Core Elaboratable_Field_Update
   desugarUpdate side ps (PSetField p v)
-      = pure (ISetField p !(desugarB side ps v))
+      = pure (Elaboratable_Set_Field p !(desugarB side ps v))
   desugarUpdate side ps (PSetFieldApp p v)
-      = pure (ISetFieldApp p !(desugarB side ps v))
+      = pure (Elaboratable_Apply_To_Field p !(desugarB side ps v))
 
   expandList : {auto s : Ref Syn SyntaxInfo} ->
                {auto b : Ref Bang BangData} ->
@@ -617,9 +617,9 @@ mutual
                {auto o : Ref ROpts REPLOpts} ->
                Side -> List Name ->
                (nilFC : FC) -> List (FC, PTerm) -> Core RawImp
-  expandList side ps nilFC [] = pure (IVar nilFC (UN $ Basic "Nil"))
+  expandList side ps nilFC [] = pure (Elaboratable_Name nilFC (UN $ Basic "Nil"))
   expandList side ps nilFC ((consFC, x) :: xs)
-      = pure $ apply (IVar consFC (UN $ Basic "::"))
+      = pure $ apply (Elaboratable_Name consFC (UN $ Basic "::"))
                 [!(desugarB side ps x), !(expandList side ps nilFC xs)]
 
   expandSnocList
@@ -631,9 +631,9 @@ mutual
                {auto o : Ref ROpts REPLOpts} ->
                Side -> List Name -> (nilFC : FC) ->
                SnocList (FC, PTerm) -> Core RawImp
-  expandSnocList side ps nilFC [<] = pure (IVar nilFC (UN $ Basic "Lin"))
+  expandSnocList side ps nilFC [<] = pure (Elaboratable_Name nilFC (UN $ Basic "Lin"))
   expandSnocList side ps nilFC (xs :< (consFC, x))
-      = pure $ apply (IVar consFC (UN $ Basic ":<"))
+      = pure $ apply (Elaboratable_Name consFC (UN $ Basic ":<"))
                 [!(expandSnocList side ps nilFC xs) , !(desugarB side ps x)]
 
   maybeIApp : FC -> Maybe Name -> RawImp -> RawImp
@@ -642,7 +642,7 @@ mutual
              Nothing => tm
              Just f =>
                let fc = virtualiseFC fc in
-               IApp fc (IVar fc f) tm
+               Elaboratable_Apply fc (Elaboratable_Name fc f) tm
 
   expandString : {auto s : Ref Syn SyntaxInfo} ->
                  {auto b : Ref Bang BangData} ->
@@ -654,20 +654,20 @@ mutual
   expandString side ps fc hashtag xs
     = do xs <- traverse toRawImp (filter notEmpty $ mergeStrLit xs)
          pure $ case xs of
-           [] => IPrimVal fc (Str "")
+           [] => Elaboratable_Primitive_Value fc (Str "")
            (_ :: _) =>
              let vfc = virtualiseFC fc in
-             IApp vfc
-               (INamedApp vfc
-                 (IVar vfc (NS preludeNS $ UN $ Basic "concat"))
+             Elaboratable_Apply vfc
+               (Elaboratable_Named_Apply vfc
+                 (Elaboratable_Name vfc (NS preludeNS $ UN $ Basic "concat"))
                  (UN $ Basic "t")
-                 (IVar vfc (NS preludeNS $ UN $ Basic "List")))
+                 (Elaboratable_Name vfc (NS preludeNS $ UN $ Basic "List")))
                (strInterpolate xs)
     where
       toRawImp : PStr -> Core RawImp
       toRawImp (StrLiteral fc str) =
         case unescape hashtag str of
-             Just str => pure $ IPrimVal fc (Str str)
+             Just str => pure $ Elaboratable_Primitive_Value fc (Str str)
              Nothing => throw (GenericMsg fc "Invalid escape sequence: \{show str}")
       toRawImp (StrInterp fc tm) = desugarB side ps tm
 
@@ -688,11 +688,11 @@ mutual
 
       strInterpolate : List RawImp -> RawImp
       strInterpolate []
-        = IVar EmptyFC nilName
+        = Elaboratable_Name EmptyFC nilName
       strInterpolate (x :: xs)
         = let xFC = virtualiseFC (getFC x) in
-          apply (IVar xFC consName)
-          [ IApp xFC (IVar EmptyFC interpolateName)
+          apply (Elaboratable_Name xFC consName)
+          [ Elaboratable_Apply xFC (Elaboratable_Name EmptyFC interpolateName)
                      x
           , strInterpolate xs
           ]
@@ -764,7 +764,7 @@ mutual
                         (\ty => desugarDo side ps ns ty) ty
            rest' <- expandDo side ps topfc ns rest
            pure $ bindFun fc ns tm'
-                $ ILam nameFC rig Explicit (Just n) ty' rest'
+                $ Elaboratable_Lambda nameFC rig Explicit (Just n) ty' rest'
   expandDo side ps topfc ns (DoBindPat fc pat ty exp alts :: rest)
       = do pat' <- desugarDo LHS ps ns pat
            (newps, bpat) <- bindNames False pat'
@@ -778,9 +778,9 @@ mutual
                         (\ty => desugarDo side ps ns ty) ty
            rest' <- expandDo side ps' topfc ns rest
            pure $ bindFun fc ns exp'
-                $ ILam EmptyFC top Explicit (Just (MN "_" 0))
+                $ Elaboratable_Lambda EmptyFC top Explicit (Just (MN "_" 0))
                           ty'
-                          (ICase fc [] (IVar patFC (MN "_" 0))
+                          (Elaboratable_Case fc [] (Elaboratable_Name patFC (MN "_" 0))
                                (Implicit fc False)
                                (PatClause fcOriginal bpat rest'
                                   :: alts'))
@@ -791,7 +791,7 @@ mutual
            rest' <- expandDo side ps topfc ns rest
            whenJust (isConcreteFC lhsFC) $ \nfc =>
              addSemanticDecorations [(nfc, Bound, Just n)]
-           let bind = ILet fc lhsFC rig n ty' tm' rest'
+           let bind = Elaboratable_Binding fc lhsFC rig n ty' tm' rest'
            bd <- get Bang
            pure $ bindBangs (bangNames bd) ns bind
   expandDo side ps topfc ns (DoLetPat fc pat ty tm alts :: rest)
@@ -806,17 +806,17 @@ mutual
            bd <- get Bang
            let fc = virtualiseFC fc
            pure $ bindBangs (bangNames bd) ns $
-                    ICase fc [] tm' ty'
+                    Elaboratable_Case fc [] tm' ty'
                        (PatClause fc bpat rest'
                                   :: alts')
   expandDo side ps topfc ns (DoLetLocal fc decls :: rest)
       = do decls' <- traverse (desugarDecl ps) decls
            rest' <- expandDo side ps topfc ns rest
-           pure $ ILocal fc (concat decls') rest'
+           pure $ Elaboratable_Local_Definitions fc (concat decls') rest'
   expandDo side ps topfc ns (DoRewrite fc rule :: rest)
       = do rule' <- desugarDo side ps ns rule
            rest' <- expandDo side ps topfc ns rest
-           pure $ IRewrite fc rule' rest'
+           pure $ Elaboratable_Rewrite fc rule' rest'
 
   -- Replace all operator by function application
   desugarTree : Side -> List Name -> Tree (OpStr, Maybe $ OperatorLHSInfo PTerm) PTerm ->
@@ -903,11 +903,11 @@ mutual
   --   - given the pattern 'f x y', getClauseFn would return 'f'.
   --   - given the pattern 'x == y', getClausefn would return '=='.
   getClauseFn : RawImp -> Core Name
-  getClauseFn (IVar _ n) = pure n
-  getClauseFn (IApp _ f _) = getClauseFn f
-  getClauseFn (IWithApp _ f _) = getClauseFn f
-  getClauseFn (IAutoApp _ f _) = getClauseFn f
-  getClauseFn (INamedApp _ f _ _) = getClauseFn f
+  getClauseFn (Elaboratable_Name _ n) = pure n
+  getClauseFn (Elaboratable_Apply _ f _) = getClauseFn f
+  getClauseFn (Elaboratable_With_Apply _ f _) = getClauseFn f
+  getClauseFn (Elaboratable_Automatic_Apply _ f _) = getClauseFn f
+  getClauseFn (Elaboratable_Named_Apply _ f _ _) = getClauseFn f
   getClauseFn tm = throw $ GenericMsg (getFC tm) "Head term in pattern must be a function name"
 
   desugarLHS : {auto s : Ref Syn SyntaxInfo} ->
@@ -962,7 +962,7 @@ mutual
            rhs' <- desugar AnyExpr (bound ++ ps) rhs
            let rhs' = case ws of
                         [] => rhs'
-                        _ => ILocal fc (concat ws) rhs'
+                        _ => Elaboratable_Local_Definitions fc (concat ws) rhs'
 
            pure (nm, PatClause fc lhs' rhs')
 
@@ -1007,7 +1007,7 @@ mutual
                  {auto m : Ref MD Metadata} ->
                  {auto o : Ref ROpts REPLOpts} ->
                  List Name -> Namespace -> PField ->
-                 Core (List IField)
+                 Core (List Elaboratable_Field)
   desugarField ps ns field
       = flip Core.traverse field.names $ \n : WithFC Name => do
            addDocStringNS ns n.val field.doc
@@ -1101,7 +1101,7 @@ mutual
 
            types <- desugarType ps ty
            pure $ flip (map {f = List, b = ImpDecl}) types $ \ty' =>
-                      IClaim (MkFCVal claim.fc $ MkIClaimData rig vis opts ty')
+                      Elaboratable_Claim (MkFCVal claim.fc $ Make_Elaboratable_Claim_Data rig vis opts ty')
 
   desugarDecl ps (MkWithData fc (PDef clauses))
   -- The clauses won't necessarily all be from the same function, so split
@@ -1112,14 +1112,14 @@ mutual
     where
       toIDef : Name -> ImpClause -> Core ImpDecl
       toIDef nm (PatClause fc lhs rhs)
-          = pure $ IDef fc nm [PatClause fc lhs rhs]
+          = pure $ Elaboratable_Definition fc nm [PatClause fc lhs rhs]
       toIDef nm (WithClause fc lhs rig rhs prf flags cs)
-          = pure $ IDef fc nm [WithClause fc lhs rig rhs prf flags cs]
+          = pure $ Elaboratable_Definition fc nm [WithClause fc lhs rig rhs prf flags cs]
       toIDef nm (ImpossibleClause fc lhs)
-          = pure $ IDef fc nm [ImpossibleClause fc lhs]
+          = pure $ Elaboratable_Definition fc nm [ImpossibleClause fc lhs]
 
   desugarDecl ps dat@(MkWithData _ $ PData doc vis mbtot ddecl)
-      = pure [IData dat.fc vis mbtot !(desugarData ps doc ddecl)]
+      = pure [Elaboratable_Data_Declaration dat.fc vis mbtot !(desugarData ps doc ddecl)]
 
   desugarDecl ps pp@(MkWithData _ $ PParameters params pds)
       = do
@@ -1134,7 +1134,7 @@ mutual
              $ findUniqueBindableNames pp.fc True (ps ++ paramNames) []
 
            let paramsb = map {f = List1} (map {f = WithData _} (mapType (doBind pnames))) params'
-           pure [IParameters pp.fc paramsb (concat pds')]
+           pure [Elaboratable_Parameter_Block pp.fc paramsb (concat pds')]
       where
         getArgs : Either (List1 PlainBinder)
                          (List1 PBinder) ->
@@ -1186,7 +1186,7 @@ mutual
            let consb = map (\ (nm, tm) => (nm, doBind bnames tm)) cons'
 
            body' <- traverse (desugarDecl (ps ++ mnames ++ paramNames)) body
-           pure [IPragma int.fc (maybe [tn] (\n => [tn, n.val]) conname)
+           pure [Elaboratable_Pragma int.fc (maybe [tn] (\n => [tn, n.val]) conname)
                             (\nest, env =>
                               elabInterface int.fc vis env nest consb
                                             tn paramsb det conname
@@ -1233,7 +1233,7 @@ mutual
            -- given.
            let impname = maybe (mkImplName impl.fc tn paramsb) id impln
 
-           pure [IPragma impl.fc [impname]
+           pure [Elaboratable_Pragma impl.fc [impname]
                             (\nest, env =>
                                elabImplementation impl.fc vis opts pass env nest isb consb
                                                   tn paramsb (isNamed impln)
@@ -1273,11 +1273,11 @@ mutual
 
            let paramsb : List ImpParameter = map (map $ mapType $ doBind bnames) params'
            let recName = nameRoot tn
-           fields' : List (List IField) <- for fields (desugarField (ps ++ fnames ++ paramNames)
+           fields' : List (List Elaboratable_Field) <- for fields (desugarField (ps ++ fnames ++ paramNames)
                                                                     (mkNamespace recName))
            let conname : Name = maybe (mkConName tn) val conname_in
            whenJust (get "doc" <$> conname_in) (addDocString conname)
-           pure [IRecord rec.fc (Just recName)
+           pure [Elaboratable_Record_Declaration rec.fc (Just recName)
                          vis mbtot (Mk [rec.fc] $ MkImpRecord (Mk [NoFC tn] paramsb) (Mk [NoFC conname, opts] (concat fields')))]
     where
       getfname : PField -> List Name
@@ -1359,7 +1359,7 @@ mutual
            put Ctxt defs
            -- either fail or return the block that should fail during the elab phase
            case the (Either (Maybe Error) (List ImpDecl)) result of
-             Right ds => [IFail d.fc mmsg ds] <$ log "desugar.failing" 20 "Success"
+             Right ds => [Elaboratable_Expected_Failure d.fc mmsg ds] <$ log "desugar.failing" 20 "Success"
              Left Nothing => [] <$ log "desugar.failing" 20 "Correctly failed"
              Left (Just err) => throw err
   desugarDecl ps (MkWithData _ $ PMutual ds)
@@ -1369,49 +1369,49 @@ mutual
   desugarDecl ps n@(MkWithData _ $ PNamespace ns decls)
       = withExtendedNS ns $ do
            ds <- traverse (desugarDecl ps) decls
-           pure [INamespace n.fc ns (concat ds)]
+           pure [Elaboratable_Namespace_Block n.fc ns (concat ds)]
   desugarDecl ps ts@(MkWithData _ $ PTransform n lhs rhs)
       = do (bound, blhs) <- bindNames False !(desugar LHS ps lhs)
            rhs' <- desugar AnyExpr (bound ++ ps) rhs
-           pure [ITransform ts.fc (UN $ Basic n) blhs rhs']
+           pure [Elaboratable_Transformation ts.fc (UN $ Basic n) blhs rhs']
   desugarDecl ps el@(MkWithData _ $ PRunElabDecl tm)
       = do tm' <- desugar AnyExpr ps tm
-           pure [IRunElabDecl el.fc tm']
+           pure [Elaboratable_Run_Elaborator_Declaration el.fc tm']
   desugarDecl ps dir@(MkWithData _ $ PDirective d)
       = let fc = dir.fc in case d of
-             Hide (HideName n) => pure [IPragma fc [] (\nest, env => hide fc n)]
-             Hide (HideFixity fx n) => pure [IPragma fc [] (\_, _ => removeFixity fc fx n)]
-             Unhide n => pure [IPragma fc [] (\nest, env => unhide fc n)]
-             Logging i => pure [ILog ((\ i => (topics i, verbosity i)) <$> i)]
-             LazyOn a => pure [IPragma fc [] (\nest, env => lazyActive a)]
+             Hide (HideName n) => pure [Elaboratable_Pragma fc [] (\nest, env => hide fc n)]
+             Hide (HideFixity fx n) => pure [Elaboratable_Pragma fc [] (\_, _ => removeFixity fc fx n)]
+             Unhide n => pure [Elaboratable_Pragma fc [] (\nest, env => unhide fc n)]
+             Logging i => pure [Elaboratable_Logging ((\ i => (topics i, verbosity i)) <$> i)]
+             LazyOn a => pure [Elaboratable_Pragma fc [] (\nest, env => lazyActive a)]
              UnboundImplicits a => do
                setUnboundImplicits a
-               pure [IPragma fc [] (\nest, env => setUnboundImplicits a)]
+               pure [Elaboratable_Pragma fc [] (\nest, env => setUnboundImplicits a)]
              PrefixRecordProjections b => do
-               pure [IPragma fc [] (\nest, env => setPrefixRecordProjections b)]
-             AmbigDepth n => pure [IPragma fc [] (\nest, env => setAmbigLimit n)]
-             TotalityDepth n => pure [IPragma fc [] (\next, env => setTotalLimit n)]
-             AutoImplicitDepth n => pure [IPragma fc [] (\nest, env => setAutoImplicitLimit n)]
-             NFMetavarThreshold n => pure [IPragma fc [] (\nest, env => setNFThreshold n)]
-             SearchTimeout n => pure [IPragma fc [] (\nest, env => setSearchTimeout n)]
-             PairNames ty f s => pure [IPragma fc [] (\nest, env => setPair fc ty f s)]
-             RewriteName eq rw => pure [IPragma fc [] (\nest, env => setRewrite fc eq rw)]
-             PrimInteger n => pure [IPragma fc [] (\nest, env => setFromInteger n)]
-             PrimString n => pure [IPragma fc [] (\nest, env => setFromString n)]
-             PrimChar n => pure [IPragma fc [] (\nest, env => setFromChar n)]
-             PrimDouble n => pure [IPragma fc [] (\nest, env => setFromDouble n)]
-             PrimTTImp n => pure [IPragma fc [] (\nest, env => setFromTTImp n)]
-             PrimName n => pure [IPragma fc [] (\nest, env => setFromName n)]
-             PrimDecls n => pure [IPragma fc [] (\nest, env => setFromDecls n)]
-             CGAction cg dir => pure [IPragma fc [] (\nest, env => addDirective cg dir)]
-             Names n ns => pure [IPragma fc [] (\nest, env => addNameDirective fc n ns)]
-             StartExpr tm => pure [IPragma fc [] (\nest, env => throw (InternalError "%start not implemented"))] -- TODO!
-             Overloadable n => pure [IPragma fc [] (\nest, env => setNameFlag fc n Overloadable)]
-             Extension e => pure [IPragma fc [] (\nest, env => setExtension e)]
-             DefaultTotality tot => pure [IPragma fc [] (\_, _ => setDefaultTotalityOption tot)]
+               pure [Elaboratable_Pragma fc [] (\nest, env => setPrefixRecordProjections b)]
+             AmbigDepth n => pure [Elaboratable_Pragma fc [] (\nest, env => setAmbigLimit n)]
+             TotalityDepth n => pure [Elaboratable_Pragma fc [] (\next, env => setTotalLimit n)]
+             AutoImplicitDepth n => pure [Elaboratable_Pragma fc [] (\nest, env => setAutoImplicitLimit n)]
+             NFMetavarThreshold n => pure [Elaboratable_Pragma fc [] (\nest, env => setNFThreshold n)]
+             SearchTimeout n => pure [Elaboratable_Pragma fc [] (\nest, env => setSearchTimeout n)]
+             PairNames ty f s => pure [Elaboratable_Pragma fc [] (\nest, env => setPair fc ty f s)]
+             RewriteName eq rw => pure [Elaboratable_Pragma fc [] (\nest, env => setRewrite fc eq rw)]
+             PrimInteger n => pure [Elaboratable_Pragma fc [] (\nest, env => setFromInteger n)]
+             PrimString n => pure [Elaboratable_Pragma fc [] (\nest, env => setFromString n)]
+             PrimChar n => pure [Elaboratable_Pragma fc [] (\nest, env => setFromChar n)]
+             PrimDouble n => pure [Elaboratable_Pragma fc [] (\nest, env => setFromDouble n)]
+             PrimTTImp n => pure [Elaboratable_Pragma fc [] (\nest, env => setFromTTImp n)]
+             PrimName n => pure [Elaboratable_Pragma fc [] (\nest, env => setFromName n)]
+             PrimDecls n => pure [Elaboratable_Pragma fc [] (\nest, env => setFromDecls n)]
+             CGAction cg dir => pure [Elaboratable_Pragma fc [] (\nest, env => addDirective cg dir)]
+             Names n ns => pure [Elaboratable_Pragma fc [] (\nest, env => addNameDirective fc n ns)]
+             StartExpr tm => pure [Elaboratable_Pragma fc [] (\nest, env => throw (InternalError "%start not implemented"))] -- TODO!
+             Overloadable n => pure [Elaboratable_Pragma fc [] (\nest, env => setNameFlag fc n Overloadable)]
+             Extension e => pure [Elaboratable_Pragma fc [] (\nest, env => setExtension e)]
+             DefaultTotality tot => pure [Elaboratable_Pragma fc [] (\_, _ => setDefaultTotalityOption tot)]
              ForeignImpl n cs => do
                cs' <- traverse (desugar AnyExpr ps) cs
-               pure [IPragma fc [] (\nest, env => do
+               pure [Elaboratable_Pragma fc [] (\nest, env => do
                       defs <- get Ctxt
                       calls <- traverse getFnString cs'
                       [(n',_,gdef)] <- lookupCtxtName n (gamma defs)
@@ -1422,7 +1422,7 @@ mutual
 
                       update Ctxt { options->foreignImpl $= (map (n',) calls ++) }
                     )]
-  desugarDecl ps bt@(MkWithData _ $ PBuiltin type name) = pure [IBuiltin bt.fc type name]
+  desugarDecl ps bt@(MkWithData _ $ PBuiltin type name) = pure [Elaboratable_Builtin_Declaration bt.fc type name]
 
   export
   desugarDo : {auto s : Ref Syn SyntaxInfo} ->

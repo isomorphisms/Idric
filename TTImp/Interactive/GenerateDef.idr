@@ -41,10 +41,10 @@ uniqueRHS (PatClause fc lhs rhs)
     = pure $ PatClause fc lhs !(mkUniqueName rhs)
   where
     mkUniqueName : RawImp -> Core RawImp
-    mkUniqueName (IHole fc' rhsn)
+    mkUniqueName (Elaboratable_Hole fc' rhsn)
         = do defs <- get Ctxt
              rhsn' <- uniqueHoleName defs [] rhsn
-             pure (IHole fc' rhsn')
+             pure (Elaboratable_Hole fc' rhsn')
     mkUniqueName tm = pure tm -- it'll be a hole, but this is needed for covering
 uniqueRHS c = pure c
 
@@ -84,21 +84,21 @@ expandClause loc opts n c
 
     dropLams : Nat -> RawImp -> RawImp
     dropLams Z tm = tm
-    dropLams (S k) (ILam _ _ _ _ _ sc) = dropLams k sc
+    dropLams (S k) (Elaboratable_Lambda _ _ _ _ _ sc) = dropLams k sc
     dropLams _ tm = tm
 
 splittableNames : RawImp -> List Name
-splittableNames (IApp _ f (IBindVar _ n))
+splittableNames (Elaboratable_Apply _ f (Elaboratable_Bind_Name _ n))
     = splittableNames f ++ [n]
-splittableNames (IApp _ f _)
+splittableNames (Elaboratable_Apply _ f _)
     = splittableNames f
-splittableNames (IWithApp _ f (IBindVar _ n))
+splittableNames (Elaboratable_With_Apply _ f (Elaboratable_Bind_Name _ n))
     = splittableNames f ++ [n]
-splittableNames (IWithApp _ f _)
+splittableNames (Elaboratable_With_Apply _ f _)
     = splittableNames f
-splittableNames (IAutoApp _ f _)
+splittableNames (Elaboratable_Automatic_Apply _ f _)
     = splittableNames f
-splittableNames (INamedApp _ f _ _)
+splittableNames (Elaboratable_Named_Apply _ f _ _)
     = splittableNames f
 splittableNames _ = []
 
@@ -119,26 +119,26 @@ trySplit loc lhsraw lhs rhs n
     valid _ = Nothing
 
     fixNames : RawImp -> RawImp
-    fixNames (IVar loc' n@(UN (Basic {}))) = IBindVar loc' n
-    fixNames (IVar loc' (MN {})) = Implicit loc' True
-    fixNames (IApp loc' f a) = IApp loc' (fixNames f) (fixNames a)
-    fixNames (IAutoApp loc' f a) = IAutoApp loc' (fixNames f) (fixNames a)
-    fixNames (INamedApp loc' f t a) = INamedApp loc' (fixNames f) t (fixNames a)
+    fixNames (Elaboratable_Name loc' n@(UN (Basic {}))) = Elaboratable_Bind_Name loc' n
+    fixNames (Elaboratable_Name loc' (MN {})) = Implicit loc' True
+    fixNames (Elaboratable_Apply loc' f a) = Elaboratable_Apply loc' (fixNames f) (fixNames a)
+    fixNames (Elaboratable_Automatic_Apply loc' f a) = Elaboratable_Automatic_Apply loc' (fixNames f) (fixNames a)
+    fixNames (Elaboratable_Named_Apply loc' f t a) = Elaboratable_Named_Apply loc' (fixNames f) t (fixNames a)
     fixNames tm = tm
 
     updateLHS : List (Name, RawImp) -> RawImp -> RawImp
-    updateLHS ups (IVar loc' n)
+    updateLHS ups (Elaboratable_Name loc' n)
         = case lookup n ups of
-               Nothing => IVar loc' n
+               Nothing => Elaboratable_Name loc' n
                Just tm => fixNames tm
-    updateLHS ups (IBindVar loc' n)
+    updateLHS ups (Elaboratable_Bind_Name loc' n)
         = case lookup n ups of
-               Nothing => IBindVar loc' n
+               Nothing => Elaboratable_Bind_Name loc' n
                Just tm => fixNames tm
-    updateLHS ups (IApp loc' f a) = IApp loc' (updateLHS ups f) (updateLHS ups a)
-    updateLHS ups (IAutoApp loc' f a) = IAutoApp loc' (updateLHS ups f) (updateLHS ups a)
-    updateLHS ups (INamedApp loc' f t a)
-        = INamedApp loc' (updateLHS ups f) t (updateLHS ups a)
+    updateLHS ups (Elaboratable_Apply loc' f a) = Elaboratable_Apply loc' (updateLHS ups f) (updateLHS ups a)
+    updateLHS ups (Elaboratable_Automatic_Apply loc' f a) = Elaboratable_Automatic_Apply loc' (updateLHS ups f) (updateLHS ups a)
+    updateLHS ups (Elaboratable_Named_Apply loc' f t a)
+        = Elaboratable_Named_Apply loc' (updateLHS ups f) t (updateLHS ups a)
     updateLHS ups tm = tm
 
 generateSplits : {auto m : Ref MD Metadata} ->
@@ -153,7 +153,7 @@ generateSplits loc opts fn (WithClause fc lhs rig wval prf flags cs) = pure []
 generateSplits loc opts fn (PatClause fc lhs rhs)
     = do (lhstm, _) <-
                 elabTerm fn (InLHS linear) [] (MkNested []) Env.empty
-                         (IBindHere loc PATTERN lhs) Nothing
+                         (Elaboratable_Bind_Here loc PATTERN lhs) Nothing
          let splitnames =
                  if ltor opts then splittableNames lhs
                               else reverse (splittableNames lhs)
@@ -229,8 +229,8 @@ makeDefFromType loc opts n envlen ty
 
              rhshole <- uniqueHoleName defs [] (fnName False n ++ "_rhs")
              let initcs = PatClause loc
-                                (apply (IVar loc n) (pre_env ++ (map (IBindVar loc . UN . Basic) argns)))
-                                (IHole loc rhshole)
+                                (apply (Elaboratable_Name loc n) (pre_env ++ (map (Elaboratable_Bind_Name loc . UN . Basic) argns)))
+                                (Elaboratable_Hole loc rhshole)
              let Just nidx = getNameID n (gamma defs)
                  | Nothing => undefinedName loc n
              cs' <- mkSplits loc opts nidx initcs

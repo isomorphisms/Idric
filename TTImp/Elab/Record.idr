@@ -52,11 +52,11 @@ Show Rec where
 
 toLHS' : FC -> Rec -> (Maybe Name, RawImp)
 toLHS' loc (Field mn@(Just _) n _)
-    = (mn, IAs loc (virtualiseFC loc) UseRight (UN $ Basic n) (Implicit loc True))
-toLHS' loc (Field mn n _) = (mn, IBindVar (virtualiseFC loc) (UN $ Basic n))
+    = (mn, Elaboratable_As_Pattern loc (virtualiseFC loc) UseRight (UN $ Basic n) (Implicit loc True))
+toLHS' loc (Field mn n _) = (mn, Elaboratable_Bind_Name (virtualiseFC loc) (UN $ Basic n))
 toLHS' loc (Constr mn con args)
     = let args' = map (toLHS' loc . snd) args in
-          (mn, gapply (IVar loc con) args')
+          (mn, gapply (Elaboratable_Name loc con) args')
 
 toLHS : FC -> Rec -> RawImp
 toLHS fc r = snd (toLHS' fc r)
@@ -65,7 +65,7 @@ toRHS' : FC -> Rec -> (Maybe Name, RawImp)
 toRHS' loc (Field mn _ val) = (mn, val)
 toRHS' loc (Constr mn con args)
     = let args' = map (toRHS' loc . snd) args in
-          (mn, gapply (IVar loc con) args')
+          (mn, gapply (Elaboratable_Name loc con) args')
 
 toRHS : FC -> Rec -> RawImp
 toRHS fc r = snd (toRHS' fc r)
@@ -145,7 +145,7 @@ findPath loc (p :: ps) full (Just tyn) val (Field mn n v)
              -- If other types depend on that implicit argument, leave it as _ by default
              let arg = case (flip contains tyArgs) <$> imp of
                   Just True => Implicit loc False
-                  _ => IVar (virtualiseFC loc) (UN $ Basic fldn)
+                  _ => Elaboratable_Name (virtualiseFC loc) (UN $ Basic fldn)
              pure ((p, Field imp fldn arg) :: args')
 
 findPath loc (p :: ps) full tyn val (Constr mn con args)
@@ -161,19 +161,19 @@ findPath loc (p :: ps) full tyn val (Constr mn con args)
 
 getSides : {auto c : Ref Ctxt Defs} ->
            {auto u : Ref UST UState} ->
-           FC -> IFieldUpdate -> Name -> RawImp -> Rec ->
+           FC -> Elaboratable_Field_Update -> Name -> RawImp -> Rec ->
            Core Rec
-getSides loc (ISetField path val) tyn orig rec
+getSides loc (Elaboratable_Set_Field path val) tyn orig rec
    -- update 'rec' so that 'path' is accessible on the lhs and rhs,
    -- then set the path on the rhs to 'val'
    = findPath loc path path (Just tyn) (const val) rec
-getSides loc (ISetFieldApp path val) tyn orig rec
+getSides loc (Elaboratable_Apply_To_Field path val) tyn orig rec
    = findPath loc path path (Just tyn)
-      (\n => apply val [IVar (virtualiseFC loc) (UN $ Basic n)]) rec
+      (\n => apply val [Elaboratable_Name (virtualiseFC loc) (UN $ Basic n)]) rec
 
 getAllSides : {auto c : Ref Ctxt Defs} ->
               {auto u : Ref UST UState} ->
-              FC -> List IFieldUpdate -> Name ->
+              FC -> List Elaboratable_Field_Update -> Name ->
               RawImp -> Rec ->
               Core Rec
 getAllSides loc [] tyn orig rec = pure rec
@@ -181,7 +181,7 @@ getAllSides loc (u :: upds) tyn orig rec
     = getAllSides loc upds tyn orig !(getSides loc u tyn orig rec)
 
 checkForDuplicates :
-  List IFieldUpdate ->
+  List Elaboratable_Field_Update ->
   (seen, dups : SortedSet (List String)) ->
   SortedSet (List String)
 checkForDuplicates [] seen dups = dups
@@ -198,7 +198,7 @@ recUpdate : {vars : _} ->
             {auto u : Ref UST UState} ->
             RigCount -> ElabInfo -> FC ->
             NestedNames vars -> Env Term vars ->
-            List IFieldUpdate ->
+            List Elaboratable_Field_Update ->
             (rec : RawImp) -> (grecty : Glued vars) ->
             Core RawImp
 recUpdate rigc elabinfo iloc nest env flds rec grecty
@@ -211,8 +211,8 @@ recUpdate rigc elabinfo iloc nest env flds rec grecty
                     | Nothing => throw (RecordTypeNeeded iloc env)
            fldn <- genFieldName "__fld"
            sides <- getAllSides iloc flds rectyn rec
-                                (Field Nothing fldn (IVar vloc (UN $ Basic fldn)))
-           pure $ ICase vloc [] rec (Implicit vloc False) [mkClause sides]
+                                (Field Nothing fldn (Elaboratable_Name vloc (UN $ Basic fldn)))
+           pure $ Elaboratable_Case vloc [] rec (Implicit vloc False) [mkClause sides]
   where
     vloc : FC
     vloc = virtualiseFC iloc
@@ -239,7 +239,7 @@ checkUpdate : {vars : _} ->
               {auto o : Ref ROpts REPLOpts} ->
               RigCount -> ElabInfo ->
               NestedNames vars -> Env Term vars ->
-              FC -> List IFieldUpdate -> RawImp -> Maybe (Glued vars) ->
+              FC -> List Elaboratable_Field_Update -> RawImp -> Maybe (Glued vars) ->
               Core (Term vars, Glued vars)
 checkUpdate rig elabinfo nest env fc upds rec expected
     = do recty <- case expected of

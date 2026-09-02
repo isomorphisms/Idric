@@ -31,15 +31,15 @@ parameters
   (hole : Name)
   (env : Env Term lhsCtxt)
 
-  introLam : Name -> RigCount -> Term lhsCtxt -> Core IRawImp
+  introLam : Name -> RigCount -> Term lhsCtxt -> Core Kinded_Elaboratable_Term
   introLam x rig ty = do
     ty <- unelab env ty
     defs <- get Ctxt
     new_hole <- uniqueHoleName defs [] (nameRoot hole)
-    let iintrod = ILam replFC rig Explicit (Just x) ty (IHole replFC new_hole)
+    let iintrod = Elaboratable_Lambda replFC rig Explicit (Just x) ty (Elaboratable_Hole replFC new_hole)
     pure iintrod
 
-  introCon : Name -> Term lhsCtxt -> Core (List IRawImp)
+  introCon : Name -> Term lhsCtxt -> Core (List Kinded_Elaboratable_Term)
   introCon n ty = do
     defs <- get Ctxt
     ust <- get UST
@@ -71,7 +71,7 @@ parameters
     pure (catMaybes ics)
 
   export
-  intro : Term lhsCtxt -> Core (List IRawImp)
+  intro : Term lhsCtxt -> Core (List Kinded_Elaboratable_Term)
   -- structural cases
   intro (Bind _ x (Let _ _ ty val) sc) = toList <$> intro (subst val sc)
   intro (TDelayed _ _ t) = intro t

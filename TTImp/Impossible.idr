@@ -188,21 +188,21 @@ mutual
           (autoargs : List (WithFC RawImp)) ->
           (namedargs : List (Name, WithFC RawImp)) ->
           Core ClosedTerm
-      go (IVar fc n) exps autos named
+      go (Elaboratable_Name fc n) exps autos named
         = buildApp fc n mty exps autos named
-      go (IAs fc fc' u n pat) exps autos named
+      go (Elaboratable_As_Pattern fc fc' u n pat) exps autos named
         = go pat exps autos named
-      go (IApp fc fn arg) exps autos named
+      go (Elaboratable_Apply fc fn arg) exps autos named
         = go fn (MkFCVal fc arg :: exps) autos named
-      go (IWithApp fc fn arg) exps autos named
+      go (Elaboratable_With_Apply fc fn arg) exps autos named
         = go fn (MkFCVal fc arg :: exps) autos named
-      go (IAutoApp fc fn arg) exps autos named
+      go (Elaboratable_Automatic_Apply fc fn arg) exps autos named
         = go fn exps (MkFCVal fc arg :: autos) named
-      go (INamedApp fc fn nm arg) exps autos named
+      go (Elaboratable_Named_Apply fc fn nm arg) exps autos named
         = go fn exps autos ((nm, MkFCVal fc arg) :: named)
-      go (IMustUnify fc r tm) exps autos named
+      go (Elaboratable_Must_Unify fc r tm) exps autos named
         = Erased fc . Dotted <$> go tm exps autos named
-      go (IPrimVal fc c) _ _ _
+      go (Elaboratable_Primitive_Value fc c) _ _ _
           = do let tm = PrimVal fc c
                True <- isValidPrimType
                  | _ => throw $ GenericMsg fc "\{show tm} does not match expected type"
@@ -217,7 +217,7 @@ mutual
                       (Nothing, NType {}) => pure True
                       (Just t1, NPrimVal _ (PrT t2)) => pure (t1 == t2)
                       _ => pure False
-      go (IType fc) _ _ _
+      go (Elaboratable_Type_Universe fc) _ _ _
           = do defs <- get Ctxt
                Just (NType {}) <- traverseOpt (evalClosure defs) mty
                  | _ => throw $ GenericMsg fc "Type does not match expected type"
@@ -225,10 +225,10 @@ mutual
       -- We're taking UniqueDefault here, _and_ we're falling through to error otherwise, which is sketchy.
       -- One option is to try each and emit an AmbiguousElab? We maybe should respect `UniqueDefault` if there
       -- is no evidence (mty), but we should _try_ to resolve here if there is an mty.
-      go (IAlternative _ (UniqueDefault tm) _) exps autos named
+      go (Elaboratable_Alternative _ (UniqueDefault tm) _) exps autos named
         = go tm exps autos named
       go (Implicit fc _) _ _ _ = nextVar fc
-      go (IBindVar fc _) _ _ _ = nextVar fc
+      go (Elaboratable_Bind_Name fc _) _ _ _ = nextVar fc
       go tm _ _ _
         = do tm' <- pterm (map defaultKindedName tm) -- hack
              throw $ GenericMsg (getFC tm) "Unsupported term in impossible clause: \{show tm'}"
@@ -254,18 +254,18 @@ getImpossibleTerm env nest tm
           else Implicit fc False :: addEnv fc env
 
     expandNest : RawImp -> RawImp
-    expandNest (IVar fc n)
+    expandNest (Elaboratable_Name fc n)
         = case lookup n (names nest) of
-               Just (Just n', _, _) => IVar fc n'
-               _ => IVar fc n
+               Just (Just n', _, _) => Elaboratable_Name fc n'
+               _ => Elaboratable_Name fc n
     expandNest tm = tm
 
     -- Need to apply the function to the surrounding environment, and update
     -- the name to the proper one from the nested names map
     applyEnv : RawImp -> RawImp
-    applyEnv (IApp fc fn arg) = IApp fc (applyEnv fn) arg
-    applyEnv (IWithApp fc fn arg) = IWithApp fc (applyEnv fn) arg
-    applyEnv (IAutoApp fc fn arg) = IAutoApp fc (applyEnv fn) arg
-    applyEnv (INamedApp fc fn n arg)
-        = INamedApp fc (applyEnv fn) n arg
+    applyEnv (Elaboratable_Apply fc fn arg) = Elaboratable_Apply fc (applyEnv fn) arg
+    applyEnv (Elaboratable_With_Apply fc fn arg) = Elaboratable_With_Apply fc (applyEnv fn) arg
+    applyEnv (Elaboratable_Automatic_Apply fc fn arg) = Elaboratable_Automatic_Apply fc (applyEnv fn) arg
+    applyEnv (Elaboratable_Named_Apply fc fn n arg)
+        = Elaboratable_Named_Apply fc (applyEnv fn) n arg
     applyEnv tm = apply (expandNest tm) (addEnv (getFC tm) env)

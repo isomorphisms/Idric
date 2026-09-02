@@ -37,26 +37,26 @@ constructorBindName = UN (Basic "__con")
 -- Give implicit Pi bindings explicit names, if they don't have one already,
 -- because we need them to be consistent everywhere we refer to them
 namePis : Int -> RawImp -> RawImp
-namePis i (IPi fc r info n ty sc)
+namePis i (Elaboratable_Dependent_Function_Type fc r info n ty sc)
     = let (n', i') = if isImplicit info && isUnnamed n
                         then (Just (MN "i_con" i), i + 1)
                         else (n, i)
-       in IPi fc r info n' ty (namePis i' sc)
+       in Elaboratable_Dependent_Function_Type fc r info n' ty (namePis i' sc)
   where
     isUnnamed : Maybe Name -> Bool
     isUnnamed = maybe True isUnderscoreName
-namePis i (IBindHere fc m ty) = IBindHere fc m (namePis i ty)
+namePis i (Elaboratable_Bind_Here fc m ty) = Elaboratable_Bind_Here fc m (namePis i ty)
 namePis i ty = ty
 
 getSig : ImpDecl -> Maybe Signature
-getSig (IClaim (MkWithData _ $ MkIClaimData c _ opts ty))
+getSig (Elaboratable_Claim (MkWithData _ $ Make_Elaboratable_Claim_Data c _ opts ty))
     = Just $ MkSignature { count    = c
                          , flags    = opts
                          , name     = ty.tyName
                          , isData   = False
                          , type     = namePis 0 ty.val
                          }
-getSig (IData _ _ _ (MkImpLater fc n ty))
+getSig (Elaboratable_Data_Declaration _ _ _ (MkImpLater fc n ty))
     = Just $ MkSignature { count    = erased
                          , flags    = [Invertible]
                          , name     = NoFC n
@@ -72,9 +72,9 @@ getSig _ = Nothing
 -- TODO: Deal with default superclass implementations
 
 mkDataTy : FC -> List (Name, (RigCount, RawImp)) -> RawImp
-mkDataTy fc [] = IType fc
+mkDataTy fc [] = Elaboratable_Type_Universe fc
 mkDataTy fc ((n, (_, ty)) :: ps)
-    = IPi fc top Explicit (Just n) ty (mkDataTy fc ps)
+    = Elaboratable_Dependent_Function_Type fc top Explicit (Just n) ty (mkDataTy fc ps)
 
 jname : (Name, (RigCount, RawImp)) -> (Maybe Name, RigCount, RawImp)
 jname (n, rig, t) = (Just n, rig, t)
@@ -83,7 +83,7 @@ mkTy : FC -> PiInfo RawImp ->
        List (Maybe Name, RigCount, RawImp) -> RawImp -> RawImp
 mkTy fc imp [] ret = ret
 mkTy fc imp ((n, c, argty) :: args) ret
-    = IPi fc c imp n argty (mkTy fc imp args ret)
+    = Elaboratable_Dependent_Function_Type fc c imp n argty (mkTy fc imp args ret)
 
 mkIfaceData : {vars : _} ->
               {auto c : Ref Ctxt Defs} ->
@@ -95,14 +95,14 @@ mkIfaceData {vars} ifc def_vis env constraints n conName ps dets meths
     = let opts = [NoHints, UniqueSearch] ++
                  maybe [] (singleton . SearchBy) dets
           pNames = map fst ps
-          retty = apply (IVar vfc n) (map (IVar EmptyFC) pNames)
+          retty = apply (Elaboratable_Name vfc n) (map (Elaboratable_Name EmptyFC) pNames)
           conty = mkTy vfc Implicit (map jname ps) $
                   mkTy vfc AutoImplicit (map bhere constraints) $
                   mkTy vfc Explicit (map bname meths) retty
           con = Mk [vfc, NoFC conName] !(bindTypeNames ifc [] (pNames ++ map fst meths ++ toList vars) conty)
           bound = pNames ++ map fst meths ++ toList vars in
 
-          pure $ IData vfc def_vis Nothing {- ?? -}
+          pure $ Elaboratable_Data_Declaration vfc def_vis Nothing {- ?? -}
                $ MkImpData vfc n
                    (Just !(bindTypeNames ifc [] bound (mkDataTy vfc ps)))
                    opts [con]
@@ -111,10 +111,10 @@ mkIfaceData {vars} ifc def_vis env constraints n conName ps dets meths
     vfc = virtualiseFC ifc
 
     bname : (Name, RigCount, RawImp) -> (Maybe Name, RigCount, RawImp)
-    bname (n, c, t) = (Just n, c, IBindHere (getFC t) (PI erased) t)
+    bname (n, c, t) = (Just n, c, Elaboratable_Bind_Here (getFC t) (PI erased) t)
 
     bhere : (Maybe Name, RigCount, RawImp) -> (Maybe Name, RigCount, RawImp)
-    bhere (n, c, t) = (n, c, IBindHere (getFC t) (PI erased) t)
+    bhere (n, c, t) = (n, c, Elaboratable_Bind_Here (getFC t) (PI erased) t)
 
 -- Get the implicit arguments for a method declaration or constraint hint
 -- to allow us to build the data declaration
@@ -134,16 +134,16 @@ getMethDecl {vars} env nest params mnames (c, nm, ty)
     -- type in the record for the interface (they are parameters of the
     -- interface type), so remove it here
     stripParams : List Name -> RawImp -> RawImp
-    stripParams ps (IPi fc r p mn arg ret)
+    stripParams ps (Elaboratable_Dependent_Function_Type fc r p mn arg ret)
         = if (maybe False (\n => n `elem` ps) mn)
              then stripParams ps ret
-             else IPi fc r p mn arg (stripParams ps ret)
+             else Elaboratable_Dependent_Function_Type fc r p mn arg (stripParams ps ret)
     stripParams ps ty = ty
 
 -- bind the auto implicit for the interface - put it first, as it may be needed
 -- in other method variables, including implicit variables
 bindIFace : FC -> RawImp -> RawImp -> RawImp
-bindIFace fc ity sc = IPi fc top AutoImplicit (Just constructorBindName) ity sc
+bindIFace fc ity sc = Elaboratable_Dependent_Function_Type fc top AutoImplicit (Just constructorBindName) ity sc
 
 -- Get the top level function for implementing a method
 getMethToplevel : {vars : _} ->
@@ -158,23 +158,23 @@ getMethToplevel : {vars : _} ->
                   Core (List ImpDecl)
 getMethToplevel {vars} env vis iname cname allmeths bindNames params (mname, sig)
     = do let paramNames = map fst params
-         let ity = apply (IVar vfc iname) (map (IVar EmptyFC) paramNames)
+         let ity = apply (Elaboratable_Name vfc iname) (map (Elaboratable_Name EmptyFC) paramNames)
          -- Make the constraint application explicit for any method names
          -- which appear in other method types
          let ty_constr =
              substNames (toList vars) (map applyCon allmeths) sig.type
          ty_imp <- bindTypeNames EmptyFC [] (toList vars) (bindPs params $ bindIFace vfc ity ty_constr)
          cn <- traverse inCurrentNS sig.name
-         let tydecl = IClaim (MkFCVal vfc $ MkIClaimData sig.count vis (if sig.isData then [Inline, Invertible]
+         let tydecl = Elaboratable_Claim (MkFCVal vfc $ Make_Elaboratable_Claim_Data sig.count vis (if sig.isData then [Inline, Invertible]
                                             else [Inline])
                                       (Mk [vfc, cn] ty_imp))
-         let conapp = apply (IVar vfc cname) (map (IBindVar EmptyFC) bindNames)
+         let conapp = apply (Elaboratable_Name vfc cname) (map (Elaboratable_Bind_Name EmptyFC) bindNames)
 
-         let lhs = INamedApp vfc
-                             (IVar cn.fc cn.val) -- See #3409
+         let lhs = Elaboratable_Named_Apply vfc
+                             (Elaboratable_Name cn.fc cn.val) -- See #3409
                              constructorBindName
                              conapp
-         let rhs = IVar EmptyFC mname
+         let rhs = Elaboratable_Name EmptyFC mname
 
          -- EtaExpand implicits on both sides:
          -- First, obtain all the implicit names in the prefix of
@@ -182,7 +182,7 @@ getMethToplevel {vars} env vis iname cname allmeths bindNames params (mname, sig
          (lhs, rhs) <- etaExpandImplicits vfc sig.type lhs rhs
 
          let fnclause = PatClause vfc lhs rhs
-         let fndef = IDef vfc cn.val [fnclause]
+         let fndef = Elaboratable_Definition vfc cn.val [fnclause]
          pure [tydecl, fndef]
   where
     vfc : FC
@@ -193,11 +193,11 @@ getMethToplevel {vars} env vis iname cname allmeths bindNames params (mname, sig
     bindPs : List (Name, (RigCount, RawImp)) -> RawImp -> RawImp
     bindPs [] ty = ty
     bindPs ((n, rig, pty) :: ps) ty
-        = IPi (getFC pty) rig Implicit (Just n) pty (bindPs ps ty)
+        = Elaboratable_Dependent_Function_Type (getFC pty) rig Implicit (Just n) pty (bindPs ps ty)
 
     applyCon : Name -> (Name, RawImp)
     applyCon n
-      = (n, INamedApp vfc (IVar vfc n) constructorBindName (IVar vfc constructorBindName))
+      = (n, Elaboratable_Named_Apply vfc (Elaboratable_Name vfc n) constructorBindName (Elaboratable_Name vfc constructorBindName))
 
 -- Get the function for chasing a constraint. This is one of the
 -- arguments to the record, appearing before the method arguments.
@@ -211,33 +211,33 @@ getConstraintHint : {vars : _} ->
                     (Name, RawImp) -> Core (Name, List ImpDecl)
 getConstraintHint {vars} fc env vis iname cname constraints meths params (cn, con)
     = do let pNames = map fst params
-         let ity = apply (IVar fc iname) (map (IVar fc) pNames)
+         let ity = apply (Elaboratable_Name fc iname) (map (Elaboratable_Name fc) pNames)
          let fty = mkTy fc Implicit (map jname params) $
                    mkTy fc Explicit [(Nothing, top, ity)] con
          ty_imp <- bindTypeNames fc [] (pNames ++ meths ++ toList vars) fty
          let hintname = DN ("Constraint " ++ show con)
                            (UN (Basic $ "__" ++ show iname ++ "_" ++ show con))
 
-         let tydecl = IClaim (MkFCVal fc $ MkIClaimData top vis [Inline, Hint False]
+         let tydecl = Elaboratable_Claim (MkFCVal fc $ Make_Elaboratable_Claim_Data top vis [Inline, Hint False]
                              (Mk [EmptyFC, NoFC hintname] ty_imp))
 
-         let conapp = apply (impsBind (IVar fc cname) constraints)
+         let conapp = apply (impsBind (Elaboratable_Name fc cname) constraints)
                             (map (const (Implicit fc True)) meths)
 
-         let fnclause = PatClause fc (IApp fc (IVar fc hintname) conapp)
-                                     (IVar fc cn)
-         let fndef = IDef fc hintname [fnclause]
+         let fnclause = PatClause fc (Elaboratable_Apply fc (Elaboratable_Name fc hintname) conapp)
+                                     (Elaboratable_Name fc cn)
+         let fndef = Elaboratable_Definition fc hintname [fnclause]
          pure (hintname, [tydecl, fndef])
   where
 
     impsBind : RawImp -> List Name -> RawImp
     impsBind fn [] = fn
     impsBind fn (n :: ns)
-        = impsBind (IAutoApp fc fn (IBindVar fc n)) ns
+        = impsBind (Elaboratable_Automatic_Apply fc fn (Elaboratable_Bind_Name fc n)) ns
 
 
 getDefault : ImpDecl -> Maybe (FC, List FnOpt, Name, List ImpClause)
-getDefault (IDef fc n cs) = Just (fc, [], n, cs)
+getDefault (Elaboratable_Definition fc n cs) = Just (fc, [], n, cs)
 getDefault _ = Nothing
 
 mkCon : FC -> Name -> Name
@@ -382,14 +382,14 @@ elabInterface {vars} ifc def_vis env nest constraints iname params dets mcon bod
                           Just d => pure (d.count, d.type)
                           Nothing => throw (GenericMsg dfc ("No method named " ++ show n ++ " in interface " ++ show iname))
 
-             let ity = apply (IVar vdfc iname) (map (IVar vdfc) paramNames)
+             let ity = apply (Elaboratable_Name vdfc iname) (map (Elaboratable_Name vdfc) paramNames)
 
              -- Substitute the method names with their top level function
              -- name, so they don't get implicitly bound in the name
              methNameMap <- traverse (\d =>
                                 do let n = d.name.val
                                    cn <- inCurrentNS n
-                                   pure (n, applyParams (IVar vdfc cn) paramNames))
+                                   pure (n, applyParams (Elaboratable_Name vdfc cn) paramNames))
                                tydecls
              let dty = bindPs params      -- bind parameters
                      $ bindIFace vdfc ity -- bind interface (?!)
@@ -398,8 +398,8 @@ elabInterface {vars} ifc def_vis env nest constraints iname params dets mcon bod
              dty_imp <- bindTypeNames dfc [] (map (val . name) tydecls ++ toList vars) dty
              log "elab.interface.default" 5 $ "Default method " ++ show dn ++ " : " ++ show dty_imp
 
-             let dtydecl = IClaim $ MkFCVal vdfc
-                                  $ MkIClaimData rig (collapseDefault def_vis) []
+             let dtydecl = Elaboratable_Claim $ MkFCVal vdfc
+                                  $ Make_Elaboratable_Claim_Data rig (collapseDefault def_vis) []
                                   $ Mk [EmptyFC, NoFC dn] dty_imp
 
              processDecl [] nest env dtydecl
@@ -407,7 +407,7 @@ elabInterface {vars} ifc def_vis env nest constraints iname params dets mcon bod
              cs' <- traverse (changeName dn) cs
              log "elab.interface.default" 5 $ "Default method body " ++ show cs'
 
-             processDecl [] nest env (IDef vdfc dn cs')
+             processDecl [] nest env (Elaboratable_Definition vdfc dn cs')
              -- Reset the original context, we don't need to keep the definition
              -- Actually we do for the metadata and name map!
 --              put Ctxt orig
@@ -421,29 +421,29 @@ elabInterface {vars} ifc def_vis env nest constraints iname params dets mcon bod
         bindPs : List (Name, (RigCount, RawImp)) -> RawImp -> RawImp
         bindPs [] ty = ty
         bindPs ((n, (rig, pty)) :: ps) ty
-          = IPi (getFC pty) rig Implicit (Just n) pty (bindPs ps ty)
+          = Elaboratable_Dependent_Function_Type (getFC pty) rig Implicit (Just n) pty (bindPs ps ty)
 
         applyParams : RawImp -> List Name -> RawImp
         applyParams tm [] = tm
         applyParams tm (n@(UN (Basic _)) :: ns)
-            = applyParams (INamedApp vdfc tm n (IBindVar vdfc n)) ns
+            = applyParams (Elaboratable_Named_Apply vdfc tm n (Elaboratable_Bind_Name vdfc n)) ns
         applyParams tm (_ :: ns) = applyParams tm ns
 
         changeNameTerm : Name -> RawImp -> Core RawImp
-        changeNameTerm dn (IVar fc n')
-            = do if n /= n' then pure (IVar fc n') else do
+        changeNameTerm dn (Elaboratable_Name fc n')
+            = do if n /= n' then pure (Elaboratable_Name fc n') else do
                  log "ide-mode.highlight" 7 $
                    "elabDefault is trying to add Function: " ++ show n ++ " (" ++ show fc ++")"
                  whenJust (isConcreteFC fc) $ \nfc => do
                    log "ide-mode.highlight" 7 $ "elabDefault is adding Function: " ++ show n
                    addSemanticDecorations [(nfc, Function, Just n)]
-                 pure (IVar fc dn)
-        changeNameTerm dn (IApp fc f arg)
-            = IApp fc <$> changeNameTerm dn f <*> pure arg
-        changeNameTerm dn (IAutoApp fc f arg)
-            = IAutoApp fc <$> changeNameTerm dn f <*> pure arg
-        changeNameTerm dn (INamedApp fc f x arg)
-            = INamedApp fc <$> changeNameTerm dn f <*> pure x <*> pure arg
+                 pure (Elaboratable_Name fc dn)
+        changeNameTerm dn (Elaboratable_Apply fc f arg)
+            = Elaboratable_Apply fc <$> changeNameTerm dn f <*> pure arg
+        changeNameTerm dn (Elaboratable_Automatic_Apply fc f arg)
+            = Elaboratable_Automatic_Apply fc <$> changeNameTerm dn f <*> pure arg
+        changeNameTerm dn (Elaboratable_Named_Apply fc f x arg)
+            = Elaboratable_Named_Apply fc <$> changeNameTerm dn f <*> pure x <*> pure arg
         changeNameTerm dn tm = pure tm
 
         changeName : Name -> ImpClause -> Core ImpClause

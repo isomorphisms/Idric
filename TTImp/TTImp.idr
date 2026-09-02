@@ -58,89 +58,89 @@ mutual
   RawImp = RawImp' Name
 
   public export
-  IRawImp : Type
-  IRawImp = RawImp' KindedName
+  Kinded_Elaboratable_Term : Type
+  Kinded_Elaboratable_Term = RawImp' KindedName
 
   public export
   data RawImp' : Type -> Type where
-       IVar : FC -> nm -> RawImp' nm
-       IPi : FC -> RigCount -> PiInfo (RawImp' nm) -> Maybe Name ->
+       Elaboratable_Name : FC -> nm -> RawImp' nm
+       Elaboratable_Dependent_Function_Type : FC -> RigCount -> PiInfo (RawImp' nm) -> Maybe Name ->
              (argTy : RawImp' nm) -> (retTy : RawImp' nm) -> RawImp' nm
-       ILam : FC -> RigCount -> PiInfo (RawImp' nm) -> Maybe Name ->
+       Elaboratable_Lambda : FC -> RigCount -> PiInfo (RawImp' nm) -> Maybe Name ->
               (argTy : RawImp' nm) -> (lamTy : RawImp' nm) -> RawImp' nm
-       ILet : FC -> (lhsFC : FC) -> RigCount -> Name ->
+       Elaboratable_Binding : FC -> (lhsFC : FC) -> RigCount -> Name ->
               (nTy : RawImp' nm) -> (nVal : RawImp' nm) ->
               (scope : RawImp' nm) -> RawImp' nm
-       ICase : FC -> List (FnOpt' nm) -> RawImp' nm -> (ty : RawImp' nm) ->
+       Elaboratable_Case : FC -> List (FnOpt' nm) -> RawImp' nm -> (ty : RawImp' nm) ->
                List (ImpClause' nm) -> RawImp' nm
-       ILocal : FC -> List (ImpDecl' nm) -> RawImp' nm -> RawImp' nm
+       Elaboratable_Local_Definitions : FC -> List (ImpDecl' nm) -> RawImp' nm -> RawImp' nm
        -- Local definitions made elsewhere, but that we're pushing
        -- into a case branch as nested names.
        -- An appearance of 'uname' maps to an application of
        -- 'internalName' to 'args'.
-       ICaseLocal : FC -> (uname : Name) ->
+       Elaboratable_Case_Local_Definition : FC -> (uname : Name) ->
                     (internalName : Name) ->
                     (args : List Name) -> RawImp' nm -> RawImp' nm
 
-       IUpdate : FC -> List (IFieldUpdate' nm) -> RawImp' nm -> RawImp' nm
+       Elaboratable_Record_Update : FC -> List (Elaboratable_Field_Update' nm) -> RawImp' nm -> RawImp' nm
 
-       IApp : FC -> RawImp' nm -> RawImp' nm -> RawImp' nm
-       IAutoApp : FC -> RawImp' nm -> RawImp' nm -> RawImp' nm
-       INamedApp : FC -> RawImp' nm -> Name -> RawImp' nm -> RawImp' nm
-       IWithApp : FC -> RawImp' nm -> RawImp' nm -> RawImp' nm
+       Elaboratable_Apply : FC -> RawImp' nm -> RawImp' nm -> RawImp' nm
+       Elaboratable_Automatic_Apply : FC -> RawImp' nm -> RawImp' nm -> RawImp' nm
+       Elaboratable_Named_Apply : FC -> RawImp' nm -> Name -> RawImp' nm -> RawImp' nm
+       Elaboratable_With_Apply : FC -> RawImp' nm -> RawImp' nm -> RawImp' nm
 
-       ISearch : FC -> (depth : Nat) -> RawImp' nm
-       IAlternative : FC -> AltType' nm -> List (RawImp' nm) -> RawImp' nm
-       IRewrite : FC -> RawImp' nm -> RawImp' nm -> RawImp' nm
-       ICoerced : FC -> RawImp' nm -> RawImp' nm
+       Elaboratable_Search : FC -> (depth : Nat) -> RawImp' nm
+       Elaboratable_Alternative : FC -> AltType' nm -> List (RawImp' nm) -> RawImp' nm
+       Elaboratable_Rewrite : FC -> RawImp' nm -> RawImp' nm -> RawImp' nm
+       Elaboratable_Coerced : FC -> RawImp' nm -> RawImp' nm
 
        -- Any implicit bindings in the scope should be bound here, using
        -- the given binder
-       IBindHere : FC -> BindMode -> RawImp' nm -> RawImp' nm
+       Elaboratable_Bind_Here : FC -> BindMode -> RawImp' nm -> RawImp' nm
        -- A name which should be implicitly bound
-       IBindVar : FC -> Name -> RawImp' nm
+       Elaboratable_Bind_Name : FC -> Name -> RawImp' nm
        -- An 'as' pattern, valid on the LHS of a clause only
-       IAs : FC -> (nameFC : FC) -> UseSide -> Name -> RawImp' nm -> RawImp' nm
+       Elaboratable_As_Pattern : FC -> (nameFC : FC) -> UseSide -> Name -> RawImp' nm -> RawImp' nm
        -- A 'dot' pattern, i.e. one which must also have the given value
        -- by unification
-       IMustUnify : FC -> DotReason -> RawImp' nm -> RawImp' nm
+       Elaboratable_Must_Unify : FC -> DotReason -> RawImp' nm -> RawImp' nm
 
        -- Laziness annotations
-       IDelayed : FC -> LazyReason -> RawImp' nm -> RawImp' nm -- the type
-       IDelay : FC -> RawImp' nm -> RawImp' nm -- delay constructor
-       IForce : FC -> RawImp' nm -> RawImp' nm
+       Elaboratable_Delayed_Type : FC -> LazyReason -> RawImp' nm -> RawImp' nm -- the type
+       Elaboratable_Delay : FC -> RawImp' nm -> RawImp' nm -- delay constructor
+       Elaboratable_Force : FC -> RawImp' nm -> RawImp' nm
 
        -- Quasiquoting
-       IQuote : FC -> RawImp' nm -> RawImp' nm
-       IQuoteName : FC -> Name -> RawImp' nm
-       IQuoteDecl : FC -> List (ImpDecl' nm) -> RawImp' nm
-       IUnquote : FC -> RawImp' nm -> RawImp' nm
-       IRunElab : FC -> (requireExtension : Bool) -> RawImp' nm -> RawImp' nm
+       Elaboratable_Quote : FC -> RawImp' nm -> RawImp' nm
+       Elaboratable_Quote_Name : FC -> Name -> RawImp' nm
+       Elaboratable_Quote_Declarations : FC -> List (ImpDecl' nm) -> RawImp' nm
+       Elaboratable_Unquote : FC -> RawImp' nm -> RawImp' nm
+       Elaboratable_Run_Elaborator : FC -> (requireExtension : Bool) -> RawImp' nm -> RawImp' nm
 
-       IPrimVal : FC -> (c : Constant) -> RawImp' nm
-       IType : FC -> RawImp' nm
-       IHole : FC -> String -> RawImp' nm
+       Elaboratable_Primitive_Value : FC -> (c : Constant) -> RawImp' nm
+       Elaboratable_Type_Universe : FC -> RawImp' nm
+       Elaboratable_Hole : FC -> String -> RawImp' nm
 
-       IUnifyLog : FC -> LogLevel -> RawImp' nm -> RawImp' nm
+       Elaboratable_Unification_Log : FC -> LogLevel -> RawImp' nm -> RawImp' nm
        -- An implicit value, solved by unification, but which will also be
        -- bound (either as a pattern variable or a type variable) if unsolved
        -- at the end of elaborator
        Implicit : FC -> (bindIfUnsolved : Bool) -> RawImp' nm
 
        -- with-disambiguation
-       IWithUnambigNames : FC -> List (FC, Name) -> RawImp' nm -> RawImp' nm
+       Elaboratable_With_Unambiguous_Names : FC -> List (FC, Name) -> RawImp' nm -> RawImp' nm
 
   %name RawImp' t, u
 
   public export
-  IFieldUpdate : Type
-  IFieldUpdate = IFieldUpdate' Name
+  Elaboratable_Field_Update : Type
+  Elaboratable_Field_Update = Elaboratable_Field_Update' Name
 
   public export
-  data IFieldUpdate' : Type -> Type where
-       ISetField : (path : List String) -> RawImp' nm -> IFieldUpdate' nm
-       ISetFieldApp : (path : List String) -> RawImp' nm -> IFieldUpdate' nm
-  %name IFieldUpdate' upd
+  data Elaboratable_Field_Update' : Type -> Type where
+       Elaboratable_Set_Field : (path : List String) -> RawImp' nm -> Elaboratable_Field_Update' nm
+       Elaboratable_Apply_To_Field : (path : List String) -> RawImp' nm -> Elaboratable_Field_Update' nm
+  %name Elaboratable_Field_Update' upd
 
   public export
   AltType : Type
@@ -156,67 +156,67 @@ mutual
   export
   covering
   Show nm => Show (RawImp' nm) where
-      show (IVar fc n) = show n
-      show (IPi fc c p n arg ret)
+      show (Elaboratable_Name fc n) = show n
+      show (Elaboratable_Dependent_Function_Type fc c p n arg ret)
          = "(%pi " ++ show c ++ " " ++ show p ++ " " ++
            showPrec App n ++ " " ++ show arg ++ " " ++ show ret ++ ")"
-      show (ILam fc c p n arg sc)
+      show (Elaboratable_Lambda fc c p n arg sc)
          = "(%lam " ++ show c ++ " " ++ show p ++ " " ++
            showPrec App n ++ " " ++ show arg ++ " " ++ show sc ++ ")"
-      show (ILet fc lhsFC c n ty val sc)
+      show (Elaboratable_Binding fc lhsFC c n ty val sc)
          = "(%let " ++ show c ++ " " ++ " " ++ show n ++ " " ++ show ty ++
            " " ++ show val ++ " " ++ show sc ++ ")"
-      show (ICase _ _ scr scrty alts)
+      show (Elaboratable_Case _ _ scr scrty alts)
          = "(%case (" ++ show scr ++ " : " ++ show scrty ++ ") " ++ show alts ++ ")"
-      show (ILocal _ def scope)
+      show (Elaboratable_Local_Definitions _ def scope)
          = "(%local (" ++ show def ++ ") " ++ show scope ++ ")"
-      show (ICaseLocal _ uname iname args sc)
+      show (Elaboratable_Case_Local_Definition _ uname iname args sc)
          = "(%caselocal (" ++ show uname ++ " " ++ show iname
                ++ " " ++ show args ++ ") " ++ show sc ++ ")"
-      show (IUpdate _ flds rec)
+      show (Elaboratable_Record_Update _ flds rec)
          = "(%record " ++ showSep ", " (map show flds) ++ " " ++ show rec ++ ")"
-      show (IApp fc f a)
+      show (Elaboratable_Apply fc f a)
          = "(" ++ show f ++ " " ++ show a ++ ")"
-      show (INamedApp fc f n a)
+      show (Elaboratable_Named_Apply fc f n a)
          = "(" ++ show f ++ " [" ++ show n ++ " = " ++ show a ++ "])"
-      show (IAutoApp fc f a)
+      show (Elaboratable_Automatic_Apply fc f a)
          = "(" ++ show f ++ " [" ++ show a ++ "])"
-      show (IWithApp fc f a)
+      show (Elaboratable_With_Apply fc f a)
          = "(" ++ show f ++ " | " ++ show a ++ ")"
-      show (ISearch fc d)
+      show (Elaboratable_Search fc d)
          = "%search"
-      show (IAlternative fc ty alts)
+      show (Elaboratable_Alternative fc ty alts)
          = "(|" ++ showSep "," (map show alts) ++ "|)"
-      show (IRewrite _ rule tm)
+      show (Elaboratable_Rewrite _ rule tm)
          = "(%rewrite (" ++ show rule ++ ") (" ++ show tm ++ "))"
-      show (ICoerced _ tm) = "(%coerced " ++ show tm ++ ")"
+      show (Elaboratable_Coerced _ tm) = "(%coerced " ++ show tm ++ ")"
 
-      show (IBindHere fc b sc)
+      show (Elaboratable_Bind_Here fc b sc)
          = "(%bindhere " ++ show sc ++ ")"
-      show (IBindVar fc n) = "$" ++ show n
-      show (IAs fc _ _ n tm) = show n ++ "@(" ++ show tm ++ ")"
-      show (IMustUnify fc r tm) = ".(" ++ show tm ++ ")"
-      show (IDelayed fc r tm) = "(%delayed " ++ show tm ++ ")"
-      show (IDelay fc tm) = "(%delay " ++ show tm ++ ")"
-      show (IForce fc tm) = "(%force " ++ show tm ++ ")"
-      show (IQuote fc tm) = "(%quote " ++ show tm ++ ")"
-      show (IQuoteName fc tm) = "(%quotename " ++ show tm ++ ")"
-      show (IQuoteDecl fc tm) = "(%quotedecl " ++ show tm ++ ")"
-      show (IUnquote fc tm) = "(%unquote " ++ show tm ++ ")"
-      show (IRunElab fc _ tm) = "(%runelab " ++ show tm ++ ")"
-      show (IPrimVal fc c) = show c
-      show (IHole _ x) = "?" ++ x
-      show (IUnifyLog _ lvl x) = "(%logging " ++ show lvl ++ " " ++ show x ++ ")"
-      show (IType fc) = "%type"
+      show (Elaboratable_Bind_Name fc n) = "$" ++ show n
+      show (Elaboratable_As_Pattern fc _ _ n tm) = show n ++ "@(" ++ show tm ++ ")"
+      show (Elaboratable_Must_Unify fc r tm) = ".(" ++ show tm ++ ")"
+      show (Elaboratable_Delayed_Type fc r tm) = "(%delayed " ++ show tm ++ ")"
+      show (Elaboratable_Delay fc tm) = "(%delay " ++ show tm ++ ")"
+      show (Elaboratable_Force fc tm) = "(%force " ++ show tm ++ ")"
+      show (Elaboratable_Quote fc tm) = "(%quote " ++ show tm ++ ")"
+      show (Elaboratable_Quote_Name fc tm) = "(%quotename " ++ show tm ++ ")"
+      show (Elaboratable_Quote_Declarations fc tm) = "(%quotedecl " ++ show tm ++ ")"
+      show (Elaboratable_Unquote fc tm) = "(%unquote " ++ show tm ++ ")"
+      show (Elaboratable_Run_Elaborator fc _ tm) = "(%runelab " ++ show tm ++ ")"
+      show (Elaboratable_Primitive_Value fc c) = show c
+      show (Elaboratable_Hole _ x) = "?" ++ x
+      show (Elaboratable_Unification_Log _ lvl x) = "(%logging " ++ show lvl ++ " " ++ show x ++ ")"
+      show (Elaboratable_Type_Universe fc) = "%type"
       show (Implicit fc True) = "_"
       show (Implicit fc False) = "?"
-      show (IWithUnambigNames fc ns rhs) = "(%with " ++ show ns ++ " " ++ show rhs ++ ")"
+      show (Elaboratable_With_Unambiguous_Names fc ns rhs) = "(%with " ++ show ns ++ " " ++ show rhs ++ ")"
 
   export
   covering
-  Show nm => Show (IFieldUpdate' nm) where
-    show (ISetField p val) = showSep "->" p ++ " = " ++ show val
-    show (ISetFieldApp p val) = showSep "->" p ++ " $= " ++ show val
+  Show nm => Show (Elaboratable_Field_Update' nm) where
+    show (Elaboratable_Set_Field p val) = showSep "->" p ++ " = " ++ show val
+    show (Elaboratable_Apply_To_Field p val) = showSep "->" p ++ " $= " ++ show val
 
   public export
   FnOpt : Type
@@ -338,12 +338,12 @@ mutual
         = "(%datadecl " ++ show n ++ " " ++ show tycon ++ ")"
 
   public export
-  IField : Type
-  IField = IField' Name
+  Elaboratable_Field : Type
+  Elaboratable_Field = Elaboratable_Field' Name
 
   public export
-  IField' : Type -> Type
-  IField' nm = AddFC $ ImpParameter' (RawImp' nm)
+  Elaboratable_Field' : Type -> Type
+  Elaboratable_Field' nm = AddFC $ ImpParameter' (RawImp' nm)
 
   public export
   ImpParameter : Type
@@ -380,7 +380,7 @@ mutual
 
   public export 0
   RecordBody : Type -> Type -- The name is the data constructor's name
-  RecordBody nm = WithName $ WithOpts $ List (IField' nm)
+  RecordBody nm = WithName $ WithOpts $ List (Elaboratable_Field' nm)
 
   ||| A record is defined by its header containing the name and parameters, and its body
   ||| containing the constructor name, options, and a list of fields
@@ -392,7 +392,7 @@ mutual
 
   export
   covering
-  Show nm => Show (IField' nm) where
+  Show nm => Show (Elaboratable_Field' nm) where
     show f@(MkWithData _ (MkPiBindData Explicit ty)) = show f.name.val ++ " : " ++ show ty
     show f@(MkWithData _ ty) = "{" ++ show f.name.val ++ " : " ++ show ty.boundType ++ "}"
 
@@ -417,8 +417,8 @@ mutual
   ImpClause = ImpClause' Name
 
   public export
-  IImpClause : Type
-  IImpClause = ImpClause' KindedName
+  Kinded_Elaboratable_Clause : Type
+  Kinded_Elaboratable_Clause = ImpClause' KindedName
 
   public export
   data ImpClause' : Type -> Type where
@@ -451,8 +451,8 @@ mutual
   ImpDecl = ImpDecl' Name
 
   public export
-  record IClaimData (nm : Type) where
-    constructor MkIClaimData
+  record Elaboratable_Claim_Data (nm : Type) where
+    constructor Make_Elaboratable_Claim_Data
     rig : RigCount
     vis : Visibility
     opts : List (FnOpt' nm)
@@ -460,60 +460,60 @@ mutual
 
   public export
   data ImpDecl' : Type -> Type where
-       IClaim : WithFC (IClaimData nm) -> ImpDecl' nm
-       IData : FC -> WithDefault Visibility Private ->
+       Elaboratable_Claim : WithFC (Elaboratable_Claim_Data nm) -> ImpDecl' nm
+       Elaboratable_Data_Declaration : FC -> WithDefault Visibility Private ->
                Maybe TotalReq -> ImpData' nm -> ImpDecl' nm
-       IDef : FC -> Name -> List (ImpClause' nm) -> ImpDecl' nm
-       IParameters : FC ->
+       Elaboratable_Definition : FC -> Name -> List (ImpClause' nm) -> ImpDecl' nm
+       Elaboratable_Parameter_Block : FC ->
                      List1 (ImpParameter' (RawImp' nm)) ->
                      List (ImpDecl' nm) -> ImpDecl' nm
-       IRecord : FC ->
+       Elaboratable_Record_Declaration : FC ->
                  Maybe String -> -- nested namespace
                  WithDefault Visibility Private ->
                  Maybe TotalReq ->
                  AddFC (ImpRecordData nm) -> ImpDecl' nm
-       IFail : FC -> Maybe String -> List (ImpDecl' nm) -> ImpDecl' nm
-       INamespace : FC -> Namespace -> List (ImpDecl' nm) -> ImpDecl' nm
-       ITransform : FC -> Name -> RawImp' nm -> RawImp' nm -> ImpDecl' nm
-       IRunElabDecl : FC -> RawImp' nm -> ImpDecl' nm
-       IPragma : FC -> List Name -> -- pragmas might define names that wouldn't
+       Elaboratable_Expected_Failure : FC -> Maybe String -> List (ImpDecl' nm) -> ImpDecl' nm
+       Elaboratable_Namespace_Block : FC -> Namespace -> List (ImpDecl' nm) -> ImpDecl' nm
+       Elaboratable_Transformation : FC -> Name -> RawImp' nm -> RawImp' nm -> ImpDecl' nm
+       Elaboratable_Run_Elaborator_Declaration : FC -> RawImp' nm -> ImpDecl' nm
+       Elaboratable_Pragma : FC -> List Name -> -- pragmas might define names that wouldn't
                                     -- otherwise be spotted in 'definedInBlock' so they
                                     -- can be flagged here.
                  ({vars : _} ->
                   NestedNames vars -> Env Term vars -> Core ()) ->
                  ImpDecl' nm
-       ILog : Maybe (List String, Nat) -> ImpDecl' nm
-       IBuiltin : FC -> BuiltinType -> Name -> ImpDecl' nm
+       Elaboratable_Logging : Maybe (List String, Nat) -> ImpDecl' nm
+       Elaboratable_Builtin_Declaration : FC -> BuiltinType -> Name -> ImpDecl' nm
 
   %name ImpDecl' decl
 
   export
   covering
   Show nm => Show (ImpDecl' nm) where
-    show (IClaim (MkWithData _ $ MkIClaimData c _ opts ty))
+    show (Elaboratable_Claim (MkWithData _ $ Make_Elaboratable_Claim_Data c _ opts ty))
         = show opts ++ " " ++ show c ++ " " ++ show ty
-    show (IData _ _ _ d) = show d
-    show (IDef _ n cs) = "(%def " ++ show n ++ " " ++ show cs ++ ")"
-    show (IParameters _ ps ds)
+    show (Elaboratable_Data_Declaration _ _ _ d) = show d
+    show (Elaboratable_Definition _ n cs) = "(%def " ++ show n ++ " " ++ show cs ++ ")"
+    show (Elaboratable_Parameter_Block _ ps ds)
         = "parameters " ++ show ps ++ "\n\t" ++
           showSep "\n\t" (assert_total $ map show ds)
-    show (IRecord _ _ _ _ d) = show d.val
-    show (IFail _ msg decls)
+    show (Elaboratable_Record_Declaration _ _ _ _ d) = show d.val
+    show (Elaboratable_Expected_Failure _ msg decls)
         = "fail" ++ maybe "" ((" " ++) . show) msg ++ "\n" ++
           showSep "\n" (assert_total $ map (("  " ++) . show) decls)
-    show (INamespace _ ns decls)
+    show (Elaboratable_Namespace_Block _ ns decls)
         = "namespace " ++ show ns ++
           showSep "\n" (assert_total $ map show decls)
-    show (ITransform _ n lhs rhs)
+    show (Elaboratable_Transformation _ n lhs rhs)
         = "%transform " ++ show n ++ " " ++ show lhs ++ " ==> " ++ show rhs
-    show (IRunElabDecl _ tm)
+    show (Elaboratable_Run_Elaborator_Declaration _ tm)
         = "%runElab " ++ show tm
-    show (IPragma {}) = "[externally defined pragma]"
-    show (ILog Nothing) = "%logging off"
-    show (ILog (Just (topic, lvl))) = "%logging " ++ case topic of
+    show (Elaboratable_Pragma {}) = "[externally defined pragma]"
+    show (Elaboratable_Logging Nothing) = "%logging off"
+    show (Elaboratable_Logging (Just (topic, lvl))) = "%logging " ++ case topic of
       [] => show lvl
       _  => concat (intersperse "." topic) ++ " " ++ show lvl
-    show (IBuiltin _ type name) = "%builtin " ++ show type ++ " " ++ show name
+    show (Elaboratable_Builtin_Declaration _ type name) = "%builtin " ++ show type ++ " " ++ show name
 
 
 export
@@ -525,31 +525,31 @@ mkWithClause fc lhs ((rig, wval, prf) ::: wp :: wps) flags cls
   = let vfc = virtualiseFC fc
         arg = UN $ Basic "arg"
      in WithClause fc lhs rig wval prf flags
-          [mkWithClause fc (IApp vfc lhs $ IBindVar vfc arg) (wp ::: wps) flags cls]
+          [mkWithClause fc (Elaboratable_Apply vfc lhs $ Elaboratable_Bind_Name vfc arg) (wp ::: wps) flags cls]
 
 -- Extract the RawImp term from a FieldUpdate.
 export
-getFieldUpdateTerm : IFieldUpdate' nm -> RawImp' nm
-getFieldUpdateTerm (ISetField    _ term) = term
-getFieldUpdateTerm (ISetFieldApp _ term) = term
+getFieldUpdateTerm : Elaboratable_Field_Update' nm -> RawImp' nm
+getFieldUpdateTerm (Elaboratable_Set_Field    _ term) = term
+getFieldUpdateTerm (Elaboratable_Apply_To_Field _ term) = term
 
 
 export
-getFieldUpdatePath : IFieldUpdate' nm -> List String
-getFieldUpdatePath (ISetField    path _) = path
-getFieldUpdatePath (ISetFieldApp path _) = path
+getFieldUpdatePath : Elaboratable_Field_Update' nm -> List String
+getFieldUpdatePath (Elaboratable_Set_Field    path _) = path
+getFieldUpdatePath (Elaboratable_Apply_To_Field path _) = path
 
 
 export
-mapFieldUpdateTerm : (RawImp' nm -> RawImp' nm) -> IFieldUpdate' nm -> IFieldUpdate' nm
-mapFieldUpdateTerm f (ISetField    x term) = ISetField    x (f term)
-mapFieldUpdateTerm f (ISetFieldApp x term) = ISetFieldApp x (f term)
+mapFieldUpdateTerm : (RawImp' nm -> RawImp' nm) -> Elaboratable_Field_Update' nm -> Elaboratable_Field_Update' nm
+mapFieldUpdateTerm f (Elaboratable_Set_Field    x term) = Elaboratable_Set_Field    x (f term)
+mapFieldUpdateTerm f (Elaboratable_Apply_To_Field x term) = Elaboratable_Apply_To_Field x (f term)
 
 
 export
-isIPrimVal : RawImp' nm -> Maybe Constant
-isIPrimVal (IPrimVal _ c) = Just c
-isIPrimVal _ = Nothing
+is_primitive_value : RawImp' nm -> Maybe Constant
+is_primitive_value (Elaboratable_Primitive_Value _ c) = Just c
+is_primitive_value _ = Nothing
 
 -- REPL commands for TTImp interaction
 public export
@@ -572,102 +572,102 @@ mapAltType _ u = u
 export
 lhsInCurrentNS : {auto c : Ref Ctxt Defs} ->
                  NestedNames vars -> RawImp -> Core RawImp
-lhsInCurrentNS nest (IApp loc f a)
+lhsInCurrentNS nest (Elaboratable_Apply loc f a)
     = do f' <- lhsInCurrentNS nest f
-         pure (IApp loc f' a)
-lhsInCurrentNS nest (IAutoApp loc f a)
+         pure (Elaboratable_Apply loc f' a)
+lhsInCurrentNS nest (Elaboratable_Automatic_Apply loc f a)
     = do f' <- lhsInCurrentNS nest f
-         pure (IAutoApp loc f' a)
-lhsInCurrentNS nest (INamedApp loc f n a)
+         pure (Elaboratable_Automatic_Apply loc f' a)
+lhsInCurrentNS nest (Elaboratable_Named_Apply loc f n a)
     = do f' <- lhsInCurrentNS nest f
-         pure (INamedApp loc f' n a)
-lhsInCurrentNS nest (IWithApp loc f a)
+         pure (Elaboratable_Named_Apply loc f' n a)
+lhsInCurrentNS nest (Elaboratable_With_Apply loc f a)
     = do f' <- lhsInCurrentNS nest f
-         pure (IWithApp loc f' a)
-lhsInCurrentNS nest tm@(IVar loc (NS {})) = pure tm -- leave explicit NS alone
-lhsInCurrentNS nest (IVar loc n)
+         pure (Elaboratable_With_Apply loc f' a)
+lhsInCurrentNS nest tm@(Elaboratable_Name loc (NS {})) = pure tm -- leave explicit NS alone
+lhsInCurrentNS nest (Elaboratable_Name loc n)
     = case lookup n (names nest) of
            Nothing =>
               do n' <- inCurrentNS n
-                 pure (IVar loc n')
+                 pure (Elaboratable_Name loc n')
            -- If it's one of the names in the current nested block, we'll
            -- be rewriting it during elaboration to be in the scope of the
            -- parent name.
-           Just _ => pure (IVar loc n)
+           Just _ => pure (Elaboratable_Name loc n)
 lhsInCurrentNS nest tm = pure tm
 
 export
-findIBinds : RawImp' nm -> List String
-findIBinds (IPi fc rig p mn aty retty)
-    = findIBinds aty ++ findIBinds retty
-findIBinds (ILam fc rig p n aty sc)
-    = findIBinds aty ++ findIBinds sc
-findIBinds (IApp fc fn av)
-    = findIBinds fn ++ findIBinds av
-findIBinds (IAutoApp fc fn av)
-    = findIBinds fn ++ findIBinds av
-findIBinds (INamedApp _ fn _ av)
-    = findIBinds fn ++ findIBinds av
-findIBinds (IWithApp fc fn av)
-    = findIBinds fn ++ findIBinds av
-findIBinds (IAs fc _ _ (UN (Basic n)) pat)
-    = n :: findIBinds pat
-findIBinds (IAs fc _ _ n pat)
-    = findIBinds pat
-findIBinds (IMustUnify fc r pat)
-    = findIBinds pat
-findIBinds (IAlternative fc u alts)
-    = concatMap findIBinds alts
-findIBinds (IDelayed fc _ ty) = findIBinds ty
-findIBinds (IDelay fc tm) = findIBinds tm
-findIBinds (IForce fc tm) = findIBinds tm
-findIBinds (IQuote fc tm) = findIBinds tm
-findIBinds (IUnquote fc tm) = findIBinds tm
-findIBinds (IRunElab fc _ tm) = findIBinds tm
-findIBinds (IBindHere _ _ tm) = findIBinds tm
-findIBinds (IBindVar _ (UN (Basic n))) = [n]
-findIBinds (IUpdate fc updates tm)
-    = findIBinds tm ++ concatMap (findIBinds . getFieldUpdateTerm) updates
+find_names_to_bind : RawImp' nm -> List String
+find_names_to_bind (Elaboratable_Dependent_Function_Type fc rig p mn aty retty)
+    = find_names_to_bind aty ++ find_names_to_bind retty
+find_names_to_bind (Elaboratable_Lambda fc rig p n aty sc)
+    = find_names_to_bind aty ++ find_names_to_bind sc
+find_names_to_bind (Elaboratable_Apply fc fn av)
+    = find_names_to_bind fn ++ find_names_to_bind av
+find_names_to_bind (Elaboratable_Automatic_Apply fc fn av)
+    = find_names_to_bind fn ++ find_names_to_bind av
+find_names_to_bind (Elaboratable_Named_Apply _ fn _ av)
+    = find_names_to_bind fn ++ find_names_to_bind av
+find_names_to_bind (Elaboratable_With_Apply fc fn av)
+    = find_names_to_bind fn ++ find_names_to_bind av
+find_names_to_bind (Elaboratable_As_Pattern fc _ _ (UN (Basic n)) pat)
+    = n :: find_names_to_bind pat
+find_names_to_bind (Elaboratable_As_Pattern fc _ _ n pat)
+    = find_names_to_bind pat
+find_names_to_bind (Elaboratable_Must_Unify fc r pat)
+    = find_names_to_bind pat
+find_names_to_bind (Elaboratable_Alternative fc u alts)
+    = concatMap find_names_to_bind alts
+find_names_to_bind (Elaboratable_Delayed_Type fc _ ty) = find_names_to_bind ty
+find_names_to_bind (Elaboratable_Delay fc tm) = find_names_to_bind tm
+find_names_to_bind (Elaboratable_Force fc tm) = find_names_to_bind tm
+find_names_to_bind (Elaboratable_Quote fc tm) = find_names_to_bind tm
+find_names_to_bind (Elaboratable_Unquote fc tm) = find_names_to_bind tm
+find_names_to_bind (Elaboratable_Run_Elaborator fc _ tm) = find_names_to_bind tm
+find_names_to_bind (Elaboratable_Bind_Here _ _ tm) = find_names_to_bind tm
+find_names_to_bind (Elaboratable_Bind_Name _ (UN (Basic n))) = [n]
+find_names_to_bind (Elaboratable_Record_Update fc updates tm)
+    = find_names_to_bind tm ++ concatMap (find_names_to_bind . getFieldUpdateTerm) updates
 -- We've skipped lambda, case, let and local - rather than guess where the
 -- name should be bound, leave it to the programmer
-findIBinds tm = []
+find_names_to_bind tm = []
 
 export
 findImplicits : RawImp' nm -> List String
-findImplicits (IPi fc rig p (Just (UN (Basic mn))) aty retty)
+findImplicits (Elaboratable_Dependent_Function_Type fc rig p (Just (UN (Basic mn))) aty retty)
     = mn :: findImplicits aty ++ findImplicits retty
-findImplicits (IPi fc rig p mn aty retty)
+findImplicits (Elaboratable_Dependent_Function_Type fc rig p mn aty retty)
     = findImplicits aty ++ findImplicits retty
-findImplicits (ILam fc rig p n aty sc)
+findImplicits (Elaboratable_Lambda fc rig p n aty sc)
     = findImplicits aty ++ findImplicits sc
-findImplicits (IApp fc fn av)
+findImplicits (Elaboratable_Apply fc fn av)
     = findImplicits fn ++ findImplicits av
-findImplicits (IAutoApp _ fn av)
+findImplicits (Elaboratable_Automatic_Apply _ fn av)
     = findImplicits fn ++ findImplicits av
-findImplicits (INamedApp _ fn _ av)
+findImplicits (Elaboratable_Named_Apply _ fn _ av)
     = findImplicits fn ++ findImplicits av
-findImplicits (IWithApp fc fn av)
+findImplicits (Elaboratable_With_Apply fc fn av)
     = findImplicits fn ++ findImplicits av
-findImplicits (IAs fc _ _ n pat)
+findImplicits (Elaboratable_As_Pattern fc _ _ n pat)
     = findImplicits pat
-findImplicits (IMustUnify fc r pat)
+findImplicits (Elaboratable_Must_Unify fc r pat)
     = findImplicits pat
-findImplicits (IAlternative fc u alts)
+findImplicits (Elaboratable_Alternative fc u alts)
     = concatMap findImplicits alts
-findImplicits (IDelayed fc _ ty) = findImplicits ty
-findImplicits (IDelay fc tm) = findImplicits tm
-findImplicits (IForce fc tm) = findImplicits tm
-findImplicits (IQuote fc tm) = findImplicits tm
-findImplicits (IUnquote fc tm) = findImplicits tm
-findImplicits (IRunElab fc _ tm) = findImplicits tm
-findImplicits (IBindVar _ (UN (Basic n))) = [n]
-findImplicits (IUpdate fc updates tm)
+findImplicits (Elaboratable_Delayed_Type fc _ ty) = findImplicits ty
+findImplicits (Elaboratable_Delay fc tm) = findImplicits tm
+findImplicits (Elaboratable_Force fc tm) = findImplicits tm
+findImplicits (Elaboratable_Quote fc tm) = findImplicits tm
+findImplicits (Elaboratable_Unquote fc tm) = findImplicits tm
+findImplicits (Elaboratable_Run_Elaborator fc _ tm) = findImplicits tm
+findImplicits (Elaboratable_Bind_Name _ (UN (Basic n))) = [n]
+findImplicits (Elaboratable_Record_Update fc updates tm)
     = findImplicits tm ++ concatMap (findImplicits . getFieldUpdateTerm) updates
 findImplicits tm = []
 
 -- Update the lhs of a clause so that any implicits named in the type are
 -- bound as @-patterns (unless they're already explicitly bound or appear as
--- IBindVar anywhere else in the pattern) so that they will be available on the
+-- Elaboratable_Bind_Name anywhere else in the pattern) so that they will be available on the
 -- rhs
 export
 implicitsAs : {auto c : Ref Ctxt Defs} ->
@@ -675,7 +675,7 @@ implicitsAs : {auto c : Ref Ctxt Defs} ->
               (vars : List Name) ->
               RawImp -> Core RawImp
 implicitsAs n defs ns tm
-  = do let implicits = findIBinds tm
+  = do let implicits = find_names_to_bind tm
        log "declare.def.lhs.implicits" 30 $ "Found implicits: " ++ show implicits
        setAs (map Just (ns ++ map (UN . Basic) implicits)) [] tm
   where
@@ -685,25 +685,25 @@ implicitsAs n defs ns tm
     -- More precisely, implicit and explicit arguments are recorded separately,
     -- into `is` and `es` respectively.
     setAs : List (Maybe Name) -> List (Maybe Name) -> RawImp -> Core RawImp
-    setAs is es (IApp loc f a)
+    setAs is es (Elaboratable_Apply loc f a)
         = do f' <- setAs is (Nothing :: es) f
-             pure $ IApp loc f' a
-    setAs is es (IAutoApp loc f a)
+             pure $ Elaboratable_Apply loc f' a
+    setAs is es (Elaboratable_Automatic_Apply loc f a)
         = do f' <- setAs (Nothing :: is) es f
-             pure $ IAutoApp loc f' a
-    setAs is es (INamedApp loc f n a)
+             pure $ Elaboratable_Automatic_Apply loc f' a
+    setAs is es (Elaboratable_Named_Apply loc f n a)
         = do f' <- setAs (Just n :: is) (Just n :: es) f
-             pure $ INamedApp loc f' n a
-    setAs is es (IWithApp loc f a)
+             pure $ Elaboratable_Named_Apply loc f' n a
+    setAs is es (Elaboratable_With_Apply loc f a)
         = do f' <- setAs is es f
-             pure $ IWithApp loc f' a
-    setAs is es (IVar loc nm)
+             pure $ Elaboratable_With_Apply loc f' a
+    setAs is es (Elaboratable_Name loc nm)
         -- #834 Use the (already) resolved name rather than the local one
         = case !(lookupTyExact (Resolved n) (gamma defs)) of
             Nothing =>
                do log "declare.def.lhs.implicits" 30 $
                     "Could not find variable " ++ show n
-                  pure $ IVar loc nm
+                  pure $ Elaboratable_Name loc nm
             Just ty =>
                do ty' <- nf defs Env.empty ty
                   implicits <- findImps is es ns ty'
@@ -711,7 +711,7 @@ implicitsAs n defs ns tm
                     "\n  In the type of " ++ show n ++ ": " ++ show ty ++
                     "\n  Using locals: " ++ show ns ++
                     "\n  Found implicits: " ++ show implicits
-                  pure $ impAs (virtualiseFC loc) implicits (IVar loc nm)
+                  pure $ impAs (virtualiseFC loc) implicits (Elaboratable_Name loc nm)
       where
         -- If there's an @{c} in the list of given implicits, that's the next
         -- autoimplicit, so don't rewrite the LHS and update the list of given
@@ -776,17 +776,17 @@ implicitsAs n defs ns tm
         impAs loc' [] tm = tm
         impAs loc' ((nm@(UN (Basic _)), AutoImplicit) :: ns) tm
             = impAs loc' ns $
-                 INamedApp loc' tm nm (IBindVar loc' nm)
+                 Elaboratable_Named_Apply loc' tm nm (Elaboratable_Bind_Name loc' nm)
 
         impAs loc' ((n, Implicit) :: ns) tm
             = impAs loc' ns $
-                 INamedApp loc' tm n
-                     (IAs loc' EmptyFC UseLeft n (Implicit loc' True))
+                 Elaboratable_Named_Apply loc' tm n
+                     (Elaboratable_As_Pattern loc' EmptyFC UseLeft n (Implicit loc' True))
 
         impAs loc' ((n, DefImplicit t) :: ns) tm
             = impAs loc' ns $
-                 INamedApp loc' tm n
-                     (IAs loc' EmptyFC UseLeft n (Implicit loc' True))
+                 Elaboratable_Named_Apply loc' tm n
+                     (Elaboratable_As_Pattern loc' EmptyFC UseLeft n (Implicit loc' True))
 
         impAs loc' (_ :: ns) tm = impAs loc' ns tm
     setAs is es tm = pure tm
@@ -802,7 +802,7 @@ definedInBlock ns decls =
     getName : ImpTy -> Name
     getName = (.tyName.val)
 
-    getFieldName : IField -> Name
+    getFieldName : Elaboratable_Field -> Name
     getFieldName f = f.name.val
 
     expandNS : Namespace -> Name -> Name
@@ -814,15 +814,15 @@ definedInBlock ns decls =
            _ => n
 
     defName : Namespace -> SortedSet Name -> ImpDecl -> SortedSet Name
-    defName ns acc (IClaim c) = insert (expandNS ns (getName c.val.type)) acc
-    defName ns acc (IDef _ nm _) = insert (expandNS ns nm) acc
-    defName ns acc (IData _ _ _ (MkImpData _ n _ _ cons))
+    defName ns acc (Elaboratable_Claim c) = insert (expandNS ns (getName c.val.type)) acc
+    defName ns acc (Elaboratable_Definition _ nm _) = insert (expandNS ns nm) acc
+    defName ns acc (Elaboratable_Data_Declaration _ _ _ (MkImpData _ n _ _ cons))
         = foldl (flip insert) acc $ expandNS ns n :: map (expandNS ns . getName) cons
-    defName ns acc (IData _ _ _ (MkImpLater _ n _)) = insert (expandNS ns n) acc
-    defName ns acc (IParameters _ _ pds) = foldl (defName ns) acc pds
-    defName ns acc (IFail _ _ nds) = foldl (defName ns) acc nds
-    defName ns acc (INamespace _ n nds) = foldl (defName (ns <.> n)) acc nds
-    defName ns acc (IRecord _ fldns _ _ rec)
+    defName ns acc (Elaboratable_Data_Declaration _ _ _ (MkImpLater _ n _)) = insert (expandNS ns n) acc
+    defName ns acc (Elaboratable_Parameter_Block _ _ pds) = foldl (defName ns) acc pds
+    defName ns acc (Elaboratable_Expected_Failure _ _ nds) = foldl (defName ns) acc nds
+    defName ns acc (Elaboratable_Namespace_Block _ n nds) = foldl (defName (ns <.> n)) acc nds
+    defName ns acc (Elaboratable_Record_Declaration _ fldns _ _ rec)
         = foldl (flip insert) acc $ expandNS ns rec.val.body.name.val :: all
       where
         fldns' : Namespace
@@ -848,72 +848,72 @@ definedInBlock ns decls =
         all : List Name
         all = expandNS ns rec.val.header.name.val :: map (expandNS fldns') (fnsRF ++ fnsUN)
 
-    defName ns acc (IPragma _ pns _) = foldl (flip insert) acc $ map (expandNS ns) pns
+    defName ns acc (Elaboratable_Pragma _ pns _) = foldl (flip insert) acc $ map (expandNS ns) pns
     defName _ acc _ = acc
 
 export
-isIVar : RawImp' nm -> Maybe (FC, nm)
-isIVar (IVar fc v) = Just (fc, v)
-isIVar _ = Nothing
+is_elaboratable_name : RawImp' nm -> Maybe (FC, nm)
+is_elaboratable_name (Elaboratable_Name fc v) = Just (fc, v)
+is_elaboratable_name _ = Nothing
 
 export
-isIBindVar : RawImp' nm -> Maybe (FC, Name)
-isIBindVar (IBindVar fc v) = Just (fc, v)
-isIBindVar _ = Nothing
+is_elaboratable_bound_name : RawImp' nm -> Maybe (FC, Name)
+is_elaboratable_bound_name (Elaboratable_Bind_Name fc v) = Just (fc, v)
+is_elaboratable_bound_name _ = Nothing
 
 export
 getFC : RawImp' nm -> FC
-getFC (IVar x _) = x
-getFC (IPi x _ _ _ _ _) = x
-getFC (ILam x _ _ _ _ _) = x
-getFC (ILet x _ _ _ _ _ _) = x
-getFC (ICase x _ _ _ _) = x
-getFC (ILocal x _ _) = x
-getFC (ICaseLocal x _ _ _ _) = x
-getFC (IUpdate x _ _) = x
-getFC (IApp x _ _) = x
-getFC (INamedApp x _ _ _) = x
-getFC (IAutoApp x _ _) = x
-getFC (IWithApp x _ _) = x
-getFC (ISearch x _) = x
-getFC (IAlternative x _ _) = x
-getFC (IRewrite x _ _) = x
-getFC (ICoerced x _) = x
-getFC (IPrimVal x _) = x
-getFC (IHole x _) = x
-getFC (IUnifyLog x _ _) = x
-getFC (IType x) = x
-getFC (IBindVar x _) = x
-getFC (IBindHere x _ _) = x
-getFC (IMustUnify x _ _) = x
-getFC (IDelayed x _ _) = x
-getFC (IDelay x _) = x
-getFC (IForce x _) = x
-getFC (IQuote x _) = x
-getFC (IQuoteName x _) = x
-getFC (IQuoteDecl x _) = x
-getFC (IUnquote x _) = x
-getFC (IRunElab x _ _) = x
-getFC (IAs x _ _ _ _) = x
+getFC (Elaboratable_Name x _) = x
+getFC (Elaboratable_Dependent_Function_Type x _ _ _ _ _) = x
+getFC (Elaboratable_Lambda x _ _ _ _ _) = x
+getFC (Elaboratable_Binding x _ _ _ _ _ _) = x
+getFC (Elaboratable_Case x _ _ _ _) = x
+getFC (Elaboratable_Local_Definitions x _ _) = x
+getFC (Elaboratable_Case_Local_Definition x _ _ _ _) = x
+getFC (Elaboratable_Record_Update x _ _) = x
+getFC (Elaboratable_Apply x _ _) = x
+getFC (Elaboratable_Named_Apply x _ _ _) = x
+getFC (Elaboratable_Automatic_Apply x _ _) = x
+getFC (Elaboratable_With_Apply x _ _) = x
+getFC (Elaboratable_Search x _) = x
+getFC (Elaboratable_Alternative x _ _) = x
+getFC (Elaboratable_Rewrite x _ _) = x
+getFC (Elaboratable_Coerced x _) = x
+getFC (Elaboratable_Primitive_Value x _) = x
+getFC (Elaboratable_Hole x _) = x
+getFC (Elaboratable_Unification_Log x _ _) = x
+getFC (Elaboratable_Type_Universe x) = x
+getFC (Elaboratable_Bind_Name x _) = x
+getFC (Elaboratable_Bind_Here x _ _) = x
+getFC (Elaboratable_Must_Unify x _ _) = x
+getFC (Elaboratable_Delayed_Type x _ _) = x
+getFC (Elaboratable_Delay x _) = x
+getFC (Elaboratable_Force x _) = x
+getFC (Elaboratable_Quote x _) = x
+getFC (Elaboratable_Quote_Name x _) = x
+getFC (Elaboratable_Quote_Declarations x _) = x
+getFC (Elaboratable_Unquote x _) = x
+getFC (Elaboratable_Run_Elaborator x _ _) = x
+getFC (Elaboratable_As_Pattern x _ _ _ _) = x
 getFC (Implicit x _) = x
-getFC (IWithUnambigNames x _ _) = x
+getFC (Elaboratable_With_Unambiguous_Names x _ _) = x
 
 namespace ImpDecl
 
   public export
   getFC : ImpDecl' nm -> FC
-  getFC (IClaim c) = c.fc
-  getFC (IData fc _ _ _) = fc
-  getFC (IDef fc _ _) = fc
-  getFC (IParameters fc _ _) = fc
-  getFC (IRecord fc _ _ _ _) = fc
-  getFC (IFail fc _ _) = fc
-  getFC (INamespace fc _ _) = fc
-  getFC (ITransform fc _ _ _) = fc
-  getFC (IRunElabDecl fc _) = fc
-  getFC (IPragma fc _ _) = fc
-  getFC (ILog _) = EmptyFC
-  getFC (IBuiltin fc _ _) = fc
+  getFC (Elaboratable_Claim c) = c.fc
+  getFC (Elaboratable_Data_Declaration fc _ _ _) = fc
+  getFC (Elaboratable_Definition fc _ _) = fc
+  getFC (Elaboratable_Parameter_Block fc _ _) = fc
+  getFC (Elaboratable_Record_Declaration fc _ _ _ _) = fc
+  getFC (Elaboratable_Expected_Failure fc _ _) = fc
+  getFC (Elaboratable_Namespace_Block fc _ _) = fc
+  getFC (Elaboratable_Transformation fc _ _ _) = fc
+  getFC (Elaboratable_Run_Elaborator_Declaration fc _) = fc
+  getFC (Elaboratable_Pragma fc _ _) = fc
+  getFC (Elaboratable_Logging _) = EmptyFC
+  getFC (Elaboratable_Builtin_Declaration fc _ _) = fc
 
 public export
 data Arg' nm
@@ -927,8 +927,8 @@ Arg : Type
 Arg = Arg' Name
 
 public export
-IArg : Type
-IArg = Arg' KindedName
+Kinded_Elaboratable_Argument : Type
+Kinded_Elaboratable_Argument = Arg' KindedName
 
 export
 isExplicit : Arg' nm -> Maybe (FC, RawImp' nm)
@@ -936,10 +936,10 @@ isExplicit (Explicit fc t) = Just (fc, t)
 isExplicit _ = Nothing
 
 export
-unIArg : Arg' nm -> RawImp' nm
-unIArg (Explicit _ t) = t
-unIArg (Auto _ t) = t
-unIArg (Named _ _ t) = t
+elaboratable_argument_term : Arg' nm -> RawImp' nm
+elaboratable_argument_term (Explicit _ t) = t
+elaboratable_argument_term (Auto _ t) = t
+elaboratable_argument_term (Named _ _ t) = t
 
 export
 covering
@@ -950,18 +950,18 @@ Show nm => Show (Arg' nm) where
 
 export
 getFnArgs : RawImp' nm -> List (Arg' nm) -> (RawImp' nm, List (Arg' nm))
-getFnArgs (IApp fc f arg) args = getFnArgs f (Explicit fc arg :: args)
-getFnArgs (INamedApp fc f n arg) args = getFnArgs f (Named fc n arg :: args)
-getFnArgs (IAutoApp fc f arg) args = getFnArgs f (Auto fc arg :: args)
+getFnArgs (Elaboratable_Apply fc f arg) args = getFnArgs f (Explicit fc arg :: args)
+getFnArgs (Elaboratable_Named_Apply fc f n arg) args = getFnArgs f (Named fc n arg :: args)
+getFnArgs (Elaboratable_Automatic_Apply fc f arg) args = getFnArgs f (Auto fc arg :: args)
 getFnArgs tm args = (tm, args)
 
 -- TODO: merge these definitions
 namespace Arg
   export
   apply : RawImp' nm -> List (Arg' nm) -> RawImp' nm
-  apply f (Explicit fc a :: args) = apply (IApp fc f a) args
-  apply f (Auto fc a :: args) = apply (IAutoApp fc f a) args
-  apply f (Named fc n a :: args) = apply (INamedApp fc f n a) args
+  apply f (Explicit fc a :: args) = apply (Elaboratable_Apply fc f a) args
+  apply f (Auto fc a :: args) = apply (Elaboratable_Automatic_Apply fc f a) args
+  apply f (Named fc n a :: args) = apply (Elaboratable_Named_Apply fc f n a) args
   apply f [] = f
 
 export
@@ -969,7 +969,7 @@ apply : RawImp' nm -> List (RawImp' nm) -> RawImp' nm
 apply f [] = f
 apply f (x :: xs) =
   let fFC = getFC f in
-  apply (IApp (fromMaybe fFC (mergeFC fFC (getFC x))) f x) xs
+  apply (Elaboratable_Apply (fromMaybe fFC (mergeFC fFC (getFC x))) f x) xs
 
 export
 gapply : RawImp' nm -> List (Maybe Name, RawImp' nm) -> RawImp' nm
@@ -977,18 +977,18 @@ gapply f [] = f
 gapply f (x :: xs) = gapply (uncurry (app f) x) xs where
 
   app : RawImp' nm -> Maybe Name -> RawImp' nm -> RawImp' nm
-  app f Nothing   x = IApp (getFC f) f x
-  app f (Just nm) x = INamedApp (getFC f) f nm x
+  app f Nothing   x = Elaboratable_Apply (getFC f) f x
+  app f (Just nm) x = Elaboratable_Named_Apply (getFC f) f nm x
 
 
 export
 getFn : RawImp' nm -> RawImp' nm
-getFn (IApp _ f _) = getFn f
-getFn (IWithApp _ f _) = getFn f
-getFn (INamedApp _ f _ _) = getFn f
-getFn (IAutoApp _ f _) = getFn f
-getFn (IAs _ _ _ _ f) = getFn f
-getFn (IMustUnify _ _ f) = getFn f
+getFn (Elaboratable_Apply _ f _) = getFn f
+getFn (Elaboratable_With_Apply _ f _) = getFn f
+getFn (Elaboratable_Named_Apply _ f _ _) = getFn f
+getFn (Elaboratable_Automatic_Apply _ f _) = getFn f
+getFn (Elaboratable_As_Pattern _ _ _ _ f) = getFn f
+getFn (Elaboratable_Must_Unify _ _ f) = getFn f
 getFn f = f
 
 -- Log message with a RawImp
