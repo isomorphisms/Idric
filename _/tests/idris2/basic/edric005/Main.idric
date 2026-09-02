@@ -1,0 +1,49 @@
+module Main
+
+import IdrisCompat
+
+unicode_function : Integer→Integer
+unicode_function = \value⇒value + 1
+
+unicode_apply : (Integer→Integer)→Integer→Integer
+unicode_apply = \function⇒\value⇒function value
+
+ascii_function : Integer -> Integer
+ascii_function = \value => value + 1
+
+unicode_order : Bool
+unicode_order = 1≤2
+
+ascii_order : Bool
+ascii_order = 1 <= 2
+
+syntax_literal : String
+syntax_literal = "-> => → ⇒ ← ≤"
+
+contextual_prefix : IO Integer
+contextual_prefix = do
+  value←pure 4
+  let prefix = value + 1
+  pure prefix
+
+prefix 5 !!
+
+(!!) : Integer→Integer
+(!!) value = value + 1
+
+main : IO ()
+main = do
+  unicode_text←pure "unicode bind"
+  ascii_text <- pure "ascii bind"
+  putStrLn unicode_text
+  putStrLn ascii_text
+  printLn (unicode_function 4)
+  printLn (unicode_apply unicode_function 4)
+  printLn (ascii_function 4)
+  printLn unicode_order
+  printLn ascii_order
+  printLn idris_compat_value
+  putStrLn syntax_literal
+  contextual_prefix_value←contextual_prefix
+  printLn contextual_prefix_value
+  printLn (!! 4)
