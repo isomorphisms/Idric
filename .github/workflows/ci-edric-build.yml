@@ -1,0 +1,20 @@
+name: Idriç build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  compiler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install host build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl
+      - name: Bootstrap and focused tests
+        run: ./_/edric all
