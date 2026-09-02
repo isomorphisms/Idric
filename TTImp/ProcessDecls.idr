@@ -110,30 +110,30 @@ process : {vars : _} ->
           {auto o : Ref ROpts REPLOpts} ->
           List ElabOpt ->
           NestedNames vars -> Env Term vars -> ImpDecl -> Core ()
-process eopts nest env (IClaim dat@(MkWithData fc (MkIClaimData rig vis opts ty)))
+process eopts nest env (Elaboratable_Claim dat@(MkWithData fc (Make_Elaboratable_Claim_Data rig vis opts ty)))
     = processType eopts nest env dat.fc rig vis opts ty
-process eopts nest env (IData fc vis mbtot ddef)
+process eopts nest env (Elaboratable_Data_Declaration fc vis mbtot ddef)
     = processData eopts nest env fc vis mbtot ddef
-process eopts nest env (IDef fc fname def)
+process eopts nest env (Elaboratable_Definition fc fname def)
     = processDef eopts nest env fc fname def
-process eopts nest env (IParameters fc ps decls)
+process eopts nest env (Elaboratable_Parameter_Block fc ps decls)
     = processParams nest env fc (forget ps) decls
-process eopts nest env (IRecord fc ns vis mbtot rec)
+process eopts nest env (Elaboratable_Record_Declaration fc ns vis mbtot rec)
     = processRecord eopts nest env ns vis mbtot rec
-process eopts nest env (IFail fc msg decls)
+process eopts nest env (Elaboratable_Expected_Failure fc msg decls)
     = processFailing eopts nest env fc msg decls
-process eopts nest env (INamespace fc ns decls)
+process eopts nest env (Elaboratable_Namespace_Block fc ns decls)
     = withExtendedNS ns $
          traverse_ (processDecl eopts nest env) decls
-process eopts nest env (ITransform fc n lhs rhs)
+process eopts nest env (Elaboratable_Transformation fc n lhs rhs)
     = processTransform eopts nest env fc n lhs rhs
-process eopts nest env (IRunElabDecl fc tm)
+process eopts nest env (Elaboratable_Run_Elaborator_Declaration fc tm)
     = processRunElab eopts nest env fc tm
-process eopts nest env (IPragma _ _ act)
+process eopts nest env (Elaboratable_Pragma _ _ act)
     = act nest env
-process eopts nest env (ILog lvl)
+process eopts nest env (Elaboratable_Logging lvl)
     = addLogLevel (uncurry unsafeMkLogLevel <$> lvl)
-process eopts nest env (IBuiltin fc type name)
+process eopts nest env (Elaboratable_Builtin_Declaration fc type name)
     = processBuiltin nest env fc type name
 
 TTImp.Elab.Check.processDecl = process
@@ -177,12 +177,12 @@ processTTImpDecls {vars} nest env decls
 
     -- bind implicits to make raw TTImp source a bit friendlier
     bindNames : ImpDecl -> Core ImpDecl
-    bindNames (IClaim dat@(MkWithData fc (MkIClaimData c vis opts ty)))
+    bindNames (Elaboratable_Claim dat@(MkWithData fc (Make_Elaboratable_Claim_Data c vis opts ty)))
         = do ty' <- bindTypeNames dat.fc [] (toList vars) ty.val
-             pure (IClaim (MkWithData fc (MkIClaimData c vis opts ({val := ty'} ty))))
-    bindNames (IData fc vis mbtot d)
+             pure (Elaboratable_Claim (MkWithData fc (Make_Elaboratable_Claim_Data c vis opts ({val := ty'} ty))))
+    bindNames (Elaboratable_Data_Declaration fc vis mbtot d)
         = do d' <- bindDataNames d
-             pure (IData fc vis mbtot d')
+             pure (Elaboratable_Data_Declaration fc vis mbtot d')
     bindNames d = pure d
 
 export

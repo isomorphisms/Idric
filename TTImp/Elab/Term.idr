@@ -42,27 +42,27 @@ insertImpLam {vars} env tm (Just ty) = bindLam tm ty
     -- If we can decide whether we need implicit lambdas without looking
     -- at the normal form, do so
     bindLamTm : RawImp -> Term vs -> Core (Maybe RawImp)
-    bindLamTm tm@(ILam _ _ Implicit _ _ _) (Bind fc n (Pi _ _ Implicit _) sc)
+    bindLamTm tm@(Elaboratable_Lambda _ _ Implicit _ _ _) (Bind fc n (Pi _ _ Implicit _) sc)
         = pure (Just tm)
-    bindLamTm tm@(ILam _ _ AutoImplicit _ _ _) (Bind fc n (Pi _ _ AutoImplicit _) sc)
+    bindLamTm tm@(Elaboratable_Lambda _ _ AutoImplicit _ _ _) (Bind fc n (Pi _ _ AutoImplicit _) sc)
         = pure (Just tm)
-    bindLamTm tm@(ILam _ _ (DefImplicit _) _ _ _) (Bind fc n (Pi _ _ (DefImplicit _) _) sc)
+    bindLamTm tm@(Elaboratable_Lambda _ _ (DefImplicit _) _ _ _) (Bind fc n (Pi _ _ (DefImplicit _) _) sc)
         = pure (Just tm)
     bindLamTm tm (Bind fc n (Pi _ c Implicit ty) sc)
         = do n' <- genVarName (nameRoot n)
              Just sc' <- bindLamTm tm sc
                  | Nothing => pure Nothing
-             pure $ Just (ILam fc c Implicit (Just n') (Implicit fc False) sc')
+             pure $ Just (Elaboratable_Lambda fc c Implicit (Just n') (Implicit fc False) sc')
     bindLamTm tm (Bind fc n (Pi _ c AutoImplicit ty) sc)
         = do n' <- genVarName (nameRoot n)
              Just sc' <- bindLamTm tm sc
                  | Nothing => pure Nothing
-             pure $ Just (ILam fc c AutoImplicit (Just n') (Implicit fc False) sc')
+             pure $ Just (Elaboratable_Lambda fc c AutoImplicit (Just n') (Implicit fc False) sc')
     bindLamTm tm (Bind fc n (Pi _ c (DefImplicit _) ty) sc)
         = do n' <- genVarName (nameRoot n)
              Just sc' <- bindLamTm tm sc
                  | Nothing => pure Nothing
-             pure $ Just (ILam fc c (DefImplicit (Implicit fc False))
+             pure $ Just (Elaboratable_Lambda fc c (DefImplicit (Implicit fc False))
                                     (Just n') (Implicit fc False) sc')
     bindLamTm tm exp
         = case getFn exp of
@@ -72,28 +72,28 @@ insertImpLam {vars} env tm (Just ty) = bindLam tm ty
                _ => pure $ Just tm
 
     bindLamNF : RawImp -> NF vars -> Core RawImp
-    bindLamNF tm@(ILam _ _ Implicit _ _ _) (NBind fc n (Pi _ _ Implicit _) sc)
+    bindLamNF tm@(Elaboratable_Lambda _ _ Implicit _ _ _) (NBind fc n (Pi _ _ Implicit _) sc)
         = pure tm
-    bindLamNF tm@(ILam _ _ AutoImplicit _ _ _) (NBind fc n (Pi _ _ AutoImplicit _) sc)
+    bindLamNF tm@(Elaboratable_Lambda _ _ AutoImplicit _ _ _) (NBind fc n (Pi _ _ AutoImplicit _) sc)
         = pure tm
     bindLamNF tm (NBind fc n (Pi fc' c Implicit ty) sc)
         = do defs <- get Ctxt
              n' <- genVarName (nameRoot n)
              sctm <- sc defs (toClosure defaultOpts env (Ref fc Bound n'))
              sc' <- bindLamNF tm sctm
-             pure $ ILam fc c Implicit (Just n') (Implicit fc False) sc'
+             pure $ Elaboratable_Lambda fc c Implicit (Just n') (Implicit fc False) sc'
     bindLamNF tm (NBind fc n (Pi fc' c AutoImplicit ty) sc)
         = do defs <- get Ctxt
              n' <- genVarName (nameRoot n)
              sctm <- sc defs (toClosure defaultOpts env (Ref fc Bound n'))
              sc' <- bindLamNF tm sctm
-             pure $ ILam fc c AutoImplicit (Just n') (Implicit fc False) sc'
+             pure $ Elaboratable_Lambda fc c AutoImplicit (Just n') (Implicit fc False) sc'
     bindLamNF tm (NBind fc n (Pi _ c (DefImplicit _) ty) sc)
         = do defs <- get Ctxt
              n' <- genVarName (nameRoot n)
              sctm <- sc defs (toClosure defaultOpts env (Ref fc Bound n'))
              sc' <- bindLamNF tm sctm
-             pure $ ILam fc c (DefImplicit (Implicit fc False))
+             pure $ Elaboratable_Lambda fc c (DefImplicit (Implicit fc False))
                               (Just n') (Implicit fc False) sc'
     bindLamNF tm sc = pure tm
 
@@ -119,52 +119,52 @@ checkTerm : {vars : _} ->
             RigCount -> ElabInfo ->
             NestedNames vars -> Env Term vars -> RawImp -> Maybe (Glued vars) ->
             Core (Term vars, Glued vars)
-checkTerm rig elabinfo nest env (IVar fc n) exp
+checkTerm rig elabinfo nest env (Elaboratable_Name fc n) exp
     = -- It may actually turn out to be an application, if the expected
       -- type is expecting an implicit argument, so check it as an
       -- application with no arguments
-      checkApp rig elabinfo nest env fc (IVar fc n) [] [] [] exp
-checkTerm rig elabinfo nest env (IPi fc r p Nothing argTy retTy) exp
+      checkApp rig elabinfo nest env fc (Elaboratable_Name fc n) [] [] [] exp
+checkTerm rig elabinfo nest env (Elaboratable_Dependent_Function_Type fc r p Nothing argTy retTy) exp
     = do n <- case p of
                    Explicit => genVarName "arg"
                    Implicit => genVarName "impArg"
                    AutoImplicit => genVarName "conArg"
                    (DefImplicit _) => genVarName "defArg"
          checkPi rig elabinfo nest env fc r p n argTy retTy exp
-checkTerm rig elabinfo nest env (IPi fc r p (Just (UN Underscore)) argTy retTy) exp
-    = checkTerm rig elabinfo nest env (IPi fc r p Nothing argTy retTy) exp
-checkTerm rig elabinfo nest env (IPi fc r p (Just n) argTy retTy) exp
+checkTerm rig elabinfo nest env (Elaboratable_Dependent_Function_Type fc r p (Just (UN Underscore)) argTy retTy) exp
+    = checkTerm rig elabinfo nest env (Elaboratable_Dependent_Function_Type fc r p Nothing argTy retTy) exp
+checkTerm rig elabinfo nest env (Elaboratable_Dependent_Function_Type fc r p (Just n) argTy retTy) exp
     = checkPi rig elabinfo nest env fc r p n argTy retTy exp
-checkTerm rig elabinfo nest env (ILam fc r p (Just n) argTy scope) exp
+checkTerm rig elabinfo nest env (Elaboratable_Lambda fc r p (Just n) argTy scope) exp
     = checkLambda rig elabinfo nest env fc r p n argTy scope exp
-checkTerm rig elabinfo nest env (ILam fc r p Nothing argTy scope) exp
+checkTerm rig elabinfo nest env (Elaboratable_Lambda fc r p Nothing argTy scope) exp
     = do n <- genVarName "_"
          checkLambda rig elabinfo nest env fc r p n argTy scope exp
-checkTerm rig elabinfo nest env (ILet fc lhsFC r n nTy nVal scope) exp
+checkTerm rig elabinfo nest env (Elaboratable_Binding fc lhsFC r n nTy nVal scope) exp
     = checkLet rig elabinfo nest env fc lhsFC r n nTy nVal scope exp
-checkTerm rig elabinfo nest env (ICase fc opts scr scrty alts) exp
+checkTerm rig elabinfo nest env (Elaboratable_Case fc opts scr scrty alts) exp
     = checkCase rig elabinfo nest env fc opts scr scrty alts exp
-checkTerm rig elabinfo nest env (ILocal fc nested scope) exp
+checkTerm rig elabinfo nest env (Elaboratable_Local_Definitions fc nested scope) exp
     = checkLocal rig elabinfo nest env fc nested scope exp
-checkTerm rig elabinfo nest env (ICaseLocal fc uname iname args scope) exp
+checkTerm rig elabinfo nest env (Elaboratable_Case_Local_Definition fc uname iname args scope) exp
     = checkCaseLocal rig elabinfo nest env fc uname iname args scope exp
-checkTerm rig elabinfo nest env (IUpdate fc upds rec) exp
+checkTerm rig elabinfo nest env (Elaboratable_Record_Update fc upds rec) exp
     = checkUpdate rig elabinfo nest env fc upds rec exp
-checkTerm rig elabinfo nest env (IApp fc fn arg) exp
+checkTerm rig elabinfo nest env (Elaboratable_Apply fc fn arg) exp
     = checkApp rig elabinfo nest env fc fn [arg] [] []  exp
-checkTerm rig elabinfo nest env (IAutoApp fc fn arg) exp
+checkTerm rig elabinfo nest env (Elaboratable_Automatic_Apply fc fn arg) exp
     = checkApp rig elabinfo nest env fc fn [] [arg] []  exp
-checkTerm rig elabinfo nest env (IWithApp fc fn arg) exp
+checkTerm rig elabinfo nest env (Elaboratable_With_Apply fc fn arg) exp
     = throw (GenericMsg fc "with application not implemented yet")
-checkTerm rig elabinfo nest env (INamedApp fc fn nm arg) exp
+checkTerm rig elabinfo nest env (Elaboratable_Named_Apply fc fn nm arg) exp
     = checkApp rig elabinfo nest env fc fn [] [] [(nm, arg)] exp
-checkTerm rig elabinfo nest env (ISearch fc depth) (Just gexpty)
+checkTerm rig elabinfo nest env (Elaboratable_Search fc depth) (Just gexpty)
     = do est <- get EST
          nm <- genName "search"
          expty <- getTerm gexpty
          sval <- searchVar fc rig depth (Resolved (defining est)) env nest nm expty
          pure (sval, gexpty)
-checkTerm rig elabinfo nest env (ISearch fc depth) Nothing
+checkTerm rig elabinfo nest env (Elaboratable_Search fc depth) Nothing
     = do est <- get EST
          nmty <- genName "searchTy"
          u <- uniVar fc
@@ -172,45 +172,45 @@ checkTerm rig elabinfo nest env (ISearch fc depth) Nothing
          nm <- genName "search"
          sval <- searchVar fc rig depth (Resolved (defining est)) env nest nm ty
          pure (sval, gnf env ty)
-checkTerm rig elabinfo nest env (IAlternative fc uniq alts) exp
+checkTerm rig elabinfo nest env (Elaboratable_Alternative fc uniq alts) exp
     = checkAlternative rig elabinfo nest env fc uniq alts exp
-checkTerm rig elabinfo nest env (IRewrite fc rule tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Rewrite fc rule tm) exp
     = checkRewrite rig elabinfo nest env fc rule tm exp
-checkTerm rig elabinfo nest env (ICoerced fc tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Coerced fc tm) exp
     = checkTerm rig elabinfo nest env tm exp
-checkTerm rig elabinfo nest env (IBindHere fc binder sc) exp
+checkTerm rig elabinfo nest env (Elaboratable_Bind_Here fc binder sc) exp
     = checkBindHere rig elabinfo nest env fc binder sc exp
-checkTerm rig elabinfo nest env (IBindVar fc n) exp
+checkTerm rig elabinfo nest env (Elaboratable_Bind_Name fc n) exp
     = checkBindVar rig elabinfo nest env fc n exp
-checkTerm rig elabinfo nest env (IAs fc nameFC side n_in tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_As_Pattern fc nameFC side n_in tm) exp
     = checkAs rig elabinfo nest env fc nameFC side n_in tm exp
-checkTerm rig elabinfo nest env (IMustUnify fc reason tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Must_Unify fc reason tm) exp
     = checkDot rig elabinfo nest env fc reason tm exp
-checkTerm rig elabinfo nest env (IDelayed fc r tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Delayed_Type fc r tm) exp
     = checkDelayed rig elabinfo nest env fc r tm exp
-checkTerm rig elabinfo nest env (IDelay fc tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Delay fc tm) exp
     = checkDelay rig elabinfo nest env fc tm exp
-checkTerm rig elabinfo nest env (IForce fc tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Force fc tm) exp
     = checkForce rig elabinfo nest env fc tm exp
-checkTerm rig elabinfo nest env (IQuote fc tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Quote fc tm) exp
     = checkQuote rig elabinfo nest env fc tm exp
-checkTerm rig elabinfo nest env (IQuoteName fc n) exp
+checkTerm rig elabinfo nest env (Elaboratable_Quote_Name fc n) exp
     = checkQuoteName rig elabinfo nest env fc n exp
-checkTerm rig elabinfo nest env (IQuoteDecl fc ds) exp
+checkTerm rig elabinfo nest env (Elaboratable_Quote_Declarations fc ds) exp
     = checkQuoteDecl rig elabinfo nest env fc ds exp
-checkTerm rig elabinfo nest env (IUnquote fc tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Unquote fc tm) exp
     = throw (GenericMsg fc "Can't escape outside a quoted term")
-checkTerm rig elabinfo nest env (IRunElab fc re tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Run_Elaborator fc re tm) exp
     = checkRunElab rig elabinfo nest env fc re tm exp
-checkTerm {vars} rig elabinfo nest env (IPrimVal fc c) exp
+checkTerm {vars} rig elabinfo nest env (Elaboratable_Primitive_Value fc c) exp
     = do let (cval, cty) = checkPrim {vars} fc c
          checkExp rig elabinfo env fc cval (gnf env cty) exp
-checkTerm rig elabinfo nest env (IType fc) exp
+checkTerm rig elabinfo nest env (Elaboratable_Type_Universe fc) exp
     = do u <- uniVar fc
          checkExp rig elabinfo env fc (TType fc u) (gType fc u) exp
-checkTerm rig elabinfo nest env (IHole fc str) exp
+checkTerm rig elabinfo nest env (Elaboratable_Hole fc str) exp
     = checkHole rig elabinfo nest env fc (Basic str) exp
-checkTerm rig elabinfo nest env (IUnifyLog fc lvl tm) exp
+checkTerm rig elabinfo nest env (Elaboratable_Unification_Log fc lvl tm) exp
     = withLogLevel lvl $ check rig elabinfo nest env tm exp
 checkTerm rig elabinfo nest env (Implicit fc b) (Just gexpty)
     = do nm <- genName "_"
@@ -232,7 +232,7 @@ checkTerm rig elabinfo nest env (Implicit fc b) Nothing
          when (b && bindingVars elabinfo) $
             update EST $ addBindIfUnsolved nm fc rig Explicit env metaval ty
          pure (metaval, gnf env ty)
-checkTerm rig elabinfo nest env (IWithUnambigNames fc ns rhs) exp
+checkTerm rig elabinfo nest env (Elaboratable_With_Unambiguous_Names fc ns rhs) exp
     = do -- enter the scope -> add unambiguous names
          est <- get EST
          rns <- resolveNames fc ns
@@ -283,14 +283,14 @@ checkTerm rig elabinfo nest env (IWithUnambigNames fc ns rhs) exp
 --         Core (Term vars, Glued vars)
 -- If we've just inserted an implicit coercion (in practice, that's either
 -- a force or delay) then check the term with any further insertions
-TTImp.Elab.Check.check rigc elabinfo nest env (ICoerced fc tm) exp
+TTImp.Elab.Check.check rigc elabinfo nest env (Elaboratable_Coerced fc tm) exp
     = checkImp rigc elabinfo nest env tm exp
 -- Don't add implicits/coercions on local blocks or record updates
-TTImp.Elab.Check.check rigc elabinfo nest env tm@(ILet {}) exp
+TTImp.Elab.Check.check rigc elabinfo nest env tm@(Elaboratable_Binding {}) exp
     = checkImp rigc elabinfo nest env tm exp
-TTImp.Elab.Check.check rigc elabinfo nest env tm@(ILocal {}) exp
+TTImp.Elab.Check.check rigc elabinfo nest env tm@(Elaboratable_Local_Definitions {}) exp
     = checkImp rigc elabinfo nest env tm exp
-TTImp.Elab.Check.check rigc elabinfo nest env tm@(IUpdate {}) exp
+TTImp.Elab.Check.check rigc elabinfo nest env tm@(Elaboratable_Record_Update {}) exp
     = checkImp rigc elabinfo nest env tm exp
 TTImp.Elab.Check.check rigc elabinfo nest env tm_in exp
     = do tm <- expandAmbigName (elabMode elabinfo) nest env tm_in [] tm_in exp

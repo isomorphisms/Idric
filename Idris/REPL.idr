@@ -333,7 +333,7 @@ nextGenDef reject
 
 dropLams : Nat -> RawImp' nm -> RawImp' nm
 dropLams Z tm = tm
-dropLams (S k) (ILam _ _ _ _ _ sc) = dropLams k sc
+dropLams (S k) (Elaboratable_Lambda _ _ _ _ _ sc) = dropLams k sc
 dropLams _ tm = tm
 
 dropLamsTm : {vars : _} ->
@@ -390,10 +390,10 @@ getItDecls
             Nothing => pure []
             Just n =>
               let it = UN $ Basic "it" in
-              pure [ IClaim
-                       (MkFCVal replFC $ MkIClaimData top Private []
+              pure [ Elaboratable_Claim
+                       (MkFCVal replFC $ Make_Elaboratable_Claim_Data top Private []
                                        $ Mk [replFC, NoFC it] (Implicit replFC False))
-                  , IDef replFC it [PatClause replFC (IVar replFC it) (IVar replFC n)]]
+                  , Elaboratable_Definition replFC it [PatClause replFC (Elaboratable_Name replFC it) (Elaboratable_Name replFC n)]]
 
 ||| Produce the elaboration of a PTerm, along with its inferred type
 inferAndElab :
@@ -409,7 +409,7 @@ inferAndElab :
   Core (TermWithType vars)
 inferAndElab emode itm env
   = do ttimp <- desugar AnyExpr (toList vars) itm
-       let ttimpWithIt = ILocal replFC !getItDecls ttimp
+       let ttimpWithIt = Elaboratable_Local_Definitions replFC !getItDecls ttimp
        inidx <- resolveName (UN $ Basic "[input]")
        -- a TMP HACK to prioritise list syntax for List: hide
        -- foreign argument lists. TODO: once the new FFI is fully
@@ -732,7 +732,7 @@ prepareExp :
     PTerm -> Core ClosedTerm
 prepareExp ctm
     = do ttimp <- desugar AnyExpr [] (PApp replFC (PRef replFC (UN $ Basic "unsafePerformIO")) ctm)
-         let ttimpWithIt = ILocal replFC !getItDecls ttimp
+         let ttimpWithIt = Elaboratable_Local_Definitions replFC !getItDecls ttimp
          inidx <- resolveName (UN $ Basic "[input]")
          (tm, ty) <- elabTerm inidx InExpr [] (MkNested [])
                                  Env.empty ttimpWithIt Nothing

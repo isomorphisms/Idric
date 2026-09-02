@@ -36,15 +36,15 @@ atom fname
     = do start <- location
          x <- constant
          end <- location
-         pure (IPrimVal (MkFC fname start end) x)
+         pure (Elaboratable_Primitive_Value (MkFC fname start end) x)
   <|> do start <- location
          str <- simpleStr
          end <- location
-         pure (IPrimVal (MkFC fname start end) (Str str))
+         pure (Elaboratable_Primitive_Value (MkFC fname start end) (Str str))
   <|> do start <- location
          exactIdent "Type"
          end <- location
-         pure (IType (MkFC fname start end))
+         pure (Elaboratable_Type_Universe (MkFC fname start end))
   <|> do start <- location
          symbol "_"
          end <- location
@@ -56,20 +56,20 @@ atom fname
   <|> do start <- location
          pragma "search"
          end <- location
-         pure (ISearch (MkFC fname start end) 1000)
+         pure (Elaboratable_Search (MkFC fname start end) 1000)
   <|> do start <- location
          x <- name
          end <- location
-         pure (IVar (MkFC fname start end) x)
+         pure (Elaboratable_Name (MkFC fname start end) x)
   <|> do start <- location
          symbol "$"
          x <- userName
          end <- location
-         pure (IBindVar (MkFC fname start end) x)
+         pure (Elaboratable_Bind_Name (MkFC fname start end) x)
   <|> do start <- location
          x <- holeName
          end <- location
-         pure (IHole (MkFC fname start end) x)
+         pure (Elaboratable_Hole (MkFC fname start end) x)
 
 visOption : Rule Visibility
 visOption
@@ -169,11 +169,11 @@ mutual
                     RawImp
       applyExpImp start end f [] = f
       applyExpImp start end f (Left exp :: args)
-          = applyExpImp start end (IApp (MkFC fname start end) f exp) args
+          = applyExpImp start end (Elaboratable_Apply (MkFC fname start end) f exp) args
       applyExpImp start end f (Right (Just n, imp) :: args)
-          = applyExpImp start end (INamedApp (MkFC fname start end) f n imp) args
+          = applyExpImp start end (Elaboratable_Named_Apply (MkFC fname start end) f n imp) args
       applyExpImp start end f (Right (Nothing, imp) :: args)
-          = applyExpImp start end (IAutoApp (MkFC fname start end) f imp) args
+          = applyExpImp start end (Elaboratable_Automatic_Apply (MkFC fname start end) f imp) args
 
   argExpr : OriginDesc -> IndentInfo ->
             Rule (Either RawImp (Maybe Name, RawImp))
@@ -197,7 +197,7 @@ mutual
                pure (Just x, tm))
              <|> (do symbol "}"
                      end <- location
-                     pure (Just x, IVar (MkFC fname start end) x))
+                     pure (Just x, Elaboratable_Name (MkFC fname start end) x))
     <|> do symbol "@{"
            commit
            tm <- expr fname indents
@@ -212,7 +212,7 @@ mutual
            symbol "@"
            pat <- simpleExpr fname indents
            end <- location
-           pure (IAs (MkFC fname start end) (MkFC fname start nameEnd) UseRight x pat)
+           pure (Elaboratable_As_Pattern (MkFC fname start end) (MkFC fname start nameEnd) UseRight x pat)
 
   simpleExpr : OriginDesc -> IndentInfo -> Rule RawImp
   simpleExpr fname indents
@@ -242,7 +242,7 @@ mutual
               RawImp -> RawImp
   pibindAll fc p [] scope = scope
   pibindAll fc p (ty :: rest) scope
-           = IPi fc ty.rig p (map val ty.mName) ty.val (pibindAll fc p rest scope)
+           = Elaboratable_Dependent_Function_Type fc ty.rig p (map val ty.mName) ty.val (pibindAll fc p rest scope)
 
   bindList : OriginDesc -> FilePos -> IndentInfo ->
              Rule (List (RigCount, Name, RawImp))
@@ -350,7 +350,7 @@ mutual
        bindAll : FC -> List (RigCount, Name, RawImp) -> RawImp -> RawImp
        bindAll fc [] scope = scope
        bindAll fc ((rig, n, ty) :: rest) scope
-           = ILam fc rig Explicit (Just n) ty (bindAll fc rest scope)
+           = Elaboratable_Lambda fc rig Explicit (Just n) ty (bindAll fc rest scope)
 
   let_ : OriginDesc -> IndentInfo -> Rule RawImp
   let_ fname indents
@@ -367,7 +367,7 @@ mutual
            scope <- typeExpr fname indents
            end <- location
            pure (let fc = MkFC fname start end in
-                     ILet fc (boundToFC fname n) rig n.val (Implicit fc False) val scope)
+                     Elaboratable_Binding fc (boundToFC fname n) rig n.val (Implicit fc False) val scope)
     <|> do start <- location
            keyword "let"
            ds <- block (topDecl fname)
@@ -375,7 +375,7 @@ mutual
            keyword "in"
            scope <- typeExpr fname indents
            end <- location
-           pure (ILocal (MkFC fname start end) (collectDefs ds) scope)
+           pure (Elaboratable_Local_Definitions (MkFC fname start end) (collectDefs ds) scope)
 
   case_ : OriginDesc -> IndentInfo -> Rule RawImp
   case_ fname indents
@@ -387,7 +387,7 @@ mutual
            alts <- block (caseAlt fname)
            end <- location
            pure (let fc = MkFC fname start end in
-                     ICase fc opts scr (Implicit fc False) alts)
+                     Elaboratable_Case fc opts scr (Implicit fc False) alts)
 
   caseAlt : OriginDesc -> IndentInfo -> Rule ImpClause
   caseAlt fname indents
@@ -419,14 +419,14 @@ mutual
            symbol "}"
            sc <- expr fname indents
            end <- location
-           pure (IUpdate (MkFC fname start end) (forget fs) sc)
+           pure (Elaboratable_Record_Update (MkFC fname start end) (forget fs) sc)
 
-  field : OriginDesc -> IndentInfo -> Rule IFieldUpdate
+  field : OriginDesc -> IndentInfo -> Rule Elaboratable_Field_Update
   field fname indents
       = do path <- sepBy1 (symbol "->") unqualifiedName
-           upd <- (do symbol "="; pure ISetField)
+           upd <- (do symbol "="; pure Elaboratable_Set_Field)
                       <|>
-                  (do symbol "$="; pure ISetFieldApp)
+                  (do symbol "$="; pure Elaboratable_Apply_To_Field)
            val <- appExpr fname indents
            pure (upd (forget path) val)
 
@@ -438,7 +438,7 @@ mutual
            keyword "in"
            tm <- expr fname indents
            end <- location
-           pure (IRewrite (MkFC fname start end) rule tm)
+           pure (Elaboratable_Rewrite (MkFC fname start end) rule tm)
 
   lazy : OriginDesc -> IndentInfo -> Rule RawImp
   lazy fname indents
@@ -446,22 +446,22 @@ mutual
            exactIdent "Lazy"
            tm <- simpleExpr fname indents
            end <- location
-           pure (IDelayed (MkFC fname start end) LLazy tm)
+           pure (Elaboratable_Delayed_Type (MkFC fname start end) LLazy tm)
     <|> do start <- location
            exactIdent "Inf"
            tm <- simpleExpr fname indents
            end <- location
-           pure (IDelayed (MkFC fname start end) LInf tm)
+           pure (Elaboratable_Delayed_Type (MkFC fname start end) LInf tm)
     <|> do start <- location
            exactIdent "Delay"
            tm <- simpleExpr fname indents
            end <- location
-           pure (IDelay (MkFC fname start end) tm)
+           pure (Elaboratable_Delay (MkFC fname start end) tm)
     <|> do start <- location
            exactIdent "Force"
            tm <- simpleExpr fname indents
            end <- location
-           pure (IForce (MkFC fname start end) tm)
+           pure (Elaboratable_Force (MkFC fname start end) tm)
 
 
   binder : OriginDesc -> IndentInfo -> Rule RawImp
@@ -488,7 +488,7 @@ mutual
       mkPi : FilePos -> FilePos -> RawImp -> List (PiInfo RawImp, RawImp) -> RawImp
       mkPi start end arg [] = arg
       mkPi start end arg ((exp, a) :: as)
-            = IPi (MkFC fname start end) top exp Nothing arg
+            = Elaboratable_Dependent_Function_Type (MkFC fname start end) top exp Nothing arg
                   (mkPi start end a as)
 
   export
@@ -541,10 +541,10 @@ mutual
            pure (!(getFn lhs), ImpossibleClause fc lhs)
     where
       getFn : RawImp -> EmptyRule Name
-      getFn (IVar _ n) = pure n
-      getFn (IApp _ f a) = getFn f
-      getFn (IAutoApp _ f a) = getFn f
-      getFn (INamedApp _ f _ a) = getFn f
+      getFn (Elaboratable_Name _ n) = pure n
+      getFn (Elaboratable_Apply _ f a) = getFn f
+      getFn (Elaboratable_Automatic_Apply _ f a) = getFn f
+      getFn (Elaboratable_Named_Apply _ f _ a) = getFn f
       getFn _ = fail "Not a function application"
 
   clause : Nat -> OriginDesc -> IndentInfo -> Rule (Name, ImpClause)
@@ -558,7 +558,7 @@ mutual
     where
       applyArgs : RawImp -> List (FC, RawImp) -> RawImp
       applyArgs f [] = f
-      applyArgs f ((fc, a) :: args) = applyArgs (IApp fc f a) args
+      applyArgs f ((fc, a) :: args) = applyArgs (Elaboratable_Apply fc f a) args
 
       parseWithArg : Rule (FC, RawImp)
       parseWithArg
@@ -573,7 +573,7 @@ definition fname indents
     = do start <- location
          nd <- clause 0 fname indents
          end <- location
-         pure (IDef (MkFC fname start end) (fst nd) [snd nd])
+         pure (Elaboratable_Definition (MkFC fname start end) (fst nd) [snd nd])
 
 dataOpt : Rule DataOpt
 dataOpt
@@ -627,7 +627,7 @@ recordParam fname indents
   <|> do n <- withFC name
          pure [ Mk [top, n] (MkPiBindData Explicit (Implicit n.fc False)) ]
 
-fieldDecl : OriginDesc -> IndentInfo -> Rule (List IField)
+fieldDecl : OriginDesc -> IndentInfo -> Rule (List Elaboratable_Field)
 fieldDecl fname indents
       = do symbol "{"
            commit
@@ -639,7 +639,7 @@ fieldDecl fname indents
            atEnd indents
            pure fs
   where
-    fieldBody : PiInfo RawImp -> Rule (List IField)
+    fieldBody : PiInfo RawImp -> Rule (List Elaboratable_Field)
     fieldBody p
         = do start <- location
              ns <- sepBy1 (symbol ",") (withFC userName)
@@ -666,7 +666,7 @@ recordDecl fname indents
          flds <- assert_total (blockAfter col (fieldDecl fname))
          end <- location
          pure (let fc = MkFC fname start end
-                in IRecord fc Nothing vis mbtot
+                in Elaboratable_Record_Declaration fc Nothing vis mbtot
                            (Mk [fc] $ MkImpRecord (Mk [n] params) (Mk [dc, opts] (concat flds))))
 
 namespaceDecl : Rule Namespace
@@ -688,16 +688,16 @@ directive fname indents
          commit
          lvl <- logLevel
          atEnd indents
-         pure (ILog lvl)
+         pure (Elaboratable_Logging lvl)
   <|> do b <- bounds (do pragma "builtin"
                          commit
                          t <- builtinType
                          n <- name
                          pure (t, n))
          (t, n) <- pure b.val
-         pure $ IBuiltin (boundToFC fname b) t n
+         pure $ Elaboratable_Builtin_Declaration (boundToFC fname b) t n
 
-         {- Can't do IPragma due to lack of Ref Ctxt. Should we worry about this?
+         {- Can't do Elaboratable_Pragma due to lack of Ref Ctxt. Should we worry about this?
   <|> do pragma "pair"
          commit
          start <- location
@@ -706,7 +706,7 @@ directive fname indents
          s <- name
          end <- location
          pure (let fc = MkFC fname start end in
-                   IPragma (\nest, env => setPair {c} fc p f s))
+                   Elaboratable_Pragma (\nest, env => setPair {c} fc p f s))
   <|> do pragma "rewrite"
          commit
          start <- location
@@ -714,7 +714,7 @@ directive fname indents
          rw <- name
          end <- location
          pure (let fc = MkFC fname start end in
-                   IPragma (\c, nest, env => setRewrite {c} fc eq rw))
+                   Elaboratable_Pragma (\c, nest, env => setRewrite {c} fc eq rw))
     -}
 -- Declared at the top
 -- topDecl : OriginDesc -> IndentInfo -> Rule ImpDecl
@@ -723,12 +723,12 @@ topDecl fname indents
          (vis,mbtot) <- dataVisOpt
          dat <- dataDecl fname indents
          end <- location
-         pure (IData (MkFC fname start end) vis mbtot dat)
+         pure (Elaboratable_Data_Declaration (MkFC fname start end) vis mbtot dat)
   <|> do start <- location
          ns <- namespaceDecl
          ds <- assert_total (nonEmptyBlock (topDecl fname))
          end <- location
-         pure (INamespace (MkFC fname start end) ns (forget ds))
+         pure (Elaboratable_Namespace_Block (MkFC fname start end) ns (forget ds))
   <|> do start <- location
          visOpts <- many visOpt
          vis <- getVisibility Nothing visOpts
@@ -737,7 +737,7 @@ topDecl fname indents
          rig <- getMult m
          claim <- tyDecl fname indents
          end <- location
-         pure (IClaim (MkFCVal (MkFC fname start end) $ MkIClaimData  rig vis opts claim))
+         pure (Elaboratable_Claim (MkFCVal (MkFC fname start end) $ Make_Elaboratable_Claim_Data  rig vis opts claim))
   <|> recordDecl fname indents
   <|> directive fname indents
   <|> definition fname indents
@@ -745,9 +745,9 @@ topDecl fname indents
 -- Declared at the top
 -- collectDefs : List ImpDecl -> List ImpDecl
 collectDefs [] = []
-collectDefs (IDef loc fn cs :: ds)
+collectDefs (Elaboratable_Definition loc fn cs :: ds)
     = let (cs', rest) = spanMap (isClause fn) ds in
-          IDef loc fn (cs ++ cs') :: assert_total (collectDefs rest)
+          Elaboratable_Definition loc fn (cs ++ cs') :: assert_total (collectDefs rest)
   where
     spanMap : (a -> Maybe (List b)) -> List a -> (List b, List a)
     spanMap f [] = ([], [])
@@ -757,13 +757,13 @@ collectDefs (IDef loc fn cs :: ds)
                                               (ys, zs) => (y ++ ys, zs)
 
     isClause : Name -> ImpDecl -> Maybe (List ImpClause)
-    isClause n (IDef _ n' cs)
+    isClause n (Elaboratable_Definition _ n' cs)
         = if n == n' then Just cs else Nothing
     isClause n _ = Nothing
-collectDefs (INamespace loc ns nds :: ds)
-    = INamespace loc ns (collectDefs nds) :: collectDefs ds
-collectDefs (IFail loc msg nds :: ds)
-    = IFail loc msg (collectDefs nds) :: collectDefs ds
+collectDefs (Elaboratable_Namespace_Block loc ns nds :: ds)
+    = Elaboratable_Namespace_Block loc ns (collectDefs nds) :: collectDefs ds
+collectDefs (Elaboratable_Expected_Failure loc msg nds :: ds)
+    = Elaboratable_Expected_Failure loc msg (collectDefs nds) :: collectDefs ds
 collectDefs (d :: ds)
     = d :: collectDefs ds
 

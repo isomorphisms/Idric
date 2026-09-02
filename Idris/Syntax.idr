@@ -1098,7 +1098,7 @@ initSyntax
                initDocStrings
                []
                []
-               (IVar EmptyFC (UN $ Basic "main"))
+               (Elaboratable_Name EmptyFC (UN $ Basic "main"))
                []
 
   where

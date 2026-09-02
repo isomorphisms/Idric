@@ -15,11 +15,11 @@ matchFail loc = throw (GenericMsg loc "With clause does not match parent")
 --- To be used on the lhs of a nested with clause to figure out a tight location
 --- information to give to the generated LHS
 getHeadLoc : RawImp -> Core FC
-getHeadLoc (IVar fc _) = pure fc
-getHeadLoc (IApp _ f _) = getHeadLoc f
-getHeadLoc (IWithApp _ f _) = getHeadLoc f
-getHeadLoc (IAutoApp _ f _) = getHeadLoc f
-getHeadLoc (INamedApp _ f _ _) = getHeadLoc f
+getHeadLoc (Elaboratable_Name fc _) = pure fc
+getHeadLoc (Elaboratable_Apply _ f _) = getHeadLoc f
+getHeadLoc (Elaboratable_With_Apply _ f _) = getHeadLoc f
+getHeadLoc (Elaboratable_Automatic_Apply _ f _) = getHeadLoc f
+getHeadLoc (Elaboratable_Named_Apply _ f _ _) = getHeadLoc f
 getHeadLoc t = throw (InternalError $ "Could not find head of LHS: " ++ show t)
 
 addAlias : {auto m : Ref MD Metadata} ->
@@ -38,71 +38,71 @@ mutual
              {auto c : Ref Ctxt Defs} ->
              (lhs : Bool) -> RawImp -> RawImp ->
              Core (List (Name, RawImp))
-  getMatch lhs (IBindVar to n) tm@(IBindVar from _)
+  getMatch lhs (Elaboratable_Bind_Name to n) tm@(Elaboratable_Bind_Name from _)
       = [(n, tm)] <$ addAlias from to
-  getMatch lhs (IBindVar _ n) tm = pure [(n, tm)]
+  getMatch lhs (Elaboratable_Bind_Name _ n) tm = pure [(n, tm)]
   getMatch lhs (Implicit {}) tm = pure []
-  getMatch lhs _ (IMustUnify _ UserDotted _) = pure []
+  getMatch lhs _ (Elaboratable_Must_Unify _ UserDotted _) = pure []
 
-  getMatch lhs (IVar to (NS ns n)) (IVar from (NS ns' n'))
+  getMatch lhs (Elaboratable_Name to (NS ns n)) (Elaboratable_Name from (NS ns' n'))
       = if n == n' && isParentOf ns' ns
           then [] <$ addAlias from to -- <$ decorateName loc nm
           else matchFail from
-  getMatch lhs (IVar to (NS ns n)) (IVar from n')
+  getMatch lhs (Elaboratable_Name to (NS ns n)) (Elaboratable_Name from n')
       = if n == n'
           then [] <$ addAlias from to -- <$ decorateName loc (NS ns n')
           else matchFail from
-  getMatch lhs (IVar to n) (IVar from n')
+  getMatch lhs (Elaboratable_Name to n) (Elaboratable_Name from n')
       = if n == n'
           then [] <$ addAlias from to -- <$ decorateName loc n'
           else matchFail from
-  getMatch lhs (IPi _ c p n arg ret) (IPi loc c' p' n' arg' ret')
+  getMatch lhs (Elaboratable_Dependent_Function_Type _ c p n arg ret) (Elaboratable_Dependent_Function_Type loc c' p' n' arg' ret')
       = if c == c' && eqPiInfoBy (\_, _ => True) p p' && n == n'
            then matchAll lhs [(arg, arg'), (ret, ret')]
            else matchFail loc
   -- TODO: Lam, Let, Case, Local, Update
-  getMatch lhs (IApp _ f a) (IApp loc f' a')
+  getMatch lhs (Elaboratable_Apply _ f a) (Elaboratable_Apply loc f' a')
       = matchAll lhs [(f, f'), (a, a')]
-  getMatch lhs (IAutoApp _ f a) (IAutoApp loc f' a')
+  getMatch lhs (Elaboratable_Automatic_Apply _ f a) (Elaboratable_Automatic_Apply loc f' a')
       = matchAll lhs [(f, f'), (a, a')]
-  getMatch lhs (INamedApp _ f n a) (INamedApp loc f' n' a')
+  getMatch lhs (Elaboratable_Named_Apply _ f n a) (Elaboratable_Named_Apply loc f' n' a')
       = if n == n'
            then matchAll lhs [(f, f'), (a, a')]
            else matchFail loc
-  getMatch lhs (IWithApp _ f a) (IWithApp loc f' a')
+  getMatch lhs (Elaboratable_With_Apply _ f a) (Elaboratable_With_Apply loc f' a')
       = matchAll lhs [(f, f'), (a, a')]
   -- On LHS: If there's an implicit in the parent, but not the clause, add the
   -- implicit to the clause. This will propagate the implicit through to the
   -- body
-  getMatch True (INamedApp fc f n a) f'
+  getMatch True (Elaboratable_Named_Apply fc f n a) f'
       = matchAll True [(f, f'), (a, a)]
-  getMatch True (IAutoApp fc f a) f'
+  getMatch True (Elaboratable_Automatic_Apply fc f a) f'
       = matchAll True [(f, f'), (a, a)]
   -- On RHS: Rely on unification to fill in the implicit
-  getMatch False (INamedApp fc f n a) f'
+  getMatch False (Elaboratable_Named_Apply fc f n a) f'
       = getMatch False f f'
-  getMatch False (IAutoApp fc f a) f'
+  getMatch False (Elaboratable_Automatic_Apply fc f a) f'
       = getMatch False f f'
   -- Can't have an implicit in the clause if there wasn't a matching
   -- implicit in the parent
-  getMatch lhs f (INamedApp fc f' n a)
+  getMatch lhs f (Elaboratable_Named_Apply fc f' n a)
       = matchFail fc
-  getMatch lhs f (IAutoApp fc f' a)
+  getMatch lhs f (Elaboratable_Automatic_Apply fc f' a)
       = matchFail fc
   -- Alternatives are okay as long as the alternatives correspond, and
   -- one of them is okay
-  getMatch lhs (IAlternative _ _ as) (IAlternative fc _ as')
+  getMatch lhs (Elaboratable_Alternative _ _ as) (Elaboratable_Alternative fc _ as')
       = matchAny fc lhs (zip as as')
-  getMatch lhs (IAs _ _ _ nm@(UN (Basic _)) p) (IAs _ fc _ nm'@(UN (Basic _)) p')
+  getMatch lhs (Elaboratable_As_Pattern _ _ _ nm@(UN (Basic _)) p) (Elaboratable_As_Pattern _ fc _ nm'@(UN (Basic _)) p')
       = do ms <- getMatch lhs p p'
-           mergeMatches lhs ((nm, IAs fc emptyFC UseLeft nm' (Implicit fc True)) :: ms)
-  getMatch lhs (IAs _ _ _ nm@(UN (Basic _)) p) p'
+           mergeMatches lhs ((nm, Elaboratable_As_Pattern fc emptyFC UseLeft nm' (Implicit fc True)) :: ms)
+  getMatch lhs (Elaboratable_As_Pattern _ _ _ nm@(UN (Basic _)) p) p'
       = do ms <- getMatch lhs p p'
            mergeMatches lhs ((nm, p') :: ms)
-  getMatch lhs (IAs _ _ _ _ p) p' = getMatch lhs p p'
-  getMatch lhs p (IAs _ _ _ _ p') = getMatch lhs p p'
-  getMatch lhs (IType _) (IType _) = pure []
-  getMatch lhs (IPrimVal fc c) (IPrimVal fc' c') =
+  getMatch lhs (Elaboratable_As_Pattern _ _ _ _ p) p' = getMatch lhs p p'
+  getMatch lhs p (Elaboratable_As_Pattern _ _ _ _ p') = getMatch lhs p p'
+  getMatch lhs (Elaboratable_Type_Universe _) (Elaboratable_Type_Universe _) = pure []
+  getMatch lhs (Elaboratable_Primitive_Value fc c) (Elaboratable_Primitive_Value fc' c') =
     if c == c'
     then pure []
     else matchFail fc'
@@ -151,9 +151,9 @@ getArgMatch ploc mode True warg ms (Just (AutoImplicit, nm))
     = case lookup nm ms of
         Just tm => tm
         Nothing =>
-          let arg = ISearch ploc 500 in
+          let arg = Elaboratable_Search ploc 500 in
           if isJust (isLHS mode)
-            then IAs ploc ploc UseLeft nm arg
+            then Elaboratable_As_Pattern ploc ploc UseLeft nm arg
              else arg
 getArgMatch ploc mode search warg ms (Just (_, nm))
     = case lookup nm ms of
@@ -161,7 +161,7 @@ getArgMatch ploc mode search warg ms (Just (_, nm))
         Nothing =>
           let arg = Implicit ploc True in
            if isJust (isLHS mode)
-             then IAs ploc ploc UseLeft nm arg
+             then Elaboratable_As_Pattern ploc ploc UseLeft nm arg
              else arg
 
 export
@@ -196,17 +196,17 @@ getNewLHS iploc drop nest wname wargnames lhs_raw patlhs
          log "declare.def.clause.with" 5 $ "Parameters: " ++ show params
 
          hdloc <- getHeadLoc patlhs
-         let newlhs = apply (IVar hdloc wname) (params ++ rest)
+         let newlhs = apply (Elaboratable_Name hdloc wname) (params ++ rest)
          log "declare.def.clause.with" 5 $ "New LHS: " ++ show newlhs
          pure newlhs
   where
     dropWithArgs : Nat -> RawImp ->
                    Core (RawImp, List RawImp)
     dropWithArgs Z tm = pure (tm, [])
-    dropWithArgs (S k) (IApp _ f arg)
+    dropWithArgs (S k) (Elaboratable_Apply _ f arg)
         = do (tm, rest) <- dropWithArgs k f
              pure (tm, arg :: rest)
-    dropWithArgs (S k) (IWithApp _ f arg)
+    dropWithArgs (S k) (Elaboratable_With_Apply _ f arg)
         = do (tm, rest) <- dropWithArgs k f
              pure (tm, arg :: rest)
     -- Shouldn't happen if parsed correctly, but there's no guarantee that
@@ -225,10 +225,10 @@ withRHS fc drop wname wargnames tm toplhs
   where
     withApply : FC -> RawImp -> List RawImp -> RawImp
     withApply fc f [] = f
-    withApply fc f (a :: as) = withApply fc (IWithApp fc f a) as
+    withApply fc f (a :: as) = withApply fc (Elaboratable_With_Apply fc f a) as
 
     updateWith : FC -> RawImp -> List RawImp -> Core RawImp
-    updateWith fc (IWithApp _ f a) ws = updateWith fc f (a :: ws)
+    updateWith fc (Elaboratable_With_Apply _ f a) ws = updateWith fc f (a :: ws)
     updateWith fc tm []
         = throw (GenericMsg fc "Badly formed 'with' application")
     updateWith fc tm (arg :: args)
@@ -236,7 +236,7 @@ withRHS fc drop wname wargnames tm toplhs
              ms <- getMatch False toplhs tm
              hdloc <- getHeadLoc tm
              log "declare.def.clause.with" 10 $ "Result: " ++ show ms
-             let newrhs = apply (IVar hdloc wname)
+             let newrhs = apply (Elaboratable_Name hdloc wname)
                                 (map (getArgMatch fc InExpr True arg ms) wargnames)
              log "declare.def.clause.with" 10 $ "With args for RHS: " ++ show wargnames
              log "declare.def.clause.with" 10 $ "New RHS: " ++ show newrhs
@@ -244,29 +244,29 @@ withRHS fc drop wname wargnames tm toplhs
 
     mutual
       wrhs : RawImp -> Core RawImp
-      wrhs (IPi fc c p n ty sc)
-          = pure $ IPi fc c p n !(wrhs ty) !(wrhs sc)
-      wrhs (ILam fc c p n ty sc)
-          = pure $ ILam fc c p n !(wrhs ty) !(wrhs sc)
-      wrhs (ILet fc lhsFC c n ty val sc)
-          = pure $ ILet fc lhsFC c n !(wrhs ty) !(wrhs val) !(wrhs sc)
-      wrhs (ICase fc opts sc ty clauses)
-          = pure $ ICase fc opts !(wrhs sc) !(wrhs ty) !(traverse wrhsC clauses)
-      wrhs (ILocal fc decls sc)
-          = pure $ ILocal fc decls !(wrhs sc) -- TODO!
-      wrhs (IUpdate fc upds tm)
-          = pure $ IUpdate fc upds !(wrhs tm) -- TODO!
-      wrhs (IApp fc f a)
-          = pure $ IApp fc !(wrhs f) !(wrhs a)
-      wrhs (IAutoApp fc f a)
-          = pure $ IAutoApp fc !(wrhs f) !(wrhs a)
-      wrhs (INamedApp fc f n a)
-          = pure $ INamedApp fc !(wrhs f) n !(wrhs a)
-      wrhs (IWithApp fc f a) = updateWith fc f [a]
-      wrhs (IRewrite fc rule tm) = pure $ IRewrite fc !(wrhs rule) !(wrhs tm)
-      wrhs (IDelayed fc r tm) = pure $ IDelayed fc r !(wrhs tm)
-      wrhs (IDelay fc tm) = pure $ IDelay fc !(wrhs tm)
-      wrhs (IForce fc tm) = pure $ IForce fc !(wrhs tm)
+      wrhs (Elaboratable_Dependent_Function_Type fc c p n ty sc)
+          = pure $ Elaboratable_Dependent_Function_Type fc c p n !(wrhs ty) !(wrhs sc)
+      wrhs (Elaboratable_Lambda fc c p n ty sc)
+          = pure $ Elaboratable_Lambda fc c p n !(wrhs ty) !(wrhs sc)
+      wrhs (Elaboratable_Binding fc lhsFC c n ty val sc)
+          = pure $ Elaboratable_Binding fc lhsFC c n !(wrhs ty) !(wrhs val) !(wrhs sc)
+      wrhs (Elaboratable_Case fc opts sc ty clauses)
+          = pure $ Elaboratable_Case fc opts !(wrhs sc) !(wrhs ty) !(traverse wrhsC clauses)
+      wrhs (Elaboratable_Local_Definitions fc decls sc)
+          = pure $ Elaboratable_Local_Definitions fc decls !(wrhs sc) -- TODO!
+      wrhs (Elaboratable_Record_Update fc upds tm)
+          = pure $ Elaboratable_Record_Update fc upds !(wrhs tm) -- TODO!
+      wrhs (Elaboratable_Apply fc f a)
+          = pure $ Elaboratable_Apply fc !(wrhs f) !(wrhs a)
+      wrhs (Elaboratable_Automatic_Apply fc f a)
+          = pure $ Elaboratable_Automatic_Apply fc !(wrhs f) !(wrhs a)
+      wrhs (Elaboratable_Named_Apply fc f n a)
+          = pure $ Elaboratable_Named_Apply fc !(wrhs f) n !(wrhs a)
+      wrhs (Elaboratable_With_Apply fc f a) = updateWith fc f [a]
+      wrhs (Elaboratable_Rewrite fc rule tm) = pure $ Elaboratable_Rewrite fc !(wrhs rule) !(wrhs tm)
+      wrhs (Elaboratable_Delayed_Type fc r tm) = pure $ Elaboratable_Delayed_Type fc r !(wrhs tm)
+      wrhs (Elaboratable_Delay fc tm) = pure $ Elaboratable_Delay fc !(wrhs tm)
+      wrhs (Elaboratable_Force fc tm) = pure $ Elaboratable_Force fc !(wrhs tm)
       wrhs tm = pure tm
 
       wrhsC : ImpClause -> Core ImpClause
