@@ -207,6 +207,7 @@ A new thread working on Edric should:
 - Ordinary `.idr` use of `choice` and `one_of` as identifiers: preserved and regression-tested.
 - Idriç source spells natural numbers `ℕ`; the frontend lowers that spelling to inherited Idris 2 `Nat` internally.
 - Idriç source accepts `→`, `⇒`, `←`, and `≤` as compact aliases for `->`, `=>`, `<-`, and `<=`; the ASCII spellings remain accepted.
+- In `.idric` source, `prefix` is contextual: it remains the fixity-declaration word before a precedence and operator, and is otherwise available as an ordinary name.
 - The aliases are filename-scoped to `.idric`; ordinary `.idr` Unicode identifiers remain unchanged.
 - Canonical Unicode pretty-printing is not yet claimed by this input-syntax slice.
 - Historical broad mechanical Unicode rewrite: reference only, not the base.
