@@ -564,7 +564,7 @@ makeHelper fc rig opts env letty targetty ((locapp, ds) :: next)
               | _ => do log "interaction.search" 10 "No results"
                         noResult
 
-         let helperdef = Elaboratable_Definition fc helpern (snd helper)
+         let helperdef = Elaborable_Definition fc helpern (snd helper)
          log "interaction.search" 10 $ "Def: " ++ show helperdef
          pure ((::) (def, helperdef :: ds) -- plus helper
                       (do next' <- next

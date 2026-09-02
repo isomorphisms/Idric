@@ -27,12 +27,12 @@ expandAmbigName : {vars : _} ->
                   ElabMode -> NestedNames vars -> Env Term vars -> RawImp ->
                   List (FC, Maybe (Maybe Name), RawImp) ->
                   RawImp -> Maybe (Glued vars) -> Core RawImp
-expandAmbigName (InLHS _) nest env orig args (Elaboratable_Bind_Name fc n) exp
+expandAmbigName (InLHS _) nest env orig args (Elaborable_Bind_Name fc n) exp
     = do est <- get EST
          if n `elem` lhsPatVars est
-            then pure $ Elaboratable_Must_Unify fc NonLinearVar orig
+            then pure $ Elaborable_Must_Unify fc NonLinearVar orig
             else pure $ orig
-expandAmbigName mode nest env orig args (Elaboratable_Name fc x) exp
+expandAmbigName mode nest env orig args (Elaborable_Name fc x) exp
    = case lookup x (names nest) of
           Just _ => do log "elab.ambiguous" 20 $ "Nested " ++ show x
                        pure orig
@@ -43,7 +43,7 @@ expandAmbigName mode nest env orig args (Elaboratable_Name fc x) exp
                     if isNil args || notLHS mode
                        then do log "elab.ambiguous" 20 $ "Defined in env " ++ show x
                                pure $ orig
-                       else pure $ Elaboratable_Must_Unify fc VarApplied orig
+                       else pure $ Elaborable_Must_Unify fc VarApplied orig
                   Nothing =>
                      do est <- get EST
                         primNs <- getPrimNames
@@ -65,7 +65,7 @@ expandAmbigName mode nest env orig args (Elaboratable_Name fc x) exp
                                nalts =>
                                      do log "elab.ambiguous" 10 $
                                           "Ambiguous: " ++ joinBy ", " (map (show . fst) nalts)
-                                        pure $ Elaboratable_Alternative fc
+                                        pure $ Elaborable_Alternative fc
                                                       (uniqType x args primNs)
                                                       (map (mkAlt primApp est) nalts)
   where
@@ -86,21 +86,21 @@ expandAmbigName mode nest env orig args (Elaboratable_Name fc x) exp
     -- the primitive directly
     -- The order of the arguments have a big effect on case-tree size
     uniqType : Name -> List (FC, Maybe (Maybe Name), RawImp) -> PrimNames -> AltType
-    uniqType n [(_, _, Elaboratable_Primitive_Value fc (BI x))] (MkPrimNs (Just fi) _ _ _ _ _ _)
-        = UniqueDefault (Elaboratable_Primitive_Value fc (BI x))
-    uniqType n [(_, _, Elaboratable_Primitive_Value fc (Str x))] (MkPrimNs _ (Just si) _ _ _ _ _)
-        = UniqueDefault (Elaboratable_Primitive_Value fc (Str x))
-    uniqType n [(_, _, Elaboratable_Primitive_Value fc (Ch x))] (MkPrimNs _ _ (Just ci) _ _ _ _)
-        = UniqueDefault (Elaboratable_Primitive_Value fc (Ch x))
-    uniqType n [(_, _, Elaboratable_Primitive_Value fc (Db x))] (MkPrimNs _ _ _ (Just di) _ _ _)
-        = UniqueDefault (Elaboratable_Primitive_Value fc (Db x))
-    uniqType n [(_, _, Elaboratable_Quote fc tm)] (MkPrimNs _ _ _ _ (Just dt) _ _)
-        = UniqueDefault (Elaboratable_Quote fc tm)
+    uniqType n [(_, _, Elaborable_Primitive_Value fc (BI x))] (MkPrimNs (Just fi) _ _ _ _ _ _)
+        = UniqueDefault (Elaborable_Primitive_Value fc (BI x))
+    uniqType n [(_, _, Elaborable_Primitive_Value fc (Str x))] (MkPrimNs _ (Just si) _ _ _ _ _)
+        = UniqueDefault (Elaborable_Primitive_Value fc (Str x))
+    uniqType n [(_, _, Elaborable_Primitive_Value fc (Ch x))] (MkPrimNs _ _ (Just ci) _ _ _ _)
+        = UniqueDefault (Elaborable_Primitive_Value fc (Ch x))
+    uniqType n [(_, _, Elaborable_Primitive_Value fc (Db x))] (MkPrimNs _ _ _ (Just di) _ _ _)
+        = UniqueDefault (Elaborable_Primitive_Value fc (Db x))
+    uniqType n [(_, _, Elaborable_Quote fc tm)] (MkPrimNs _ _ _ _ (Just dt) _ _)
+        = UniqueDefault (Elaborable_Quote fc tm)
         {-
-    uniqType n [(_, _, Elaboratable_Quote_Name fc tm)] (MkPrimNs _ _ _ _ _ (Just dn) _)
-        = UniqueDefault (Elaboratable_Quote_Name fc tm)
-    uniqType n [(_, _, Elaboratable_Quote_Declarations fc tm)] (MkPrimNs _ _ _ _ _ _ (Just ddl))
-        = UniqueDefault (Elaboratable_Quote_Declarations fc tm)
+    uniqType n [(_, _, Elaborable_Quote_Name fc tm)] (MkPrimNs _ _ _ _ _ (Just dn) _)
+        = UniqueDefault (Elaborable_Quote_Name fc tm)
+    uniqType n [(_, _, Elaborable_Quote_Declarations fc tm)] (MkPrimNs _ _ _ _ _ _ (Just ddl))
+        = UniqueDefault (Elaborable_Quote_Declarations fc tm)
         -}
     uniqType _ _ _ = Unique
 
@@ -108,11 +108,11 @@ expandAmbigName mode nest env orig args (Elaboratable_Name fc x) exp
                RawImp
     buildAlt f [] = f
     buildAlt f ((fc', Nothing, a) :: as)
-        = buildAlt (Elaboratable_Apply fc' f a) as
+        = buildAlt (Elaborable_Apply fc' f a) as
     buildAlt f ((fc', Just Nothing, a) :: as)
-        = buildAlt (Elaboratable_Automatic_Apply fc' f a) as
+        = buildAlt (Elaborable_Automatic_Apply fc' f a) as
     buildAlt f ((fc', Just (Just i), a) :: as)
-        = buildAlt (Elaboratable_Named_Apply fc' f i a) as
+        = buildAlt (Elaborable_Named_Apply fc' f i a) as
 
     -- If it's not a constructor application, dot it
     wrapDot : Bool -> EState vars ->
@@ -124,11 +124,11 @@ expandAmbigName mode nest env orig args (Elaboratable_Name fc x) exp
     wrapDot prim est (InLHS _) n' [arg] _ tm
        = if n' == Resolved (defining est) || prim
             then tm
-            else Elaboratable_Must_Unify fc NotConstructor tm
+            else Elaborable_Must_Unify fc NotConstructor tm
     wrapDot prim est (InLHS _) n' _ _ tm
        = if n' == Resolved (defining est)
             then tm
-            else Elaboratable_Must_Unify fc NotConstructor tm
+            else Elaborable_Must_Unify fc NotConstructor tm
     wrapDot _ _ _ _ _ _ tm = tm
 
     notLHS : ElabMode -> Bool
@@ -140,9 +140,9 @@ expandAmbigName mode nest env orig args (Elaboratable_Name fc x) exp
         = if (Context.Macro `elem` flags def) && notLHS mode
              then alternativeFirstSuccess $ reverse $
                     allSplits args <&> \(macroArgs, extArgs) =>
-                      (Elaboratable_Run_Elaborator fc False $ Elaboratable_Coerced fc $ Elaboratable_Name fc n `buildAlt` macroArgs) `buildAlt` extArgs
+                      (Elaborable_Run_Elaborator fc False $ Elaborable_Coerced fc $ Elaborable_Name fc n `buildAlt` macroArgs) `buildAlt` extArgs
              else wrapDot prim est mode n (map (snd . snd) args)
-                    (definition def) (buildAlt (Elaboratable_Name fc n) args)
+                    (definition def) (buildAlt (Elaborable_Name fc n) args)
       where
         -- All splits of the original list starting from the (empty, full) finishing with (full, empty)
         allSplits : (l : List a) -> Vect (S $ length l) (List a, List a)
@@ -151,19 +151,19 @@ expandAmbigName mode nest env orig args (Elaboratable_Name fc x) exp
 
         alternativeFirstSuccess : forall n. Vect (S n) RawImp -> RawImp
         alternativeFirstSuccess [x] = x
-        alternativeFirstSuccess xs  = Elaboratable_Alternative fc FirstSuccess $ toList xs
+        alternativeFirstSuccess xs  = Elaborable_Alternative fc FirstSuccess $ toList xs
 
     mkAlt : Bool -> EState vars -> (Name, Int, GlobalDef) -> RawImp
     mkAlt prim est (fullname, i, gdef)
         = mkTerm prim est (Resolved i) gdef
 
-expandAmbigName mode nest env orig args (Elaboratable_Apply fc f a) exp
+expandAmbigName mode nest env orig args (Elaborable_Apply fc f a) exp
     = expandAmbigName mode nest env orig
                       ((fc, Nothing, a) :: args) f exp
-expandAmbigName mode nest env orig args (Elaboratable_Named_Apply fc f n a) exp
+expandAmbigName mode nest env orig args (Elaborable_Named_Apply fc f n a) exp
     = expandAmbigName mode nest env orig
                       ((fc, Just (Just n), a) :: args) f exp
-expandAmbigName mode nest env orig args (Elaboratable_Automatic_Apply fc f a) exp
+expandAmbigName mode nest env orig args (Elaborable_Automatic_Apply fc f a) exp
     = expandAmbigName mode nest env orig
                       ((fc, Just Nothing, a) :: args) f exp
 expandAmbigName elabmode nest env orig args tm exp
@@ -248,8 +248,8 @@ couldBeName defs target n
 couldBeFn : {auto c : Ref Ctxt Defs} ->
             {vars : _} ->
             Defs -> NF vars -> RawImp -> Core TypeMatch
-couldBeFn defs ty (Elaboratable_Name _ n) = couldBeName defs ty n
-couldBeFn defs ty (Elaboratable_Alternative {}) = pure Concrete
+couldBeFn defs ty (Elaborable_Name _ n) = couldBeName defs ty n
+couldBeFn defs ty (Elaborable_Alternative {}) = pure Concrete
 couldBeFn defs ty _ = pure Poly
 
 -- Returns Nothing if there's no possibility the expression's type matches
@@ -282,7 +282,7 @@ notOverloadable defs (True, fn) = pure True
 notOverloadable defs (concrete, fn) = notOverloadableFn (getFn fn)
   where
     notOverloadableFn : RawImp -> Core Bool
-    notOverloadableFn (Elaboratable_Name _ n)
+    notOverloadableFn (Elaborable_Name _ n)
         = do Just gdef <- lookupCtxtExact n (gamma defs)
                   | Nothing => pure True
              pure False -- If the name exists, and doesn't have a concrete type
@@ -332,10 +332,10 @@ checkAmbigDepth fc info
               throw (AmbiguityTooDeep fc (Resolved (defining est)) ambs)
 
 getName : RawImp -> Maybe Name
-getName (Elaboratable_Name _ n) = Just n
-getName (Elaboratable_Apply _ f _) = getName f
-getName (Elaboratable_Named_Apply _ f _ _) = getName f
-getName (Elaboratable_Automatic_Apply _ f _) = getName f
+getName (Elaborable_Name _ n) = Just n
+getName (Elaborable_Apply _ f _) = getName f
+getName (Elaborable_Named_Apply _ f _ _) = getName f
+getName (Elaborable_Automatic_Apply _ f _) = getName f
 getName _ = Nothing
 
 export

@@ -103,7 +103,7 @@ localHelper {vars} nest env nestdecls_in func
     updateDataName nest (MkImpLater loc' n tycons)
         = MkImpLater loc' (mapNestedName nest n) tycons
 
-    updateFieldName : NestedNames vars -> Elaboratable_Field -> Elaboratable_Field
+    updateFieldName : NestedNames vars -> Elaborable_Field -> Elaborable_Field
     updateFieldName nest field
         = update "name" (map (mapNestedName nest)) field
 
@@ -119,34 +119,34 @@ localHelper {vars} nest env nestdecls_in func
     updateRecordNS nest (Just ns) = Just $ show $ mapNestedName nest (UN $ mkUserName ns)
 
     updateName : NestedNames vars -> ImpDecl -> ImpDecl
-    updateName nest (Elaboratable_Claim claim)
-         = Elaboratable_Claim $ map {type $= updateTyName nest} claim
-    updateName nest (Elaboratable_Definition loc' n cs)
-         = Elaboratable_Definition loc' (mapNestedName nest n) cs
-    updateName nest (Elaboratable_Data_Declaration loc' vis mbt d)
-         = Elaboratable_Data_Declaration loc' vis mbt (updateDataName nest d)
-    updateName nest (Elaboratable_Record_Declaration loc' ns vis mbt imprecord)
-         = Elaboratable_Record_Declaration loc' (updateRecordNS nest ns) vis mbt (map (updateRecordName nest) imprecord)
+    updateName nest (Elaborable_Claim claim)
+         = Elaborable_Claim $ map {type $= updateTyName nest} claim
+    updateName nest (Elaborable_Definition loc' n cs)
+         = Elaborable_Definition loc' (mapNestedName nest n) cs
+    updateName nest (Elaborable_Data_Declaration loc' vis mbt d)
+         = Elaborable_Data_Declaration loc' vis mbt (updateDataName nest d)
+    updateName nest (Elaborable_Record_Declaration loc' ns vis mbt imprecord)
+         = Elaborable_Record_Declaration loc' (updateRecordNS nest ns) vis mbt (map (updateRecordName nest) imprecord)
     updateName nest i = i
 
     setPublic : ImpDecl -> ImpDecl
-    setPublic (Elaboratable_Claim claim)
-        = Elaboratable_Claim $ map {vis := Public} claim
-    setPublic (Elaboratable_Data_Declaration fc _ mbt d) = Elaboratable_Data_Declaration fc (specified Public) mbt d
-    setPublic (Elaboratable_Record_Declaration fc c _ mbt r) = Elaboratable_Record_Declaration fc c (specified Public) mbt r
-    setPublic (Elaboratable_Parameter_Block fc ps decls)
-        = Elaboratable_Parameter_Block fc ps (map setPublic decls)
-    setPublic (Elaboratable_Namespace_Block fc ps decls)
-        = Elaboratable_Namespace_Block fc ps (map setPublic decls)
+    setPublic (Elaborable_Claim claim)
+        = Elaborable_Claim $ map {vis := Public} claim
+    setPublic (Elaborable_Data_Declaration fc _ mbt d) = Elaborable_Data_Declaration fc (specified Public) mbt d
+    setPublic (Elaborable_Record_Declaration fc c _ mbt r) = Elaborable_Record_Declaration fc c (specified Public) mbt r
+    setPublic (Elaborable_Parameter_Block fc ps decls)
+        = Elaborable_Parameter_Block fc ps (map setPublic decls)
+    setPublic (Elaborable_Namespace_Block fc ps decls)
+        = Elaborable_Namespace_Block fc ps (map setPublic decls)
     setPublic d = d
 
     setErased : ImpDecl -> ImpDecl
-    setErased (Elaboratable_Claim claim)
-        = Elaboratable_Claim $ map {rig := erased} claim
-    setErased (Elaboratable_Parameter_Block fc ps decls)
-        = Elaboratable_Parameter_Block fc ps (map setErased decls)
-    setErased (Elaboratable_Namespace_Block fc ps decls)
-        = Elaboratable_Namespace_Block fc ps (map setErased decls)
+    setErased (Elaborable_Claim claim)
+        = Elaborable_Claim $ map {rig := erased} claim
+    setErased (Elaborable_Parameter_Block fc ps decls)
+        = Elaborable_Parameter_Block fc ps (map setErased decls)
+    setErased (Elaborable_Namespace_Block fc ps decls)
+        = Elaborable_Namespace_Block fc ps (map setErased decls)
     setErased d = d
 
 export

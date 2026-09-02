@@ -83,7 +83,7 @@ The ``CompileData`` contains:
 - A main expression that will be the entry point for the program in ``CExp``
 - A list of ``Core.CompileExpr.NamedDef``
 - A list of lambda-lifted definitions ``Compiler.LambdaLift.LiftedDef``
-- A list of ``Compiler.ANF.ANFDef``
+- A list of ``Compiler.ANF.Administrative_Normal_Form_Definition``
 - A list of ``Compiler.VMCode.VMDef`` definitions
 
 These lists contain:
@@ -126,7 +126,7 @@ definitions that needs to be compiled. These are:
 
 - ``NamedDef``
 - ``LiftedDef``
-- ``ANFDef``
+- ``Administrative_Normal_Form_Definition``
 - ``VMDef``
 
 The question to answer here is: Which one should be picked?
@@ -527,18 +527,18 @@ stores a ``Nat`` together with a proof that it points to a valid name in
 the local scope.
 
 ``ANF`` is a lower level representation where this kind of guarantees are not
-present anymore. A local variable is represented using the ``AV`` constructor
-which stores an ``AVar`` whose definition we include below.
-The ``ALocal`` constructor stores an ``Int`` that corresponds to the ``Nat``
+present anymore. A local variable is represented using the ``Administrative_Normal_Form_Variable_Expression`` constructor
+which stores an ``Administrative_Normal_Form_Variable`` whose definition we include below.
+The ``Administrative_Normal_Form_Local_Variable`` constructor stores an ``Int`` that corresponds to the ``Nat``
 we would have seen in ``Lifted``.
-The ``ANull`` constructor refers to an erased variable and its representation
+The ``Administrative_Normal_Form_Erased_Variable`` constructor refers to an erased variable and its representation
 in the host language will depend on the design choices made in
 the 'How to represent ``Erased`` values' section.
 
 .. .code-block:: idri
-  data AVar : Type where
-     ALocal : Int -> AVar
-     ANull : AVar
+  data Administrative_Normal_Form_Variable : Type where
+     Administrative_Normal_Form_Local_Variable : Int -> Administrative_Normal_Form_Variable
+     Administrative_Normal_Form_Erased_Variable : Administrative_Normal_Form_Variable
 
 VMDef specificities
 ~~~~~~~~~~~~~~~~~~~

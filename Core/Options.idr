@@ -178,7 +178,7 @@ record Session where
   debugElabCheck : Bool -- do conversion check to verify results of elaborator
   dumpcases : Maybe String -- file to output compiled case trees
   dumplifted : Maybe String -- file to output lambda lifted definitions
-  dumpanf : Maybe String -- file to output ANF definitions
+  dumpanf : Maybe String -- file to output Administrative_Normal_Form definitions
   dumpvmcode : Maybe String -- file to output VM code definitions
   profile : Bool -- generate profiling information, if supported
   logErrorCount : Nat -- when parsing alternatives fails, how many errors

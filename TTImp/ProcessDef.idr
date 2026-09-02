@@ -322,7 +322,7 @@ checkLHS {vars} trans mult n opts nest env fc lhs_in
          (lhstm, lhstyg) <-
              wrapErrorC opts (InLHS fc !(getFullName (Resolved n))) $
                      elabTerm n lhsMode opts nest env
-                                (Elaboratable_Bind_Here fc PATTERN lhs) Nothing
+                                (Elaborable_Bind_Here fc PATTERN lhs) Nothing
          logTerm "declare.def.lhs" 5 "Checked LHS term" lhstm
          lhsty <- getTerm lhstyg
 
@@ -399,7 +399,7 @@ checkClause mult vis totreq hashit n opts nest env (ImpossibleClause fc lhs)
                logEnv "declare.def.clause.impossible" 5 "In env" env
                (lhstm, lhstyg) <-
                            elabTerm n (InLHS mult) opts nest env
-                                      (Elaboratable_Bind_Here fc COVERAGE lhs) Nothing
+                                      (Elaborable_Bind_Here fc COVERAGE lhs) Nothing
                defs <- get Ctxt
                lhs <- normaliseHoles defs env lhstm
                if !(hasEmptyPat defs env lhs)
@@ -513,17 +513,17 @@ checkClause {vars} mult vis totreq hashit n opts nest env
                                       vars wtype (specified vis) None))
 
          let toWarg : Maybe (PiInfo RawImp, Name) -> List (Maybe Name, RawImp)
-               := flip maybe (\pn => [(Nothing, Elaboratable_Name vfc (snd pn))]) $
+               := flip maybe (\pn => [(Nothing, Elaborable_Name vfc (snd pn))]) $
                     (Nothing, wval_raw) ::
                     case mprf of
                       Nothing => []
                       Just _  =>
                        let fc = emptyFC in
-                       let refl = Elaboratable_Name fc (NS builtinNS (UN $ Basic "Refl")) in
-                       [(map snd mprf, Elaboratable_Named_Apply fc refl (UN $ Basic "x") wval_raw)]
+                       let refl = Elaborable_Name fc (NS builtinNS (UN $ Basic "Refl")) in
+                       [(map snd mprf, Elaborable_Named_Apply fc refl (UN $ Basic "x") wval_raw)]
 
-         let rhs_in = gapply (Elaboratable_Name vfc wname)
-                    $ map (\ nm => (Nothing, Elaboratable_Name vfc nm)) envns
+         let rhs_in = gapply (Elaborable_Name vfc wname)
+                    $ map (\ nm => (Nothing, Elaborable_Name vfc nm)) envns
                    ++ concatMap toWarg wargNames
 
          log "declare.def.clause.with" 3 $ "Applying to with argument " ++ show rhs_in
@@ -539,7 +539,7 @@ checkClause {vars} mult vis totreq hashit n opts nest env
          nestname <- applyEnv env wname
          let nest'' = { names $= (nestname ::) } nest
 
-         let wdef = Elaboratable_Definition ifc wname cs'
+         let wdef = Elaborable_Definition ifc wname cs'
          processDecl [] nest'' env wdef
 
          pure (Right (MkClause env' lhspat rhs))
@@ -819,8 +819,8 @@ isAlias : RawImp -> Maybe ((FC, Name)              -- head symbol
                           , List (FC, (FC, Name))) -- pattern variables
 isAlias lhs
   = do let (hd, apps) = getFnArgs lhs []
-       hd <- is_elaboratable_name hd
-       args <- traverse (isExplicit >=> bitraverse pure is_elaboratable_bound_name) apps
+       hd <- is_elaborable_name hd
+       args <- traverse (isExplicit >=> bitraverse pure is_elaborable_bound_name) apps
        pure (hd, args)
 
 lookupOrAddAlias : {vars : _} ->
@@ -870,7 +870,7 @@ lookupOrAddAlias eopts nest env fc n [cl@(PatClause _ lhs _)]
     holeyType [] = Implicit fc False
     holeyType ((xfc, x) :: xs)
       = let xfc = virtualiseFC xfc in
-        Elaboratable_Dependent_Function_Type xfc top Explicit (Just x) (Implicit xfc False)
+        Elaborable_Dependent_Function_Type xfc top Explicit (Just x) (Implicit xfc False)
       $ holeyType xs
 
 lookupOrAddAlias _ _ _ fc n _
@@ -1009,7 +1009,7 @@ processDef opts nest env fc n_in cs_in
                    (_, lhstm) <- bindNames False itm
                    setUnboundImplicits autoimp
                    (lhstm, _) <- elabTerm n (InLHS mult) [] (MkNested []) Env.empty
-                                    (Elaboratable_Bind_Here fc COVERAGE lhstm) Nothing
+                                    (Elaborable_Bind_Here fc COVERAGE lhstm) Nothing
                    defs <- get Ctxt
                    lhs <- normaliseHoles defs Env.empty lhstm
                    if !(hasEmptyPat defs Env.empty lhs)

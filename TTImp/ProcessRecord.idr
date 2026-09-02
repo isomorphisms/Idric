@@ -25,7 +25,7 @@ import Data.String
 -- errors because they've been duplicated when forming the various types of the
 -- record constructor, getters, etc.
 killHole : RawImp -> RawImp
-killHole (Elaboratable_Hole fc str) = Implicit fc True
+killHole (Elaborable_Hole fc str) = Implicit fc True
 killHole t = t
 
 -- Projections are only visible if the record is public export
@@ -47,7 +47,7 @@ elabRecord : {vars : _} ->
              (params : List ImpParameter) ->
              (opts : List DataOpt) ->
              (conName : Name) ->
-             List Elaboratable_Field ->
+             List Elaborable_Field ->
              Core ()
 elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conName_in fields
     = do tn <- inCurrentNS tn_in
@@ -94,34 +94,34 @@ elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conNa
         -- and projections
         jname binder = Mk [EmptyFC, erased, Just binder.name] $ {info := Implicit} binder.val
 
-    fname : Elaboratable_Field -> Name
+    fname : Elaborable_Field -> Name
     fname field = field.name.val
 
-    farg : Elaboratable_Field -> AddFC (WithRig $ WithMName (PiBindData RawImp))
+    farg : Elaborable_Field -> AddFC (WithRig $ WithMName (PiBindData RawImp))
     farg field = Mk [virtualiseFC field.fc, field.rig, Just field.name] field.val
 
     mkTy : List (AddFC $ WithRig $ WithMName (PiBindData RawImp)) -> RawImp -> RawImp
     mkTy [] ret = ret
     mkTy (bind :: args) ret
-        = Elaboratable_Dependent_Function_Type bind.fc bind.rig bind.val.info (map val bind.mName) bind.val.boundType (mkTy args ret)
+        = Elaborable_Dependent_Function_Type bind.fc bind.rig bind.val.info (map val bind.mName) bind.val.boundType (mkTy args ret)
 
     recTy : (tn : Name) -> -- fully qualified name of the record type
             (params : List ImpParameter) -> -- list of all the parameters
             RawImp
-    recTy tn params = apply (Elaboratable_Name (virtualiseFC fc) tn) (map (\binder => (binder.name.val, Elaboratable_Name EmptyFC binder.name.val, binder.val.info)) params)
+    recTy tn params = apply (Elaborable_Name (virtualiseFC fc) tn) (map (\binder => (binder.name.val, Elaborable_Name EmptyFC binder.name.val, binder.val.info)) params)
       where
         ||| Apply argument to list of explicit or implicit named arguments
         apply : RawImp -> List (Name, RawImp, PiInfo RawImp) -> RawImp
         apply f [] = f
-        apply f ((n, arg, Explicit) :: xs) = apply (Elaboratable_Apply         (getFC f) f          arg) xs
-        apply f ((n, arg, _       ) :: xs) = apply (Elaboratable_Named_Apply (getFC f) f n arg) xs
+        apply f ((n, arg, Explicit) :: xs) = apply (Elaborable_Apply         (getFC f) f          arg) xs
+        apply f ((n, arg, _       ) :: xs) = apply (Elaborable_Named_Apply (getFC f) f n arg) xs
 
     paramNames : List ImpParameter -> List Name
     paramNames params = map (.name.val) params
 
     mkDataTy : FC -> List ImpParameter -> RawImp
-    mkDataTy fc [] = Elaboratable_Type_Universe fc
-    mkDataTy fc (binder :: ps) = Elaboratable_Dependent_Function_Type fc binder.rig binder.val.info (Just binder.name.val) binder.val.boundType (mkDataTy fc ps)
+    mkDataTy fc [] = Elaborable_Type_Universe fc
+    mkDataTy fc (binder :: ps) = Elaborable_Dependent_Function_Type fc binder.rig binder.val.info (Just binder.name.val) binder.val.boundType (mkDataTy fc ps)
 
     nestDrop : Core (List (Name, Nat))
     nestDrop
@@ -139,13 +139,13 @@ elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conNa
                     Core (List ImpParameter) -- New telescope of parameters, including missing bindings
     preElabAsData tn
         = do let fc = virtualiseFC fc
-             let dataTy = Elaboratable_Bind_Here fc (PI erased) !(bindTypeNames fc [] (toList vars) (mkDataTy fc params0))
+             let dataTy = Elaborable_Bind_Here fc (PI erased) !(bindTypeNames fc [] (toList vars) (mkDataTy fc params0))
              defs <- get Ctxt
              -- Create a forward declaration if none exists
              when (isNothing !(lookupTyExact tn (gamma defs))) $ do
                let dt = MkImpLater fc tn dataTy
                log "declare.record" 10 $ "Pre-declare record data type: \{show dt}"
-               processDecl [] nest env (Elaboratable_Data_Declaration fc def_vis mbtot dt)
+               processDecl [] nest env (Elaborable_Data_Declaration fc def_vis mbtot dt)
              defs <- get Ctxt
              Just ty <- lookupTyExact tn (gamma defs)
                | Nothing => throw (InternalError "Missing data type \{show tn}, despite having just declared it!")
@@ -180,10 +180,10 @@ elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conNa
           SnocList (WithRig $ WithMName $ PiBindData RawImp) -> -- accumulator
           RawImp' KindedName -> -- quoted type (some names may have disappeared)
           Core (SnocList (WithRig $ WithMName $ PiBindData RawImp))
-        getParameters acc (Elaboratable_Dependent_Function_Type fc rig pinfo mnm argTy retTy)
+        getParameters acc (Elaborable_Dependent_Function_Type fc rig pinfo mnm argTy retTy)
           = let clean = mapTTImp killHole . map fullName in
             getParameters (acc :< (Mk [rig, map NoFC mnm] (MkPiBindData (map clean pinfo) (clean argTy)))) retTy
-        getParameters acc (Elaboratable_Type_Universe _) = pure acc
+        getParameters acc (Elaborable_Type_Universe _) = pure acc
         getParameters acc ty = throw (InternalError "Malformed record type \{show ty}")
 
         addMissingNames :
@@ -221,7 +221,7 @@ elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conNa
                        !(bindTypeNames fc [] boundNames conty)
              let dt = MkImpData fc tn Nothing opts [con]
              log "declare.record" 5 $ "Record data type " ++ show dt
-             processDecl [] nest env (Elaboratable_Data_Declaration fc def_vis mbtot dt)
+             processDecl [] nest env (Elaborable_Data_Declaration fc def_vis mbtot dt)
 
     countExp : Term vs -> Nat
     countExp (Bind _ _ (Pi _ _ Explicit _) sc) = S (countExp sc)
@@ -267,11 +267,11 @@ elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conNa
                    projTy <- bindTypeNames fc []
                                  (paramNames ++ map fname fields ++ toList vars) $
                                       mkTy (paramTelescope params) $
-                                      Elaboratable_Dependent_Function_Type bfc top Explicit (Just rname) (recTy tn params) ty'
+                                      Elaborable_Dependent_Function_Type bfc top Explicit (Just rname) (recTy tn params) ty'
                    let fc' = virtualiseFC fc
                    let mkProjClaim = \ nm =>
                           let ty = Mk [fc', MkFCVal fc' nm] projTy
-                          in Elaboratable_Claim (MkFCVal bfc (Make_Elaboratable_Claim_Data rig isVis [Inline] ty))
+                          in Elaborable_Claim (MkFCVal bfc (Make_Elaborable_Claim_Data rig isVis [Inline] ty))
 
                    log "declare.record.projection.claim" 5 $
                       "Projection " ++ show rfNameNS ++ ": " ++ show projTy
@@ -279,18 +279,18 @@ elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conNa
 
                    -- Define the LHS and RHS
                    let lhs_exp
-                          = apply (Elaboratable_Name bfc con)
+                          = apply (Elaborable_Name bfc con)
                                     (replicate done (Implicit bfc True) ++
                                        (if imp == Explicit
-                                           then [Elaboratable_Bind_Name fc' unName]
+                                           then [Elaborable_Bind_Name fc' unName]
                                            else []) ++
                                     (replicate (countExp sc) (Implicit bfc True)))
-                   let lhs = Elaboratable_Apply bfc (Elaboratable_Name bfc rfNameNS)
+                   let lhs = Elaborable_Apply bfc (Elaborable_Name bfc rfNameNS)
                                 (if imp == Explicit
                                     then lhs_exp
-                                    else Elaboratable_Named_Apply bfc lhs_exp unName
-                                             (Elaboratable_Bind_Name bfc unName))
-                   let rhs = Elaboratable_Name fc' unName
+                                    else Elaborable_Named_Apply bfc lhs_exp unName
+                                             (Elaborable_Bind_Name bfc unName))
+                   let rhs = Elaborable_Name fc' unName
 
                    -- EtaExpand implicits on both sides:
                    -- First, obtain all the implicit names in the prefix of
@@ -299,7 +299,7 @@ elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conNa
 
                    log "declare.record.projection.clause" 5 $ "Projection " ++ show lhs ++ " = " ++ show rhs
                    processDecl [] nest env
-                       (Elaboratable_Definition bfc rfNameNS [PatClause bfc lhs rhs])
+                       (Elaborable_Definition bfc rfNameNS [PatClause bfc lhs rhs])
 
                    -- Make prefix projection aliases if requested
                    when !isPrefixRecordProjections $ do  -- beware: `!` is NOT boolean `not`!
@@ -310,12 +310,12 @@ elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conNa
                      processDecl [] nest env (mkProjClaim unNameNS)
 
                      -- Define the LHS and RHS
-                     let lhs = Elaboratable_Name bfc unNameNS
-                     let rhs = Elaboratable_Name bfc rfNameNS
+                     let lhs = Elaborable_Name bfc unNameNS
+                     let rhs = Elaborable_Name bfc rfNameNS
                      log "declare.record.projection.prefix" 5 $
                        "Prefix projection " ++ show lhs ++ " = " ++ show rhs
                      processDecl [] nest env
-                         (Elaboratable_Definition bfc unNameNS [PatClause bfc lhs rhs])
+                         (Elaborable_Definition bfc unNameNS [PatClause bfc lhs rhs])
 
                    -- Move on to the next getter.
                    --
@@ -328,8 +328,8 @@ elabRecord {vars} eopts fc env nest newns def_vis mbtot tn_in params0 opts conNa
                    -- (though the only difference I'm aware is in the output of the `:doc` command)
                    prefix_flag <- isPrefixRecordProjections
                    let upds' = if prefix_flag
-                         then (n, Elaboratable_Apply bfc (Elaboratable_Name bfc unNameNS) (Elaboratable_Name bfc rname)) :: upds
-                         else (n, Elaboratable_Apply bfc (Elaboratable_Name bfc rfNameNS) (Elaboratable_Name bfc rname)) :: upds
+                         then (n, Elaborable_Apply bfc (Elaborable_Name bfc unNameNS) (Elaborable_Name bfc rname)) :: upds
+                         else (n, Elaborable_Apply bfc (Elaborable_Name bfc rfNameNS) (Elaborable_Name bfc rname)) :: upds
 
                    elabGetters tn con params
                                (if imp == Explicit

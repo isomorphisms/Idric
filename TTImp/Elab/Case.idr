@@ -104,10 +104,10 @@ extendNeeded b env needed
 
 findScrutinee : {vs : _} ->
                 Env Term vs -> RawImp -> Maybe (Var vs)
-findScrutinee {vs = n' :: _} (b :: bs) (Elaboratable_Name loc' n)
+findScrutinee {vs = n' :: _} (b :: bs) (Elaborable_Name loc' n)
     = if n' == n && not (isLet b)
          then Just first
-         else do MkVar p <- findScrutinee bs (Elaboratable_Name loc' n)
+         else do MkVar p <- findScrutinee bs (Elaborable_Name loc' n)
                  Just (MkVar (Later p))
 findScrutinee _ _ = Nothing
 
@@ -120,7 +120,7 @@ bindCaseLocals : FC -> List (Name, Maybe Name, List (Var vars)) ->
 bindCaseLocals fc [] args rhs = rhs
 bindCaseLocals fc ((n, mn, envns) :: rest) argns rhs
     = -- trace ("Case local " ++ show (n,mn,envns) ++ " from " ++ show argns) $
-        Elaboratable_Case_Local_Definition fc n (fromMaybe n mn)
+        Elaborable_Case_Local_Definition fc n (fromMaybe n mn)
                  (map getNameFrom envns)
                  (bindCaseLocals fc rest argns rhs)
   where
@@ -241,7 +241,7 @@ caseBlock {vars} rigc elabinfo fc nest env opts scr scrtm scrty caseRig alts exp
          logTermNF "elab.case" 2 "Case application" env appTm
 
          -- Start with empty nested names, since we've extended the rhs with
-         -- Elaboratable_Case_Local_Definition so they'll get rebuilt with the right environment
+         -- Elaborable_Case_Local_Definition so they'll get rebuilt with the right environment
          let nest' = MkNested []
          ust <- get UST
          -- We don't want to keep rechecking delayed elaborators in the
@@ -249,7 +249,7 @@ caseBlock {vars} rigc elabinfo fc nest env opts scr scrtm scrty caseRig alts exp
          -- we come out again, so save them
          let olddelayed = delayedElab ust
          put UST ({ delayedElab := [] } ust)
-         processDecl [InCase] nest' Env.empty (Elaboratable_Definition fc casen alts')
+         processDecl [InCase] nest' Env.empty (Elaborable_Definition fc casen alts')
 
          -- If there's no duplication of the scrutinee in the block,
          -- flag it as inlinable.
@@ -275,7 +275,7 @@ caseBlock {vars} rigc elabinfo fc nest env opts scr scrtm scrty caseRig alts exp
               b' :: mkLocalEnv bs
 
     -- Return the original name in the environment, and what it needs to be
-    -- called in the case block. We need to mapping to build the Elaboratable_Case_Local_Definition
+    -- called in the case block. We need to mapping to build the Elaborable_Case_Local_Definition
     -- so that it applies to the right original variable
     getBindName : Int -> Name -> List Name -> (Name, Name)
     getBindName idx n@(UN un) vs
@@ -293,7 +293,7 @@ caseBlock {vars} rigc elabinfo fc nest env opts scr scrtm scrty caseRig alts exp
         = let n = getBindName idx v used
               (ns, rest) = addEnv (idx + 1) bs (snd n :: used)
               ns' = n :: ns in
-              (ns', Elaboratable_As_Pattern fc EmptyFC UseLeft (snd n) (Implicit fc True) :: rest)
+              (ns', Elaborable_As_Pattern fc EmptyFC UseLeft (snd n) (Implicit fc True) :: rest)
 
     -- Replace a variable in the argument list; if the reference is to
     -- a variable kept in the outer environment (therefore not an argument
@@ -301,7 +301,7 @@ caseBlock {vars} rigc elabinfo fc nest env opts scr scrtm scrty caseRig alts exp
     replace : (idx : Nat) -> RawImp -> List RawImp -> List RawImp
     replace Z lhs (old :: xs)
        = let lhs' = case old of
-                         Elaboratable_As_Pattern loc' nameLoc' side n _ => Elaboratable_As_Pattern loc' nameLoc' side n lhs
+                         Elaborable_As_Pattern loc' nameLoc' side n _ => Elaborable_As_Pattern loc' nameLoc' side n lhs
                          _ => lhs in
              lhs' :: xs
     replace (S k) lhs (x :: xs)
@@ -318,17 +318,17 @@ caseBlock {vars} rigc elabinfo fc nest env opts scr scrtm scrty caseRig alts exp
     -- Names used in the pattern we're matching on, so don't bind them
     -- in the generated case block
     usedIn : RawImp -> List Name
-    usedIn (Elaboratable_Bind_Name _ n) = [n]
-    usedIn (Elaboratable_Apply _ f a) = usedIn f ++ usedIn a
-    usedIn (Elaboratable_As_Pattern _ _ _ n a) = n :: usedIn a
-    usedIn (Elaboratable_Alternative _ _ alts) = concatMap usedIn alts
+    usedIn (Elaborable_Bind_Name _ n) = [n]
+    usedIn (Elaborable_Apply _ f a) = usedIn f ++ usedIn a
+    usedIn (Elaborable_As_Pattern _ _ _ n a) = n :: usedIn a
+    usedIn (Elaborable_Alternative _ _ alts) = concatMap usedIn alts
     usedIn _ = []
 
     -- Get a name update for the LHS (so that if there's a nested data declaration
     -- the constructors are applied to the environment in the case block)
     nestLHS : FC -> (Name, (Maybe Name, List (Var vars), a)) -> (Name, RawImp)
     nestLHS fc (n, (mn, ns, t))
-        = (n, apply (Elaboratable_Name fc (fromMaybe n mn))
+        = (n, apply (Elaborable_Name fc (fromMaybe n mn))
                     (map (const (Implicit fc False)) ns))
 
     applyNested : NestedNames vars -> RawImp -> RawImp
@@ -342,7 +342,7 @@ caseBlock {vars} rigc elabinfo fc nest env opts scr scrtm scrty caseRig alts exp
     updateClause casen splitOn nest env (PatClause loc' lhs rhs)
         = let (ns, args) = addEnv 0 env (usedIn lhs)
               args' = mkSplit splitOn lhs args
-              lhs' = apply (Elaboratable_Name loc' casen) args' in
+              lhs' = apply (Elaborable_Name loc' casen) args' in
               PatClause loc' (applyNested nest lhs')
                         (bindCaseLocals loc' (map getNestData (names nest))
                                         ns rhs)
@@ -350,12 +350,12 @@ caseBlock {vars} rigc elabinfo fc nest env opts scr scrtm scrty caseRig alts exp
     updateClause casen splitOn nest env (WithClause loc' lhs rig wval prf flags cs)
         = let (_, args) = addEnv 0 env (usedIn lhs)
               args' = mkSplit splitOn lhs args
-              lhs' = apply (Elaboratable_Name loc' casen) args' in
+              lhs' = apply (Elaborable_Name loc' casen) args' in
               WithClause loc' (applyNested nest lhs') rig wval prf flags cs
     updateClause casen splitOn nest env (ImpossibleClause loc' lhs)
         = let (_, args) = addEnv 0 env (usedIn lhs)
               args' = mkSplit splitOn lhs args
-              lhs' = apply (Elaboratable_Name loc' casen) args' in
+              lhs' = apply (Elaborable_Name loc' casen) args' in
               ImpossibleClause loc' (applyNested nest lhs')
 
 
@@ -416,10 +416,10 @@ checkCase rig elabinfo nest env fc opts scr scrty_in alts exp
 
     applyTo : Defs -> RawImp -> ClosedNF -> Core RawImp
     applyTo defs ty (NBind fc _ (Pi _ _ Explicit _) sc)
-        = applyTo defs (Elaboratable_Apply fc ty (Implicit fc False))
+        = applyTo defs (Elaborable_Apply fc ty (Implicit fc False))
                !(sc defs (toClosure defaultOpts Env.empty (Erased fc Placeholder)))
     applyTo defs ty (NBind _ x (Pi {}) sc)
-        = applyTo defs (Elaboratable_Named_Apply fc ty x (Implicit fc False))
+        = applyTo defs (Elaborable_Named_Apply fc ty x (Implicit fc False))
                !(sc defs (toClosure defaultOpts Env.empty (Erased fc Placeholder)))
     applyTo defs ty _ = pure ty
 
@@ -439,12 +439,12 @@ checkCase rig elabinfo nest env fc opts scr scrty_in alts exp
     guessScrType [] = pure $ Implicit fc False
     guessScrType (PatClause _ x _ :: xs)
         = case getFn x of
-               Elaboratable_Name _ n =>
+               Elaborable_Name _ n =>
                   do defs <- get Ctxt
                      [(_, (_, ty))] <- lookupTyName (mapNestedName nest n) (gamma defs)
                          | _ => guessScrType xs
                      Just (tyn, tyty) <- getRetTy defs !(nf defs Env.empty ty)
                          | _ => guessScrType xs
-                     applyTo defs (Elaboratable_Name fc tyn) tyty
+                     applyTo defs (Elaborable_Name fc tyn) tyty
                _ => guessScrType xs
     guessScrType (_ :: xs) = guessScrType xs

@@ -134,8 +134,8 @@ expandCon fc usedvars con
     = do defs <- get Ctxt
          Just ty <- lookupTyExact con (gamma defs)
               | Nothing => undefinedName fc con
-         pure (apply (Elaboratable_Name fc con)
-                (map (Elaboratable_Bind_Name fc . UN . Basic)
+         pure (apply (Elaborable_Name fc con)
+                (map (Elaborable_Bind_Name fc . UN . Basic)
                      !(getArgNames defs [] usedvars Env.empty
                                    !(nf defs Env.empty ty))))
 
@@ -143,25 +143,25 @@ updateArg : {auto c : Ref Ctxt Defs} ->
             List Name -> -- all the variable names
             (var : Name) -> (con : Name) ->
             RawImp -> Core RawImp
-updateArg allvars var con (Elaboratable_Name fc n)
+updateArg allvars var con (Elaborable_Name fc n)
     = if n `elem` allvars
          then if n == var
                  then expandCon fc (filter (/= n) allvars) con
                  else pure $ Implicit fc True
-         else pure $ Elaboratable_Name fc n
-updateArg allvars var con (Elaboratable_Apply fc f a)
-    = pure $ Elaboratable_Apply fc !(updateArg allvars var con f)
+         else pure $ Elaborable_Name fc n
+updateArg allvars var con (Elaborable_Apply fc f a)
+    = pure $ Elaborable_Apply fc !(updateArg allvars var con f)
                      !(updateArg allvars var con a)
-updateArg allvars var con (Elaboratable_With_Apply fc f a)
-    = pure $ Elaboratable_With_Apply fc !(updateArg allvars var con f)
+updateArg allvars var con (Elaborable_With_Apply fc f a)
+    = pure $ Elaborable_With_Apply fc !(updateArg allvars var con f)
                          !(updateArg allvars var con a)
-updateArg allvars var con (Elaboratable_Automatic_Apply fc f a)
-    = pure $ Elaboratable_Automatic_Apply fc !(updateArg allvars var con f)
+updateArg allvars var con (Elaborable_Automatic_Apply fc f a)
+    = pure $ Elaborable_Automatic_Apply fc !(updateArg allvars var con f)
                          !(updateArg allvars var con a)
-updateArg allvars var con (Elaboratable_Named_Apply fc f n a)
-    = pure $ Elaboratable_Named_Apply fc !(updateArg allvars var con f) n
+updateArg allvars var con (Elaborable_Named_Apply fc f n a)
+    = pure $ Elaborable_Named_Apply fc !(updateArg allvars var con f) n
                           !(updateArg allvars var con a)
-updateArg allvars var con (Elaboratable_As_Pattern fc nameFC s n p)
+updateArg allvars var con (Elaborable_As_Pattern fc nameFC s n p)
     = updateArg allvars var con p
 updateArg allvars var con tm = pure $ Implicit (getFC tm) True
 
@@ -204,37 +204,37 @@ recordUpdate : {auto u : Ref UPD Updates} ->
                FC -> Name -> RawImp -> Core ()
 recordUpdate fc n tm
     = do u <- get UPD
-         let nupdates = mapSnd (Elaboratable_Name fc) <$> namemap u
+         let nupdates = mapSnd (Elaborable_Name fc) <$> namemap u
          put UPD ({ updates $= ((n, substNames [] nupdates tm) ::) } u)
 
 findUpdates : {auto u : Ref UPD Updates} ->
               Defs -> RawImp -> RawImp -> Core ()
-findUpdates defs (Elaboratable_Name fc n) (Elaboratable_Name _ n')
+findUpdates defs (Elaborable_Name fc n) (Elaborable_Name _ n')
     = case !(lookupTyExact n' (gamma defs)) of
-           Just _ => recordUpdate fc n (Elaboratable_Name fc n')
+           Just _ => recordUpdate fc n (Elaborable_Name fc n')
            Nothing =>
               do u <- get UPD
                  case lookup n' (namemap u) of
                       Nothing => put UPD ({ namemap $= ((n', n) ::) } u)
-                      Just nm => put UPD ({ updates $= ((n, Elaboratable_Name fc nm) ::) } u)
-findUpdates defs (Elaboratable_Name fc n) tm = recordUpdate fc n tm
-findUpdates defs (Elaboratable_Apply _ f a) (Elaboratable_Apply _ f' a')
+                      Just nm => put UPD ({ updates $= ((n, Elaborable_Name fc nm) ::) } u)
+findUpdates defs (Elaborable_Name fc n) tm = recordUpdate fc n tm
+findUpdates defs (Elaborable_Apply _ f a) (Elaborable_Apply _ f' a')
     = do findUpdates defs f f'
          findUpdates defs a a'
-findUpdates defs (Elaboratable_Automatic_Apply _ f a) (Elaboratable_Automatic_Apply _ f' a')
+findUpdates defs (Elaborable_Automatic_Apply _ f a) (Elaborable_Automatic_Apply _ f' a')
     = do findUpdates defs f f'
          findUpdates defs a a'
-findUpdates defs (Elaboratable_Automatic_Apply _ f a) f'
+findUpdates defs (Elaborable_Automatic_Apply _ f a) f'
     = findUpdates defs f f'
-findUpdates defs f (Elaboratable_Automatic_Apply _ f' a)
+findUpdates defs f (Elaborable_Automatic_Apply _ f' a)
     = findUpdates defs f f'
-findUpdates defs (Elaboratable_Named_Apply _ f _ a) (Elaboratable_Named_Apply _ f' _ a')
+findUpdates defs (Elaborable_Named_Apply _ f _ a) (Elaborable_Named_Apply _ f' _ a')
     = do findUpdates defs f f'
          findUpdates defs a a'
-findUpdates defs (Elaboratable_Named_Apply _ f _ a) f' = findUpdates defs f f'
-findUpdates defs f (Elaboratable_Named_Apply _ f' _ a) = findUpdates defs f f'
-findUpdates defs (Elaboratable_As_Pattern _ _ _ _ f) f' = findUpdates defs f f'
-findUpdates defs f (Elaboratable_As_Pattern _ _ _ _ f') = findUpdates defs f f'
+findUpdates defs (Elaborable_Named_Apply _ f _ a) f' = findUpdates defs f f'
+findUpdates defs f (Elaborable_Named_Apply _ f' _ a) = findUpdates defs f f'
+findUpdates defs (Elaborable_As_Pattern _ _ _ _ f) f' = findUpdates defs f f'
+findUpdates defs f (Elaborable_As_Pattern _ _ _ _ f') = findUpdates defs f f'
 findUpdates _ _ _ = pure ()
 
 getUpdates : Defs -> RawImp -> RawImp -> Core (List (Name, RawImp))
@@ -265,7 +265,7 @@ mkCase {c} {u} fn orig lhs_raw
                -- once split and turned into a pattern)
                (lhs, _) <- elabTerm {c} {m} {u}
                                     fn (InLHS erased) [] (MkNested [])
-                                    Env.empty (Elaboratable_Bind_Here (getFC lhs_raw) PATTERN lhs_raw)
+                                    Env.empty (Elaborable_Bind_Here (getFC lhs_raw) PATTERN lhs_raw)
                                     Nothing
                -- Revert all public back to false
                setAllPublic False

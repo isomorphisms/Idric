@@ -41,7 +41,7 @@ process (Eval ttimp)
          tmnf <- normalise defs Env.empty tm
          coreLift_ (printLn !(unelab Env.empty tmnf))
          pure True
-process (Check (Elaboratable_Name _ n))
+process (Check (Elaborable_Name _ n))
     = do defs <- get Ctxt
          ns <- lookupTyName n (gamma defs)
          traverse_ printName ns

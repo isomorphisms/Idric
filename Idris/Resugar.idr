@@ -273,15 +273,15 @@ toPRef fc (MkKindedName nt fn nm) = case dropNS nm of
 mutual
   toPTerm : {auto c : Ref Ctxt Defs} ->
             {auto s : Ref Syn SyntaxInfo} ->
-            (prec : Nat) -> Kinded_Elaboratable_Term -> Core IPTerm
-  toPTerm p (Elaboratable_Name fc nm) = do
+            (prec : Nat) -> Kinded_Elaborable_Term -> Core IPTerm
+  toPTerm p (Elaborable_Name fc nm) = do
     t <- if fullNamespace !(getPPrint)
       then pure $ PRef fc nm
       else toPRef fc nm
     log "resugar.var" 70 $
       unwords [ "Resugaring", show @{Raw} nm.rawName, "to", show t]
     pure t
-  toPTerm p (Elaboratable_Dependent_Function_Type fc rig Implicit n arg ret)
+  toPTerm p (Elaborable_Dependent_Function_Type fc rig Implicit n arg ret)
       = do imp <- showImplicits
            if imp
               then do arg' <- toPTerm tyPrec arg
@@ -300,12 +300,12 @@ mutual
                 allNs = findAllNames [] ret in
                 (nm `elem` allNs) && not (nm `elem` (map Builtin.fst ns))
       needsBind _ = False
-  toPTerm p (Elaboratable_Dependent_Function_Type fc rig pt n arg ret)
+  toPTerm p (Elaborable_Dependent_Function_Type fc rig pt n arg ret)
       = do arg' <- toPTerm appPrec arg
            ret' <- toPTerm tyPrec ret
            pt' <- traverse (toPTerm argPrec) pt
            bracket p tyPrec (PPi fc rig pt' n arg' ret')
-  toPTerm p (Elaboratable_Lambda fc rig pt mn arg sc)
+  toPTerm p (Elaborable_Lambda fc rig pt mn arg sc)
       = do let n = case mn of
                         Nothing => UN Underscore
                         Just n' => n'
@@ -316,7 +316,7 @@ mutual
            pt' <- traverse (toPTerm argPrec) pt
            let var = PRef fc (MkKindedName (Just Bound) n n)
            bracket p startPrec (PLam fc rig pt' var arg' sc')
-  toPTerm p (Elaboratable_Binding fc lhsFC rig n ty val sc)
+  toPTerm p (Elaborable_Binding fc lhsFC rig n ty val sc)
       = do imp <- showImplicits
            ty' <- if imp then toPTerm startPrec ty
                          else pure (PImplicit fc)
@@ -324,13 +324,13 @@ mutual
            sc' <- toPTerm startPrec sc
            let var = PRef lhsFC (MkKindedName (Just Bound) n n)
            bracket p startPrec (PLet fc rig var ty' val' sc' [])
-  toPTerm p (Elaboratable_Case fc _ sc scty [PatClause _ lhs rhs])
+  toPTerm p (Elaborable_Case fc _ sc scty [PatClause _ lhs rhs])
       = do sc' <- toPTerm startPrec sc
            lhs' <- toPTerm startPrec lhs
            rhs' <- toPTerm startPrec rhs
            bracket p startPrec
                    (PLet fc top lhs' (PImplicit fc) sc' rhs' [])
-  toPTerm p (Elaboratable_Case fc opts sc scty alts)
+  toPTerm p (Elaborable_Case fc opts sc scty alts)
       = do opts' <- traverse toPFnOpt opts
            sc' <- toPTerm startPrec sc
            alts' <- traverse toPClause alts
@@ -345,65 +345,65 @@ mutual
               then PIfThenElse loc sc t f
               else tm
       mkIf tm = tm
-  toPTerm p (Elaboratable_Local_Definitions fc ds sc)
+  toPTerm p (Elaborable_Local_Definitions fc ds sc)
       = do ds' <- traverse toPDecl ds
            sc' <- toPTerm startPrec sc
            bracket p startPrec (PLocal fc (catMaybes ds') sc')
-  toPTerm p (Elaboratable_Case_Local_Definition fc _ _ _ sc) = toPTerm p sc
-  toPTerm p (Elaboratable_Record_Update fc ds f)
+  toPTerm p (Elaborable_Case_Local_Definition fc _ _ _ sc) = toPTerm p sc
+  toPTerm p (Elaborable_Record_Update fc ds f)
       = do ds' <- traverse toPFieldUpdate ds
            f' <- toPTerm argPrec f
            bracket p startPrec (PApp fc (PUpdate fc ds') f')
-  toPTerm p (Elaboratable_Apply fc fn arg)
+  toPTerm p (Elaborable_Apply fc fn arg)
       = do arg' <- toPTerm argPrec arg
            app <- toPTermApp fn [(fc, Nothing, arg')]
            bracket p appPrec app
-  toPTerm p (Elaboratable_Automatic_Apply fc fn arg)
+  toPTerm p (Elaborable_Automatic_Apply fc fn arg)
       = do arg' <- toPTerm argPrec arg
            app <- toPTermApp fn [(fc, Just Nothing, arg')]
            bracket p appPrec app
-  toPTerm p (Elaboratable_With_Apply fc fn arg)
+  toPTerm p (Elaborable_With_Apply fc fn arg)
       = do arg' <- toPTerm startPrec arg
            fn' <- toPTerm startPrec fn
            bracket p appPrec (PWithApp fc fn' arg')
-  toPTerm p (Elaboratable_Named_Apply fc fn n arg)
+  toPTerm p (Elaborable_Named_Apply fc fn n arg)
       = do arg' <- toPTerm startPrec arg
            app <- toPTermApp fn [(fc, Just (Just n), arg')]
            imp <- showImplicits
            if imp
               then bracket p startPrec app
               else mkOp app
-  toPTerm p (Elaboratable_Search fc d) = pure (PSearch fc d)
-  toPTerm p (Elaboratable_Alternative fc _ _) = pure (PImplicit fc)
-  toPTerm p (Elaboratable_Rewrite fc rule tm)
+  toPTerm p (Elaborable_Search fc d) = pure (PSearch fc d)
+  toPTerm p (Elaborable_Alternative fc _ _) = pure (PImplicit fc)
+  toPTerm p (Elaborable_Rewrite fc rule tm)
       = pure (PRewrite fc !(toPTerm startPrec rule)
                                !(toPTerm startPrec tm))
-  toPTerm p (Elaboratable_Coerced fc tm) = toPTerm p tm
-  toPTerm p (Elaboratable_Primitive_Value fc c) = pure (PPrimVal fc c)
-  toPTerm p (Elaboratable_Hole fc str) = pure (PHole fc False str)
-  toPTerm p (Elaboratable_Type_Universe fc) = pure (PType fc)
-  toPTerm p (Elaboratable_Bind_Name fc nm)
+  toPTerm p (Elaborable_Coerced fc tm) = toPTerm p tm
+  toPTerm p (Elaborable_Primitive_Value fc c) = pure (PPrimVal fc c)
+  toPTerm p (Elaborable_Hole fc str) = pure (PHole fc False str)
+  toPTerm p (Elaborable_Type_Universe fc) = pure (PType fc)
+  toPTerm p (Elaborable_Bind_Name fc nm)
     = pure (PRef fc (MkKindedName (Just Bound) nm nm))
-  toPTerm p (Elaboratable_Bind_Here fc _ tm) = toPTerm p tm
-  toPTerm p (Elaboratable_As_Pattern fc nameFC _ n pat) = pure (PAs fc nameFC n !(toPTerm argPrec pat))
-  toPTerm p (Elaboratable_Must_Unify fc r pat) = pure (PDotted fc !(toPTerm argPrec pat))
+  toPTerm p (Elaborable_Bind_Here fc _ tm) = toPTerm p tm
+  toPTerm p (Elaborable_As_Pattern fc nameFC _ n pat) = pure (PAs fc nameFC n !(toPTerm argPrec pat))
+  toPTerm p (Elaborable_Must_Unify fc r pat) = pure (PDotted fc !(toPTerm argPrec pat))
 
-  toPTerm p (Elaboratable_Delayed_Type fc r ty) = pure (PDelayed fc r !(toPTerm argPrec ty))
-  toPTerm p (Elaboratable_Delay fc tm) = pure (PDelay fc !(toPTerm argPrec tm))
-  toPTerm p (Elaboratable_Force fc tm) = pure (PForce fc !(toPTerm argPrec tm))
-  toPTerm p (Elaboratable_Quote fc tm) = pure (PQuote fc !(toPTerm argPrec tm))
-  toPTerm p (Elaboratable_Quote_Name fc n) = pure (PQuoteName fc n)
-  toPTerm p (Elaboratable_Quote_Declarations fc ds)
+  toPTerm p (Elaborable_Delayed_Type fc r ty) = pure (PDelayed fc r !(toPTerm argPrec ty))
+  toPTerm p (Elaborable_Delay fc tm) = pure (PDelay fc !(toPTerm argPrec tm))
+  toPTerm p (Elaborable_Force fc tm) = pure (PForce fc !(toPTerm argPrec tm))
+  toPTerm p (Elaborable_Quote fc tm) = pure (PQuote fc !(toPTerm argPrec tm))
+  toPTerm p (Elaborable_Quote_Name fc n) = pure (PQuoteName fc n)
+  toPTerm p (Elaborable_Quote_Declarations fc ds)
       = do ds' <- traverse toPDecl ds
            pure $ PQuoteDecl fc (catMaybes ds')
-  toPTerm p (Elaboratable_Unquote fc tm) = pure (PUnquote fc !(toPTerm argPrec tm))
-  toPTerm p (Elaboratable_Run_Elaborator fc _ tm) = pure (PRunElab fc !(toPTerm argPrec tm))
+  toPTerm p (Elaborable_Unquote fc tm) = pure (PUnquote fc !(toPTerm argPrec tm))
+  toPTerm p (Elaborable_Run_Elaborator fc _ tm) = pure (PRunElab fc !(toPTerm argPrec tm))
 
-  toPTerm p (Elaboratable_Unification_Log fc _ tm) = toPTerm p tm
+  toPTerm p (Elaborable_Unification_Log fc _ tm) = toPTerm p tm
   toPTerm p (Implicit fc True) = pure (PImplicit fc)
   toPTerm p (Implicit fc False) = pure (PInfer fc)
 
-  toPTerm p (Elaboratable_With_Unambiguous_Names fc ns rhs) =
+  toPTerm p (Elaborable_With_Unambiguous_Names fc ns rhs) =
     PWithUnambigNames fc ns <$> toPTerm startPrec rhs
 
   mkApp : {auto c : Ref Ctxt Defs} ->
@@ -427,15 +427,15 @@ mutual
 
   toPTermApp : {auto c : Ref Ctxt Defs} ->
                {auto s : Ref Syn SyntaxInfo} ->
-               Kinded_Elaboratable_Term -> List (FC, Maybe (Maybe Name), IPTerm) ->
+               Kinded_Elaborable_Term -> List (FC, Maybe (Maybe Name), IPTerm) ->
                Core IPTerm
-  toPTermApp (Elaboratable_Apply fc f a) args
+  toPTermApp (Elaborable_Apply fc f a) args
       = do a' <- toPTerm argPrec a
            toPTermApp f ((fc, Nothing, a') :: args)
-  toPTermApp (Elaboratable_Named_Apply fc f n a) args
+  toPTermApp (Elaborable_Named_Apply fc f n a) args
       = do a' <- toPTerm startPrec a
            toPTermApp f ((fc, Just (Just n), a') :: args)
-  toPTermApp fn@(Elaboratable_Name fc n) args
+  toPTermApp fn@(Elaborable_Name fc n) args
       = do defs <- get Ctxt
            case !(lookupCtxtExact (rawName n) (gamma defs)) of
                 Nothing => do fn' <- toPTerm appPrec fn
@@ -453,11 +453,11 @@ mutual
 
   toPFieldUpdate : {auto c : Ref Ctxt Defs} ->
                    {auto s : Ref Syn SyntaxInfo} ->
-                   Elaboratable_Field_Update' KindedName -> Core (PFieldUpdate' KindedName)
-  toPFieldUpdate (Elaboratable_Set_Field p v)
+                   Elaborable_Field_Update' KindedName -> Core (PFieldUpdate' KindedName)
+  toPFieldUpdate (Elaborable_Set_Field p v)
       = do v' <- toPTerm startPrec v
            pure (PSetField p v')
-  toPFieldUpdate (Elaboratable_Apply_To_Field p v)
+  toPFieldUpdate (Elaborable_Apply_To_Field p v)
       = do v' <- toPTerm startPrec v
            pure (PSetFieldApp p v')
 
@@ -494,7 +494,7 @@ mutual
 
   toPField : {auto c : Ref Ctxt Defs} ->
              {auto s : Ref Syn SyntaxInfo} ->
-             Elaboratable_Field' KindedName -> Core (PField' KindedName)
+             Elaborable_Field' KindedName -> Core (PField' KindedName)
   toPField field
       = do bind' <- traverse (toPTerm startPrec) field.val
            pure (Mk [field.fc , "", field.rig, [field.name]] bind')
@@ -510,14 +510,14 @@ mutual
   toPDecl : {auto c : Ref Ctxt Defs} ->
             {auto s : Ref Syn SyntaxInfo} ->
             ImpDecl' KindedName -> Core (Maybe (PDecl' KindedName))
-  toPDecl (Elaboratable_Claim (MkWithData fc $ Make_Elaboratable_Claim_Data rig vis opts ty))
+  toPDecl (Elaborable_Claim (MkWithData fc $ Make_Elaborable_Claim_Data rig vis opts ty))
       = do opts' <- traverse toPFnOpt opts
            pure (Just (MkWithData fc $ PClaim (MkPClaim rig vis opts' !(toPTypeDecl ty))))
-  toPDecl (Elaboratable_Data_Declaration fc vis mbtot d)
+  toPDecl (Elaborable_Data_Declaration fc vis mbtot d)
       = pure (Just (MkFCVal fc $ PData "" vis mbtot !(toPData d)))
-  toPDecl (Elaboratable_Definition fc n cs)
+  toPDecl (Elaborable_Definition fc n cs)
       = pure (Just (MkFCVal fc $ PDef !(traverse toPClause cs)))
-  toPDecl (Elaboratable_Parameter_Block fc ps ds)
+  toPDecl (Elaborable_Parameter_Block fc ps ds)
       = do ds' <- traverse toPDecl ds
            args <-
              traverseList1 (\binder =>
@@ -525,7 +525,7 @@ mutual
                     type' <- toPTerm startPrec binder.val.boundType
                     pure (MkFullBinder info' binder.rig binder.name type')) ps
            pure (Just (MkFCVal fc (PParameters (Right args) (catMaybes ds'))))
-  toPDecl (Elaboratable_Record_Declaration fc _ vis mbtot (MkWithData _ $ MkImpRecord header body))
+  toPDecl (Elaborable_Record_Declaration fc _ vis mbtot (MkWithData _ $ MkImpRecord header body))
       = do ps' <- traverse (traverse (traverse (toPTerm startPrec))) header.val
            fs' <- traverse toPField body.val
            pure (Just (MkFCVal fc $ PRecord "" vis mbtot
@@ -535,21 +535,21 @@ mutual
              toBinder binder
                = MkFullBinder binder.val.info binder.rig binder.name binder.val.boundType
 
-  toPDecl (Elaboratable_Expected_Failure fc msg ds)
+  toPDecl (Elaborable_Expected_Failure fc msg ds)
       = do ds' <- traverse toPDecl ds
            pure (Just (MkFCVal fc $ PFail msg (catMaybes ds')))
-  toPDecl (Elaboratable_Namespace_Block fc ns ds)
+  toPDecl (Elaborable_Namespace_Block fc ns ds)
       = do ds' <- traverse toPDecl ds
            pure (Just (MkFCVal fc $ PNamespace ns (catMaybes ds')))
-  toPDecl (Elaboratable_Transformation fc n lhs rhs)
+  toPDecl (Elaborable_Transformation fc n lhs rhs)
       = pure (Just (MkFCVal fc $ PTransform (show n)
                                   !(toPTerm startPrec lhs)
                                   !(toPTerm startPrec rhs)))
-  toPDecl (Elaboratable_Run_Elaborator_Declaration fc tm)
+  toPDecl (Elaborable_Run_Elaborator_Declaration fc tm)
       = pure (Just (MkFCVal fc $ PRunElabDecl !(toPTerm startPrec tm)))
-  toPDecl (Elaboratable_Pragma {}) = pure Nothing
-  toPDecl (Elaboratable_Logging _) = pure Nothing
-  toPDecl (Elaboratable_Builtin_Declaration fc type name) = pure $ Just $ MkFCVal fc $ PBuiltin type name
+  toPDecl (Elaborable_Pragma {}) = pure Nothing
+  toPDecl (Elaborable_Logging _) = pure Nothing
+  toPDecl (Elaborable_Builtin_Declaration fc type name) = pure $ Just $ MkFCVal fc $ PBuiltin type name
 
 export
 cleanPTerm : {auto c : Ref Ctxt Defs} ->
@@ -596,7 +596,7 @@ cleanPTerm ptm
 
 toCleanPTerm : {auto c : Ref Ctxt Defs} ->
                {auto s : Ref Syn SyntaxInfo} ->
-               (prec : Nat) -> Kinded_Elaboratable_Term -> Core IPTerm
+               (prec : Nat) -> Kinded_Elaborable_Term -> Core IPTerm
 toCleanPTerm prec tti = do
   ptm <- toPTerm prec tti
   cleanPTerm ptm
@@ -622,5 +622,5 @@ resugarNoPatvars env tm
 export
 pterm : {auto c : Ref Ctxt Defs} ->
         {auto s : Ref Syn SyntaxInfo} ->
-        Kinded_Elaboratable_Term -> Core IPTerm
+        Kinded_Elaborable_Term -> Core IPTerm
 pterm raw = toCleanPTerm startPrec raw

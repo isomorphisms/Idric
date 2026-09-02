@@ -428,7 +428,7 @@ checkBindVar rig elabinfo nest env fc nm topexp
          let False = case implicitMode elabinfo of
                           PI _ => maybe False (const True) (defined nm env)
                           _ => False
-               | _ => check rig elabinfo nest env (Elaboratable_Name fc nm) topexp
+               | _ => check rig elabinfo nest env (Elaborable_Name fc nm) topexp
          est <- get EST
          let n = PV nm (defining est)
          noteLHSPatVar elabmode nm

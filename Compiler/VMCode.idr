@@ -108,9 +108,9 @@ Show VMDef where
         show args ++ " " ++ show ret
   show (MkVMError err) = "Error: " ++ show err
 
-toReg : AVar -> Reg
-toReg (ALocal i) = Loc i
-toReg ANull = Discard
+toReg : Administrative_Normal_Form_Variable -> Reg
+toReg (Administrative_Normal_Form_Local_Variable i) = Loc i
+toReg Administrative_Normal_Form_Erased_Variable = Discard
 
 projectArgs : Int -> Int -> (used : IntMap ()) -> (args : List Int) -> List VMInst
 projectArgs scr i used [] = []
@@ -146,49 +146,49 @@ collectUsed (PROJECT _ val _) = collectReg val
 collectUsed (NULL _) = empty
 collectUsed (ERROR _) = empty
 
-toVM : (tailpos : Bool) -> (target : Reg) -> ANF -> List VMInst
+toVM : (tailpos : Bool) -> (target : Reg) -> Administrative_Normal_Form -> List VMInst
 toVM t Discard _ = []
-toVM t res (AV fc (ALocal i))
+toVM t res (Administrative_Normal_Form_Variable_Expression fc (Administrative_Normal_Form_Local_Variable i))
     = [ASSIGN res (Loc i)]
-toVM t res (AAppName fc _ n args)
+toVM t res (Administrative_Normal_Form_Named_Function_Application fc _ n args)
     = [CALL res t n (map toReg args)]
-toVM t res (AUnderApp fc n m args)
+toVM t res (Administrative_Normal_Form_Partial_Application fc n m args)
     = [MKCLOSURE res n m (map toReg args)]
-toVM t res (AApp fc _ f a)
+toVM t res (Administrative_Normal_Form_Closure_Application fc _ f a)
     = [APPLY res (toReg f) (toReg a)]
-toVM t res (ALet fc var val body)
+toVM t res (Administrative_Normal_Form_Binding fc var val body)
     = toVM False (Loc var) val ++ toVM t res body
-toVM t res (ACon fc n ci (Just tag) args)
+toVM t res (Administrative_Normal_Form_Constructor_Value fc n ci (Just tag) args)
     = [MKCON res (Left tag) (map toReg args)]
-toVM t res (ACon fc n ci Nothing args)
+toVM t res (Administrative_Normal_Form_Constructor_Value fc n ci Nothing args)
     = [MKCON res (Right n) (map toReg args)]
-toVM t res (AOp fc _ op args)
+toVM t res (Administrative_Normal_Form_Primitive_Operation fc _ op args)
     = [OP res op (map toReg args)]
-toVM t res (AExtPrim fc _ p args)
+toVM t res (Administrative_Normal_Form_External_Primitive fc _ p args)
     = [EXTPRIM res p (map toReg args)]
-toVM t res (AConCase fc (ALocal scr) [MkAConAlt n ci mt args code] Nothing) -- exactly one alternative, so skip matching
+toVM t res (Administrative_Normal_Form_Constructor_Case fc (Administrative_Normal_Form_Local_Variable scr) [Make_Administrative_Normal_Form_Constructor_Alternative n ci mt args code] Nothing) -- exactly one alternative, so skip matching
     = let body = toVM t res code
           used = foldMap collectUsed body
        in projectArgs scr 0 used args ++ body
-toVM t res (AConCase fc (ALocal scr) alts def)
+toVM t res (Administrative_Normal_Form_Constructor_Case fc (Administrative_Normal_Form_Local_Variable scr) alts def)
     = [CASE (Loc scr) (map toVMConAlt alts) (map (toVM t res) def)]
   where
-    toVMConAlt : AConAlt -> (Either Int Name, List VMInst)
-    toVMConAlt (MkAConAlt n ci tag args code)
+    toVMConAlt : Administrative_Normal_Form_Constructor_Alternative -> (Either Int Name, List VMInst)
+    toVMConAlt (Make_Administrative_Normal_Form_Constructor_Alternative n ci tag args code)
        = let body = toVM t res code
              used = foldMap collectUsed body
           in (maybe (Right n) Left tag, projectArgs scr 0 used args ++ body)
-toVM t res (AConstCase fc (ALocal scr) alts def)
+toVM t res (Administrative_Normal_Form_Constant_Case fc (Administrative_Normal_Form_Local_Variable scr) alts def)
     = [CONSTCASE (Loc scr) (map toVMConstAlt alts) (map (toVM t res) def)]
   where
-    toVMConstAlt : AConstAlt -> (Constant, List VMInst)
-    toVMConstAlt (MkAConstAlt c code)
+    toVMConstAlt : Administrative_Normal_Form_Constant_Alternative -> (Constant, List VMInst)
+    toVMConstAlt (Make_Administrative_Normal_Form_Constant_Alternative c code)
         = (c, toVM t res code)
-toVM t res (APrimVal fc c)
+toVM t res (Administrative_Normal_Form_Primitive_Value fc c)
     = [MKCONSTANT res c]
-toVM t res (AErased fc)
+toVM t res (Administrative_Normal_Form_Erased_Value fc)
     = [NULL res]
-toVM t res (ACrash fc err)
+toVM t res (Administrative_Normal_Form_Crash fc err)
     = [ERROR err]
 toVM t res _
     = [NULL res]
@@ -228,15 +228,15 @@ declareVars got code
              else DECLARE (Loc i) :: declareAll (i :: got) is
 
 export
-toVMDef : ANFDef -> Maybe VMDef
-toVMDef (MkAFun args body)
+toVMDef : Administrative_Normal_Form_Definition -> Maybe VMDef
+toVMDef (Make_Administrative_Normal_Form_Function args body)
     = Just $ MkVMFun args (declareVars args (toVM True RVal body))
-toVMDef (MkAForeign ccs cargs ret)
+toVMDef (Make_Administrative_Normal_Form_Foreign_Function ccs cargs ret)
     = Just $ MkVMForeign ccs cargs ret
-toVMDef (MkAError body)
+toVMDef (Make_Administrative_Normal_Form_Error body)
     = Just $ MkVMError (declareVars [] (toVM True RVal body))
 toVMDef _ = Nothing
 
 export
-allDefs : List (Name, ANFDef) -> List (Name, VMDef)
+allDefs : List (Name, Administrative_Normal_Form_Definition) -> List (Name, VMDef)
 allDefs = mapMaybe (\ (n, d) => do d' <- toVMDef d; pure (n, d'))

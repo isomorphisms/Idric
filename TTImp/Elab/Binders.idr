@@ -192,7 +192,7 @@ checkLambda rig_in elabinfo nest env fc rigl info n argTy scope (Just expty_in)
                     logTermNF "elab.binder" 10 "Lambda type" env exptynf
                     logGlueNF "elab.binder" 10 "Got scope type" env' scopet
 
-                    -- Currently, the fc a PLam holds (and that Elaboratable_Lambda gets as a consequence)
+                    -- Currently, the fc a PLam holds (and that Elaborable_Lambda gets as a consequence)
                     -- is the file context of the argument to the lambda. This fits nicely
                     -- in this exact use, but is likely a bug.
                     log "metadata.names" 7 "checkLambda is adding ↓"

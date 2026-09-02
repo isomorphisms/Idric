@@ -25,23 +25,23 @@ genUniqueStr xs x = if x `elem` xs then genUniqueStr xs (x ++ "'") else x
 -- Used in findBindableNames{,Quot}
 rawImpFromDecl : ImpDecl -> List RawImp
 rawImpFromDecl decl = case decl of
-    Elaboratable_Claim (MkWithData fc1 $ Make_Elaboratable_Claim_Data y z ys ty) => [ty.val]
-    Elaboratable_Data_Declaration fc1 y _ (MkImpData fc2 n tycon opts datacons)
+    Elaborable_Claim (MkWithData fc1 $ Make_Elaborable_Claim_Data y z ys ty) => [ty.val]
+    Elaborable_Data_Declaration fc1 y _ (MkImpData fc2 n tycon opts datacons)
         => maybe id (::) tycon $ map val datacons
-    Elaboratable_Data_Declaration fc1 y _ (MkImpLater fc2 n tycon) => [tycon]
-    Elaboratable_Definition fc1 y ys => getFromClause !ys
-    Elaboratable_Parameter_Block fc1 ys zs => rawImpFromDecl !zs ++ map getParamTy (forget ys)
-    Elaboratable_Record_Declaration fc1 y z _ (MkWithData _ (MkImpRecord header body)) => do
+    Elaborable_Data_Declaration fc1 y _ (MkImpLater fc2 n tycon) => [tycon]
+    Elaborable_Definition fc1 y ys => getFromClause !ys
+    Elaborable_Parameter_Block fc1 ys zs => rawImpFromDecl !zs ++ map getParamTy (forget ys)
+    Elaborable_Record_Declaration fc1 y z _ (MkWithData _ (MkImpRecord header body)) => do
         binder <- header.val
         field <- body.val
         getFromPiInfo binder.val.info ++ [binder.val.boundType] ++ getFromIField field
-    Elaboratable_Expected_Failure fc1 msg zs => rawImpFromDecl !zs
-    Elaboratable_Namespace_Block fc1 ys zs => rawImpFromDecl !zs
-    Elaboratable_Transformation fc1 y z w => [z, w]
-    Elaboratable_Run_Elaborator_Declaration fc1 y => [] -- Not sure about this either
-    Elaboratable_Pragma _ _ f => []
-    Elaboratable_Logging k => []
-    Elaboratable_Builtin_Declaration {} => []
+    Elaborable_Expected_Failure fc1 msg zs => rawImpFromDecl !zs
+    Elaborable_Namespace_Block fc1 ys zs => rawImpFromDecl !zs
+    Elaborable_Transformation fc1 y z w => [z, w]
+    Elaborable_Run_Elaborator_Declaration fc1 y => [] -- Not sure about this either
+    Elaborable_Pragma _ _ f => []
+    Elaborable_Logging k => []
+    Elaborable_Builtin_Declaration {} => []
   where getParamTy : ImpParameter' RawImp -> RawImp
         getParamTy binder = binder.val.boundType
         getFromClause : ImpClause -> List RawImp
@@ -51,12 +51,12 @@ rawImpFromDecl decl = case decl of
         getFromPiInfo : PiInfo RawImp -> List RawImp
         getFromPiInfo (DefImplicit x) = [x]
         getFromPiInfo _ = []
-        getFromIField : Elaboratable_Field -> List RawImp
+        getFromIField : Elaborable_Field -> List RawImp
         getFromIField field = getFromPiInfo field.val.info ++ [field.val.boundType]
 
 
 -- Identify lower case names in argument position, which we can bind later.
--- Don't go under case, let, or local bindings, or Elaboratable_Alternative.
+-- Don't go under case, let, or local bindings, or Elaborable_Alternative.
 --
 -- arg: Is the current expression in argument position? (We don't want to implicitly
 --      bind funtions.)
@@ -70,119 +70,119 @@ findBindableNames : (arg : Bool) -> (env : List Name) -> (used : List String) ->
 findBindableNamesQuot : List Name -> (used : List String) -> RawImp ->
                         List (Name, Name)
 
-findBindableNames True env used (Elaboratable_Name fc nm@(UN (Basic n)))
+findBindableNames True env used (Elaborable_Name fc nm@(UN (Basic n)))
       -- If the identifier is not bound locally and begins with a lowercase letter..
     = if not (nm `elem` env) && lowerFirst n
          then [(nm, UN $ Basic $ genUniqueStr used n)]
          else []
-findBindableNames arg env used (Elaboratable_Dependent_Function_Type fc rig p mn aty retty)
+findBindableNames arg env used (Elaborable_Dependent_Function_Type fc rig p mn aty retty)
     = let env' = case mn of
                       Nothing => env
                       Just n => n :: env in
           findBindableNames True env used aty ++
           findBindableNames True env' used retty
-findBindableNames arg env used (Elaboratable_Lambda fc rig p mn aty sc)
+findBindableNames arg env used (Elaborable_Lambda fc rig p mn aty sc)
     = let env' = case mn of
                       Nothing => env
                       Just n => n :: env in
       findBindableNames True env used aty ++
       findBindableNames True env' used sc
-findBindableNames arg env used (Elaboratable_Apply fc fn av)
+findBindableNames arg env used (Elaborable_Apply fc fn av)
     = findBindableNames False env used fn ++ findBindableNames True env used av
-findBindableNames arg env used (Elaboratable_Named_Apply fc fn n av)
+findBindableNames arg env used (Elaborable_Named_Apply fc fn n av)
     = findBindableNames False env used fn ++ findBindableNames True env used av
-findBindableNames arg env used (Elaboratable_Automatic_Apply fc fn av)
+findBindableNames arg env used (Elaborable_Automatic_Apply fc fn av)
     = findBindableNames False env used fn ++ findBindableNames True env used av
-findBindableNames arg env used (Elaboratable_With_Apply fc fn av)
+findBindableNames arg env used (Elaborable_With_Apply fc fn av)
     = findBindableNames False env used fn ++ findBindableNames True env used av
-findBindableNames arg env used (Elaboratable_As_Pattern fc _ _ nm@(UN (Basic n)) pat)
+findBindableNames arg env used (Elaborable_As_Pattern fc _ _ nm@(UN (Basic n)) pat)
     = (nm, UN $ Basic $ genUniqueStr used n) :: findBindableNames arg env used pat
-findBindableNames arg env used (Elaboratable_As_Pattern fc _ _ n pat)
+findBindableNames arg env used (Elaborable_As_Pattern fc _ _ n pat)
     = findBindableNames arg env used pat
-findBindableNames arg env used (Elaboratable_Must_Unify fc r pat)
+findBindableNames arg env used (Elaborable_Must_Unify fc r pat)
     = findBindableNames arg env used pat
-findBindableNames arg env used (Elaboratable_Delayed_Type fc r t)
+findBindableNames arg env used (Elaborable_Delayed_Type fc r t)
     = findBindableNames arg env used t
-findBindableNames arg env used (Elaboratable_Delay fc t)
+findBindableNames arg env used (Elaborable_Delay fc t)
     = findBindableNames arg env used t
-findBindableNames arg env used (Elaboratable_Force fc t)
+findBindableNames arg env used (Elaborable_Force fc t)
     = findBindableNames arg env used t
-findBindableNames arg env used (Elaboratable_Quote fc t)
+findBindableNames arg env used (Elaborable_Quote fc t)
     = findBindableNamesQuot env used t
-findBindableNames arg env used (Elaboratable_Quote_Declarations fc d)
+findBindableNames arg env used (Elaborable_Quote_Declarations fc d)
     = findBindableNamesQuot env used !(rawImpFromDecl !d)
-findBindableNames arg env used (Elaboratable_Alternative fc u alts)
+findBindableNames arg env used (Elaborable_Alternative fc u alts)
     = concatMap (findBindableNames arg env used) alts
-findBindableNames arg env used (Elaboratable_Record_Update fc updates tm)
+findBindableNames arg env used (Elaborable_Record_Update fc updates tm)
     = findBindableNames True env used tm ++
       concatMap (findBindableNames True env used . getFieldUpdateTerm) updates
 -- We've skipped case, let and local - rather than guess where the
 -- name should be bound, leave it to the programmer
 findBindableNames arg env used tm = []
 
-findBindableNamesQuot env used (Elaboratable_Dependent_Function_Type fc x y z argTy retTy)
+findBindableNamesQuot env used (Elaborable_Dependent_Function_Type fc x y z argTy retTy)
     = findBindableNamesQuot env used ![argTy, retTy]
-findBindableNamesQuot env used (Elaboratable_Lambda fc x y z argTy lamTy)
+findBindableNamesQuot env used (Elaborable_Lambda fc x y z argTy lamTy)
     = findBindableNamesQuot env used ![argTy, lamTy]
-findBindableNamesQuot env used (Elaboratable_Binding fc lhsfc x y nTy nVal scope)
+findBindableNamesQuot env used (Elaborable_Binding fc lhsfc x y nTy nVal scope)
     = findBindableNamesQuot env used ![nTy, nVal, scope]
-findBindableNamesQuot env used (Elaboratable_Case fc _ x ty xs)
+findBindableNamesQuot env used (Elaborable_Case fc _ x ty xs)
     = findBindableNamesQuot env used !([x, ty] ++ getRawImp !xs)
   where getRawImp : ImpClause -> List RawImp
         getRawImp (PatClause fc1 lhs rhs) = [lhs, rhs]
         getRawImp (WithClause fc1 lhs rig wval prf flags ys) = [wval, lhs] ++ getRawImp !ys
         getRawImp (ImpossibleClause fc1 lhs) = [lhs]
-findBindableNamesQuot env used (Elaboratable_Local_Definitions fc xs x)
+findBindableNamesQuot env used (Elaborable_Local_Definitions fc xs x)
     = findBindableNamesQuot env used !(x :: rawImpFromDecl !xs)
-findBindableNamesQuot env used (Elaboratable_Case_Local_Definition fc uname internalName args x)
+findBindableNamesQuot env used (Elaborable_Case_Local_Definition fc uname internalName args x)
     = findBindableNamesQuot env used x
-findBindableNamesQuot env used (Elaboratable_Apply fc x y)
+findBindableNamesQuot env used (Elaborable_Apply fc x y)
     = findBindableNamesQuot env used ![x, y]
-findBindableNamesQuot env used (Elaboratable_Named_Apply fc x y z)
+findBindableNamesQuot env used (Elaborable_Named_Apply fc x y z)
     = findBindableNamesQuot env used ![x, z]
-findBindableNamesQuot env used (Elaboratable_Automatic_Apply fc x y)
+findBindableNamesQuot env used (Elaborable_Automatic_Apply fc x y)
     = findBindableNamesQuot env used ![x, y]
-findBindableNamesQuot env used (Elaboratable_With_Apply fc x y)
+findBindableNamesQuot env used (Elaborable_With_Apply fc x y)
     = findBindableNamesQuot env used ![x, y]
-findBindableNamesQuot env used (Elaboratable_Rewrite fc x y)
+findBindableNamesQuot env used (Elaborable_Rewrite fc x y)
     = findBindableNamesQuot env used ![x, y]
-findBindableNamesQuot env used (Elaboratable_Coerced fc x)
+findBindableNamesQuot env used (Elaborable_Coerced fc x)
     = findBindableNamesQuot env used x
-findBindableNamesQuot env used (Elaboratable_Bind_Here fc x y)
+findBindableNamesQuot env used (Elaborable_Bind_Here fc x y)
     = findBindableNamesQuot env used y
-findBindableNamesQuot env used (Elaboratable_Record_Update fc xs x)
+findBindableNamesQuot env used (Elaborable_Record_Update fc xs x)
     = findBindableNamesQuot env used !(x :: map getFieldUpdateTerm xs)
-findBindableNamesQuot env used (Elaboratable_As_Pattern fc nfc x y z)
+findBindableNamesQuot env used (Elaborable_As_Pattern fc nfc x y z)
     = findBindableNamesQuot env used z
-findBindableNamesQuot env used (Elaboratable_Delayed_Type fc x y)
+findBindableNamesQuot env used (Elaborable_Delayed_Type fc x y)
     = findBindableNamesQuot env used y
-findBindableNamesQuot env used (Elaboratable_Delay fc x)
+findBindableNamesQuot env used (Elaborable_Delay fc x)
     = findBindableNamesQuot env used x
-findBindableNamesQuot env used (Elaboratable_Force fc x)
+findBindableNamesQuot env used (Elaborable_Force fc x)
     = findBindableNamesQuot env used x
-findBindableNamesQuot env used (Elaboratable_Unquote fc x)
+findBindableNamesQuot env used (Elaborable_Unquote fc x)
     = findBindableNames True env used x
-findBindableNamesQuot env used (Elaboratable_With_Unambiguous_Names fc xs x)
+findBindableNamesQuot env used (Elaborable_With_Unambiguous_Names fc xs x)
     = findBindableNamesQuot env used x
-findBindableNamesQuot env used (Elaboratable_Name fc x) = []
-findBindableNamesQuot env used (Elaboratable_Search fc depth) = []
-findBindableNamesQuot env used (Elaboratable_Alternative fc x xs) = []
-findBindableNamesQuot env used (Elaboratable_Bind_Name fc x) = []
-findBindableNamesQuot env used (Elaboratable_Primitive_Value fc c) = []
-findBindableNamesQuot env used (Elaboratable_Type_Universe fc) = []
-findBindableNamesQuot env used (Elaboratable_Hole fc x) = []
+findBindableNamesQuot env used (Elaborable_Name fc x) = []
+findBindableNamesQuot env used (Elaborable_Search fc depth) = []
+findBindableNamesQuot env used (Elaborable_Alternative fc x xs) = []
+findBindableNamesQuot env used (Elaborable_Bind_Name fc x) = []
+findBindableNamesQuot env used (Elaborable_Primitive_Value fc c) = []
+findBindableNamesQuot env used (Elaborable_Type_Universe fc) = []
+findBindableNamesQuot env used (Elaborable_Hole fc x) = []
 findBindableNamesQuot env used (Implicit fc bindIfUnsolved) = []
 -- These are the ones I'm not sure about
-findBindableNamesQuot env used (Elaboratable_Must_Unify fc x y)
+findBindableNamesQuot env used (Elaborable_Must_Unify fc x y)
     = findBindableNamesQuot env used y
-findBindableNamesQuot env used (Elaboratable_Unification_Log fc k x)
+findBindableNamesQuot env used (Elaborable_Unification_Log fc k x)
     = findBindableNamesQuot env used x
 -- Should f `(g `(List ~(x))) bind "x" as a parameter to "f"?
 -- Depends how (or if) recursive quoting works
-findBindableNamesQuot env used (Elaboratable_Quote fc x) = []
-findBindableNamesQuot env used (Elaboratable_Quote_Name fc x) = []
-findBindableNamesQuot env used (Elaboratable_Quote_Declarations fc xs) = []
-findBindableNamesQuot env used (Elaboratable_Run_Elaborator fc _ x) = []
+findBindableNamesQuot env used (Elaborable_Quote fc x) = []
+findBindableNamesQuot env used (Elaborable_Quote_Name fc x) = []
+findBindableNamesQuot env used (Elaborable_Quote_Declarations fc xs) = []
+findBindableNamesQuot env used (Elaborable_Run_Elaborator fc _ x) = []
 
 ||| Lower-case names normally become implicit binders. A lower-case type or
 ||| data constructor introduced by Idric choice syntax is a global name
@@ -233,43 +233,43 @@ findUniqueBindableNames fc arg env used t
 
 export
 findAllNames : (env : List Name) -> RawImp -> List Name
-findAllNames env (Elaboratable_Name fc n)
+findAllNames env (Elaborable_Name fc n)
     = if not (n `elem` env) then [n] else []
-findAllNames env (Elaboratable_Dependent_Function_Type fc rig p mn aty retty)
+findAllNames env (Elaborable_Dependent_Function_Type fc rig p mn aty retty)
     = let env' = case mn of
                       Nothing => env
                       Just n => n :: env in
           findAllNames env aty ++ findAllNames env' retty
-findAllNames env (Elaboratable_Lambda fc rig p mn aty sc)
+findAllNames env (Elaborable_Lambda fc rig p mn aty sc)
     = let env' = case mn of
                       Nothing => env
                       Just n => n :: env in
       findAllNames env' aty ++ findAllNames env' sc
-findAllNames env (Elaboratable_Apply fc fn av)
+findAllNames env (Elaborable_Apply fc fn av)
     = findAllNames env fn ++ findAllNames env av
-findAllNames env (Elaboratable_Named_Apply fc fn n av)
+findAllNames env (Elaborable_Named_Apply fc fn n av)
     = findAllNames env fn ++ findAllNames env av
-findAllNames env (Elaboratable_Automatic_Apply fc fn av)
+findAllNames env (Elaborable_Automatic_Apply fc fn av)
     = findAllNames env fn ++ findAllNames env av
-findAllNames env (Elaboratable_With_Apply fc fn av)
+findAllNames env (Elaborable_With_Apply fc fn av)
     = findAllNames env fn ++ findAllNames env av
-findAllNames env (Elaboratable_As_Pattern fc _ _ n pat)
+findAllNames env (Elaborable_As_Pattern fc _ _ n pat)
     = n :: findAllNames env pat
-findAllNames env (Elaboratable_Must_Unify fc r pat)
+findAllNames env (Elaborable_Must_Unify fc r pat)
     = findAllNames env pat
-findAllNames env (Elaboratable_Delayed_Type fc r t)
+findAllNames env (Elaborable_Delayed_Type fc r t)
     = findAllNames env t
-findAllNames env (Elaboratable_Delay fc t)
+findAllNames env (Elaborable_Delay fc t)
     = findAllNames env t
-findAllNames env (Elaboratable_Force fc t)
+findAllNames env (Elaborable_Force fc t)
     = findAllNames env t
-findAllNames env (Elaboratable_Quote fc t)
+findAllNames env (Elaborable_Quote fc t)
     = findAllNames env t
-findAllNames env (Elaboratable_Unquote fc t)
+findAllNames env (Elaborable_Unquote fc t)
     = findAllNames env t
-findAllNames env (Elaboratable_Alternative fc u alts)
+findAllNames env (Elaborable_Alternative fc u alts)
     = concatMap (findAllNames env) alts
-findAllNames env (Elaboratable_Record_Update fc updates tm)
+findAllNames env (Elaborable_Record_Update fc updates tm)
     = findAllNames env tm
     ++ concatMap (findAllNames env . getFieldUpdateTerm) updates
     ++ concatMap (map (UN . Basic) . getFieldUpdatePath) updates
@@ -281,29 +281,29 @@ findAllNames env tm = []
 -- the ones that mean the declaration will be added).
 export
 findIBindVars : RawImp -> List Name
-findIBindVars (Elaboratable_Dependent_Function_Type fc rig p mn aty retty)
+findIBindVars (Elaborable_Dependent_Function_Type fc rig p mn aty retty)
     = findIBindVars aty ++ findIBindVars retty
-findIBindVars (Elaboratable_Lambda fc rig p mn aty sc)
+findIBindVars (Elaborable_Lambda fc rig p mn aty sc)
     = findIBindVars aty ++ findIBindVars sc
-findIBindVars (Elaboratable_Apply fc fn av)
+findIBindVars (Elaborable_Apply fc fn av)
     = findIBindVars fn ++ findIBindVars av
-findIBindVars (Elaboratable_Named_Apply fc fn n av)
+findIBindVars (Elaborable_Named_Apply fc fn n av)
     = findIBindVars fn ++ findIBindVars av
-findIBindVars (Elaboratable_Automatic_Apply fc fn av)
+findIBindVars (Elaborable_Automatic_Apply fc fn av)
     = findIBindVars fn ++ findIBindVars av
-findIBindVars (Elaboratable_With_Apply fc fn av)
+findIBindVars (Elaborable_With_Apply fc fn av)
     = findIBindVars fn ++ findIBindVars av
-findIBindVars (Elaboratable_Bind_Name fc v)
+findIBindVars (Elaborable_Bind_Name fc v)
     = [v]
-findIBindVars (Elaboratable_Delayed_Type fc r t)
+findIBindVars (Elaborable_Delayed_Type fc r t)
     = findIBindVars t
-findIBindVars (Elaboratable_Delay fc t)
+findIBindVars (Elaborable_Delay fc t)
     = findIBindVars t
-findIBindVars (Elaboratable_Force fc t)
+findIBindVars (Elaborable_Force fc t)
     = findIBindVars t
-findIBindVars (Elaboratable_Alternative fc u alts)
+findIBindVars (Elaborable_Alternative fc u alts)
     = concatMap findIBindVars alts
-findIBindVars (Elaboratable_Record_Update fc updates tm)
+findIBindVars (Elaborable_Record_Update fc updates tm)
     = findIBindVars tm ++ concatMap (findIBindVars . getFieldUpdateTerm) updates
 -- We've skipped case, let and local - rather than guess where the
 -- name should be bound, leave it to the programmer
@@ -314,63 +314,63 @@ mutual
   -- TODO association list should be map (should the `List Name` be a set as well?)
   substNames' : Bool -> List Name -> List (Name, RawImp) ->
                 RawImp -> RawImp
-  substNames' False bound ps (Elaboratable_Name fc n)
+  substNames' False bound ps (Elaborable_Name fc n)
       = if not (n `elem` bound)
            then case lookup n ps of
                      Just t => t
-                     _ => Elaboratable_Name fc n
-           else Elaboratable_Name fc n
-  substNames' True bound ps (Elaboratable_Bind_Name fc n)
+                     _ => Elaborable_Name fc n
+           else Elaborable_Name fc n
+  substNames' True bound ps (Elaborable_Bind_Name fc n)
       = if not (n `elem` bound)
            then case lookup n ps of
                      Just t => t
-                     _ => Elaboratable_Bind_Name fc n
-           else Elaboratable_Bind_Name fc n
-  substNames' bvar bound ps (Elaboratable_Dependent_Function_Type fc r p mn argTy retTy)
+                     _ => Elaborable_Bind_Name fc n
+           else Elaborable_Bind_Name fc n
+  substNames' bvar bound ps (Elaborable_Dependent_Function_Type fc r p mn argTy retTy)
       = let bound' = maybe bound (\n => n :: bound) mn in
-            Elaboratable_Dependent_Function_Type fc r p mn (substNames' bvar bound ps argTy)
+            Elaborable_Dependent_Function_Type fc r p mn (substNames' bvar bound ps argTy)
                           (substNames' bvar bound' ps retTy)
-  substNames' bvar bound ps (Elaboratable_Lambda fc r p mn argTy scope)
+  substNames' bvar bound ps (Elaborable_Lambda fc r p mn argTy scope)
       = let bound' = maybe bound (\n => n :: bound) mn in
-            Elaboratable_Lambda fc r p mn (substNames' bvar bound ps argTy)
+            Elaborable_Lambda fc r p mn (substNames' bvar bound ps argTy)
                            (substNames' bvar bound' ps scope)
-  substNames' bvar bound ps (Elaboratable_Binding fc lhsFC r n nTy nVal scope)
+  substNames' bvar bound ps (Elaborable_Binding fc lhsFC r n nTy nVal scope)
       = let bound' = n :: bound in
-            Elaboratable_Binding fc lhsFC r n (substNames' bvar bound ps nTy)
+            Elaborable_Binding fc lhsFC r n (substNames' bvar bound ps nTy)
                               (substNames' bvar bound ps nVal)
                               (substNames' bvar bound' ps scope)
-  substNames' bvar bound ps (Elaboratable_Case fc opts y ty xs)
-      = Elaboratable_Case fc opts
+  substNames' bvar bound ps (Elaborable_Case fc opts y ty xs)
+      = Elaborable_Case fc opts
           (substNames' bvar bound ps y) (substNames' bvar bound ps ty)
           (map (substNamesClause' bvar bound ps) xs)
-  substNames' bvar bound ps (Elaboratable_Local_Definitions fc xs y)
+  substNames' bvar bound ps (Elaborable_Local_Definitions fc xs y)
       = let bound' = definedInBlock emptyNS xs ++ bound in
-            Elaboratable_Local_Definitions fc (map (substNamesDecl' bvar bound ps) xs)
+            Elaborable_Local_Definitions fc (map (substNamesDecl' bvar bound ps) xs)
                       (substNames' bvar bound' ps y)
-  substNames' bvar bound ps (Elaboratable_Apply fc fn arg)
-      = Elaboratable_Apply fc (substNames' bvar bound ps fn) (substNames' bvar bound ps arg)
-  substNames' bvar bound ps (Elaboratable_Named_Apply fc fn y arg)
-      = Elaboratable_Named_Apply fc (substNames' bvar bound ps fn) y (substNames' bvar bound ps arg)
-  substNames' bvar bound ps (Elaboratable_Automatic_Apply fc fn arg)
-      = Elaboratable_Automatic_Apply fc (substNames' bvar bound ps fn) (substNames' bvar bound ps arg)
-  substNames' bvar bound ps (Elaboratable_With_Apply fc fn arg)
-      = Elaboratable_With_Apply fc (substNames' bvar bound ps fn) (substNames' bvar bound ps arg)
-  substNames' bvar bound ps (Elaboratable_Alternative fc y xs)
-      = Elaboratable_Alternative fc y (map (substNames' bvar bound ps) xs)
-  substNames' bvar bound ps (Elaboratable_Coerced fc y)
-      = Elaboratable_Coerced fc (substNames' bvar bound ps y)
-  substNames' bvar bound ps (Elaboratable_As_Pattern fc nameFC s y pattern)
-      = Elaboratable_As_Pattern fc nameFC s y (substNames' bvar bound ps pattern)
-  substNames' bvar bound ps (Elaboratable_Must_Unify fc r pattern)
-      = Elaboratable_Must_Unify fc r (substNames' bvar bound ps pattern)
-  substNames' bvar bound ps (Elaboratable_Delayed_Type fc r t)
-      = Elaboratable_Delayed_Type fc r (substNames' bvar bound ps t)
-  substNames' bvar bound ps (Elaboratable_Delay fc t)
-      = Elaboratable_Delay fc (substNames' bvar bound ps t)
-  substNames' bvar bound ps (Elaboratable_Force fc t)
-      = Elaboratable_Force fc (substNames' bvar bound ps t)
-  substNames' bvar bound ps (Elaboratable_Record_Update fc updates tm)
-      = Elaboratable_Record_Update fc (map (mapFieldUpdateTerm $ substNames' bvar bound ps) updates)
+  substNames' bvar bound ps (Elaborable_Apply fc fn arg)
+      = Elaborable_Apply fc (substNames' bvar bound ps fn) (substNames' bvar bound ps arg)
+  substNames' bvar bound ps (Elaborable_Named_Apply fc fn y arg)
+      = Elaborable_Named_Apply fc (substNames' bvar bound ps fn) y (substNames' bvar bound ps arg)
+  substNames' bvar bound ps (Elaborable_Automatic_Apply fc fn arg)
+      = Elaborable_Automatic_Apply fc (substNames' bvar bound ps fn) (substNames' bvar bound ps arg)
+  substNames' bvar bound ps (Elaborable_With_Apply fc fn arg)
+      = Elaborable_With_Apply fc (substNames' bvar bound ps fn) (substNames' bvar bound ps arg)
+  substNames' bvar bound ps (Elaborable_Alternative fc y xs)
+      = Elaborable_Alternative fc y (map (substNames' bvar bound ps) xs)
+  substNames' bvar bound ps (Elaborable_Coerced fc y)
+      = Elaborable_Coerced fc (substNames' bvar bound ps y)
+  substNames' bvar bound ps (Elaborable_As_Pattern fc nameFC s y pattern)
+      = Elaborable_As_Pattern fc nameFC s y (substNames' bvar bound ps pattern)
+  substNames' bvar bound ps (Elaborable_Must_Unify fc r pattern)
+      = Elaborable_Must_Unify fc r (substNames' bvar bound ps pattern)
+  substNames' bvar bound ps (Elaborable_Delayed_Type fc r t)
+      = Elaborable_Delayed_Type fc r (substNames' bvar bound ps t)
+  substNames' bvar bound ps (Elaborable_Delay fc t)
+      = Elaborable_Delay fc (substNames' bvar bound ps t)
+  substNames' bvar bound ps (Elaborable_Force fc t)
+      = Elaborable_Force fc (substNames' bvar bound ps t)
+  substNames' bvar bound ps (Elaborable_Record_Update fc updates tm)
+      = Elaborable_Record_Update fc (map (mapFieldUpdateTerm $ substNames' bvar bound ps) updates)
                    (substNames' bvar bound ps tm)
   substNames' bvar bound ps tm = tm
 
@@ -401,16 +401,16 @@ mutual
 
   substNamesDecl' : Bool -> List Name -> List (Name, RawImp ) ->
                    ImpDecl -> ImpDecl
-  substNamesDecl' bvar bound ps (Elaboratable_Claim claim)
-      = Elaboratable_Claim $ map {type $= map (substNames' bvar bound ps)} claim
-  substNamesDecl' bvar bound ps (Elaboratable_Definition fc n cs)
-      = Elaboratable_Definition fc n (map (substNamesClause' bvar bound ps) cs)
-  substNamesDecl' bvar bound ps (Elaboratable_Data_Declaration fc vis mbtot d)
-      = Elaboratable_Data_Declaration fc vis mbtot (substNamesData' bvar bound ps d)
-  substNamesDecl' bvar bound ps (Elaboratable_Expected_Failure fc msg ds)
-      = Elaboratable_Expected_Failure fc msg (map (substNamesDecl' bvar bound ps) ds)
-  substNamesDecl' bvar bound ps (Elaboratable_Namespace_Block fc ns ds)
-      = Elaboratable_Namespace_Block fc ns (map (substNamesDecl' bvar bound ps) ds)
+  substNamesDecl' bvar bound ps (Elaborable_Claim claim)
+      = Elaborable_Claim $ map {type $= map (substNames' bvar bound ps)} claim
+  substNamesDecl' bvar bound ps (Elaborable_Definition fc n cs)
+      = Elaborable_Definition fc n (map (substNamesClause' bvar bound ps) cs)
+  substNamesDecl' bvar bound ps (Elaborable_Data_Declaration fc vis mbtot d)
+      = Elaborable_Data_Declaration fc vis mbtot (substNamesData' bvar bound ps d)
+  substNamesDecl' bvar bound ps (Elaborable_Expected_Failure fc msg ds)
+      = Elaborable_Expected_Failure fc msg (map (substNamesDecl' bvar bound ps) ds)
+  substNamesDecl' bvar bound ps (Elaborable_Namespace_Block fc ns ds)
+      = Elaborable_Namespace_Block fc ns (map (substNamesDecl' bvar bound ps) ds)
   substNamesDecl' bvar bound ps d = d
 
 export
@@ -431,47 +431,47 @@ substNamesClause = substNamesClause' False
 mutual
   export
   substLoc : FC -> RawImp -> RawImp
-  substLoc fc' (Elaboratable_Name fc n) = Elaboratable_Name fc' n
-  substLoc fc' (Elaboratable_Dependent_Function_Type fc r p mn argTy retTy)
-      = Elaboratable_Dependent_Function_Type fc' r p mn (substLoc fc' argTy)
+  substLoc fc' (Elaborable_Name fc n) = Elaborable_Name fc' n
+  substLoc fc' (Elaborable_Dependent_Function_Type fc r p mn argTy retTy)
+      = Elaborable_Dependent_Function_Type fc' r p mn (substLoc fc' argTy)
                       (substLoc fc' retTy)
-  substLoc fc' (Elaboratable_Lambda fc r p mn argTy scope)
-      = Elaboratable_Lambda fc' r p mn (substLoc fc' argTy)
+  substLoc fc' (Elaborable_Lambda fc r p mn argTy scope)
+      = Elaborable_Lambda fc' r p mn (substLoc fc' argTy)
                         (substLoc fc' scope)
-  substLoc fc' (Elaboratable_Binding fc lhsFC r n nTy nVal scope)
-      = Elaboratable_Binding fc' fc' r n (substLoc fc' nTy)
+  substLoc fc' (Elaborable_Binding fc lhsFC r n nTy nVal scope)
+      = Elaborable_Binding fc' fc' r n (substLoc fc' nTy)
                      (substLoc fc' nVal)
                      (substLoc fc' scope)
-  substLoc fc' (Elaboratable_Case fc opts y ty xs)
-      = Elaboratable_Case fc' opts (substLoc fc' y) (substLoc fc' ty)
+  substLoc fc' (Elaborable_Case fc opts y ty xs)
+      = Elaborable_Case fc' opts (substLoc fc' y) (substLoc fc' ty)
                   (map (substLocClause fc') xs)
-  substLoc fc' (Elaboratable_Local_Definitions fc xs y)
-      = Elaboratable_Local_Definitions fc' (map (substLocDecl fc') xs)
+  substLoc fc' (Elaborable_Local_Definitions fc xs y)
+      = Elaborable_Local_Definitions fc' (map (substLocDecl fc') xs)
                    (substLoc fc' y)
-  substLoc fc' (Elaboratable_Apply fc fn arg)
-      = Elaboratable_Apply fc' (substLoc fc' fn) (substLoc fc' arg)
-  substLoc fc' (Elaboratable_Named_Apply fc fn y arg)
-      = Elaboratable_Named_Apply fc' (substLoc fc' fn) y (substLoc fc' arg)
-  substLoc fc' (Elaboratable_Automatic_Apply fc fn arg)
-      = Elaboratable_Automatic_Apply fc' (substLoc fc' fn) (substLoc fc' arg)
-  substLoc fc' (Elaboratable_With_Apply fc fn arg)
-      = Elaboratable_With_Apply fc' (substLoc fc' fn) (substLoc fc' arg)
-  substLoc fc' (Elaboratable_Alternative fc y xs)
-      = Elaboratable_Alternative fc' y (map (substLoc fc') xs)
-  substLoc fc' (Elaboratable_Coerced fc y)
-      = Elaboratable_Coerced fc' (substLoc fc' y)
-  substLoc fc' (Elaboratable_As_Pattern fc nameFC s y pattern)
-      = Elaboratable_As_Pattern fc' fc' s y (substLoc fc' pattern)
-  substLoc fc' (Elaboratable_Must_Unify fc r pattern)
-      = Elaboratable_Must_Unify fc' r (substLoc fc' pattern)
-  substLoc fc' (Elaboratable_Delayed_Type fc r t)
-      = Elaboratable_Delayed_Type fc' r (substLoc fc' t)
-  substLoc fc' (Elaboratable_Delay fc t)
-      = Elaboratable_Delay fc' (substLoc fc' t)
-  substLoc fc' (Elaboratable_Force fc t)
-      = Elaboratable_Force fc' (substLoc fc' t)
-  substLoc fc' (Elaboratable_Record_Update fc updates tm)
-      = Elaboratable_Record_Update fc' (map (mapFieldUpdateTerm $ substLoc fc') updates)
+  substLoc fc' (Elaborable_Apply fc fn arg)
+      = Elaborable_Apply fc' (substLoc fc' fn) (substLoc fc' arg)
+  substLoc fc' (Elaborable_Named_Apply fc fn y arg)
+      = Elaborable_Named_Apply fc' (substLoc fc' fn) y (substLoc fc' arg)
+  substLoc fc' (Elaborable_Automatic_Apply fc fn arg)
+      = Elaborable_Automatic_Apply fc' (substLoc fc' fn) (substLoc fc' arg)
+  substLoc fc' (Elaborable_With_Apply fc fn arg)
+      = Elaborable_With_Apply fc' (substLoc fc' fn) (substLoc fc' arg)
+  substLoc fc' (Elaborable_Alternative fc y xs)
+      = Elaborable_Alternative fc' y (map (substLoc fc') xs)
+  substLoc fc' (Elaborable_Coerced fc y)
+      = Elaborable_Coerced fc' (substLoc fc' y)
+  substLoc fc' (Elaborable_As_Pattern fc nameFC s y pattern)
+      = Elaborable_As_Pattern fc' fc' s y (substLoc fc' pattern)
+  substLoc fc' (Elaborable_Must_Unify fc r pattern)
+      = Elaborable_Must_Unify fc' r (substLoc fc' pattern)
+  substLoc fc' (Elaborable_Delayed_Type fc r t)
+      = Elaborable_Delayed_Type fc' r (substLoc fc' t)
+  substLoc fc' (Elaborable_Delay fc t)
+      = Elaborable_Delay fc' (substLoc fc' t)
+  substLoc fc' (Elaborable_Force fc t)
+      = Elaborable_Force fc' (substLoc fc' t)
+  substLoc fc' (Elaborable_Record_Update fc updates tm)
+      = Elaborable_Record_Update fc' (map (mapFieldUpdateTerm $ substLoc fc') updates)
                     (substLoc fc' tm)
   substLoc fc' tm = tm
 
@@ -497,16 +497,16 @@ mutual
       = MkImpLater fc' n (substLoc fc' con)
 
   substLocDecl : FC -> ImpDecl -> ImpDecl
-  substLocDecl fc' (Elaboratable_Claim (MkWithData _ $ Make_Elaboratable_Claim_Data r vis opts td))
-      = Elaboratable_Claim (MkFCVal fc' $ Make_Elaboratable_Claim_Data r vis opts (map (substLoc fc') (set "fc" fc' td)))
-  substLocDecl fc' (Elaboratable_Definition fc n cs)
-      = Elaboratable_Definition fc' n (map (substLocClause fc') cs)
-  substLocDecl fc' (Elaboratable_Data_Declaration fc vis mbtot d)
-      = Elaboratable_Data_Declaration fc' vis mbtot (substLocData fc' d)
-  substLocDecl fc' (Elaboratable_Expected_Failure fc msg ds)
-      = Elaboratable_Expected_Failure fc' msg (map (substLocDecl fc') ds)
-  substLocDecl fc' (Elaboratable_Namespace_Block fc ns ds)
-      = Elaboratable_Namespace_Block fc' ns (map (substLocDecl fc') ds)
+  substLocDecl fc' (Elaborable_Claim (MkWithData _ $ Make_Elaborable_Claim_Data r vis opts td))
+      = Elaborable_Claim (MkFCVal fc' $ Make_Elaborable_Claim_Data r vis opts (map (substLoc fc') (set "fc" fc' td)))
+  substLocDecl fc' (Elaborable_Definition fc n cs)
+      = Elaborable_Definition fc' n (map (substLocClause fc') cs)
+  substLocDecl fc' (Elaborable_Data_Declaration fc vis mbtot d)
+      = Elaborable_Data_Declaration fc' vis mbtot (substLocData fc' d)
+  substLocDecl fc' (Elaborable_Expected_Failure fc msg ds)
+      = Elaborable_Expected_Failure fc' msg (map (substLocDecl fc') ds)
+  substLocDecl fc' (Elaborable_Namespace_Block fc ns ds)
+      = Elaborable_Namespace_Block fc' ns (map (substLocDecl fc') ds)
   substLocDecl fc' d = d
 
 nameNum : String -> (String, Maybe Int)
@@ -681,13 +681,13 @@ etaExpandImplicits fc ty lhs rhs
          pure (apply lhs lhsArgs, apply rhs rhsArgs)
   where
     collectImplicits : RawImp -> List Name
-    collectImplicits (Elaboratable_Dependent_Function_Type _ _ Explicit _        _ ty) = []
-    collectImplicits (Elaboratable_Dependent_Function_Type _ _ _        (Just n) _ ty) = n :: collectImplicits ty
+    collectImplicits (Elaborable_Dependent_Function_Type _ _ Explicit _        _ ty) = []
+    collectImplicits (Elaborable_Dependent_Function_Type _ _ _        (Just n) _ ty) = n :: collectImplicits ty
     collectImplicits _                                = []
 
     ivar : (bind : Bool) -> Name -> RawImp
-    ivar True  = Elaboratable_Bind_Name fc
-    ivar False = Elaboratable_Name fc
+    ivar True  = Elaborable_Bind_Name fc
+    ivar False = Elaborable_Name fc
 
     makeArg : (bind : Bool) -> (Name, Name) -> Arg
     makeArg bind (n, bindName) = Named fc n $ ivar bind bindName

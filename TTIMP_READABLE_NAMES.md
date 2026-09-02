@@ -1,85 +1,85 @@
 # Readable TTImp names
 
-This branch spells out the constructor vocabulary of Idris's compiler-internal raw, elaboratable term layer.
-`Elaboratable_` replaces the unexplained one-letter constructor prefix and keeps these names distinct from the checked core term constructors.
+This branch spells out the constructor vocabulary of Idris's compiler-internal raw, elaborable term layer.
+`Elaborable_` replaces the unexplained one-letter constructor prefix and keeps these names distinct from the checked core term constructors.
 The compiler source itself describes this layer as the raw form which is elaborated into checked core terms.
 
 ## Main reading vocabulary
 
 | Upstream name | Name on this branch | Meaning |
 |---|---|---|
-| `IVar` | `Elaboratable_Name` | a referenced name |
-| `IApp` | `Elaboratable_Apply` | apply one term to another |
-| `ILet` | `Elaboratable_Binding` | a local binding |
-| `IPi` | `Elaboratable_Dependent_Function_Type` | a function type whose result may depend on its input |
-| `ILam` | `Elaboratable_Lambda` | a lambda expression |
-| `ICase` | `Elaboratable_Case` | a case expression |
+| `IVar` | `Elaborable_Name` | a referenced name |
+| `IApp` | `Elaborable_Apply` | apply one term to another |
+| `ILet` | `Elaborable_Binding` | a local binding |
+| `IPi` | `Elaborable_Dependent_Function_Type` | a function type whose result may depend on its input |
+| `ILam` | `Elaborable_Lambda` | a lambda expression |
+| `ICase` | `Elaborable_Case` | a case expression |
 
 ## Complete compiler-internal rename
 
 | Upstream name | Name on this branch | Source occurrences changed |
 |---|---|---:|
-| `IAlternative` | `Elaboratable_Alternative` | 46 |
-| `IApp` | `Elaboratable_Apply` | 108 |
-| `IArg` | `Kinded_Elaboratable_Argument` | 3 |
-| `IAs` | `Elaboratable_As_Pattern` | 59 |
-| `IAutoApp` | `Elaboratable_Automatic_Apply` | 82 |
-| `IBindHere` | `Elaboratable_Bind_Here` | 35 |
-| `IBindVar` | `Elaboratable_Bind_Name` | 54 |
-| `IBuiltin` | `Elaboratable_Builtin_Declaration` | 15 |
-| `ICase` | `Elaboratable_Case` | 34 |
-| `ICaseLocal` | `Elaboratable_Case_Local_Definition` | 15 |
-| `IClaim` | `Elaboratable_Claim` | 39 |
-| `IClaimData` | `Elaboratable_Claim_Data` | 6 |
-| `ICoerced` | `Elaboratable_Coerced` | 21 |
-| `IData` | `Elaboratable_Data_Declaration` | 35 |
-| `IDef` | `Elaboratable_Definition` | 46 |
-| `IDelay` | `Elaboratable_Delay` | 34 |
-| `IDelayed` | `Elaboratable_Delayed_Type` | 35 |
-| `IFail` | `Elaboratable_Expected_Failure` | 21 |
-| `IField` | `Elaboratable_Field` | 15 |
-| `IField'` | `Elaboratable_Field'` | 6 |
-| `IFieldUpdate` | `Elaboratable_Field_Update` | 16 |
-| `IFieldUpdate'` | `Elaboratable_Field_Update'` | 15 |
-| `IForce` | `Elaboratable_Force` | 34 |
-| `IHole` | `Elaboratable_Hole` | 24 |
-| `IImpClause` | `Kinded_Elaboratable_Clause` | 3 |
-| `ILam` | `Elaboratable_Lambda` | 61 |
-| `ILet` | `Elaboratable_Binding` | 28 |
-| `ILocal` | `Elaboratable_Local_Definitions` | 30 |
-| `ILog` | `Elaboratable_Logging` | 17 |
-| `IMustUnify` | `Elaboratable_Must_Unify` | 39 |
-| `INamedApp` | `Elaboratable_Named_Apply` | 101 |
-| `INamespace` | `Elaboratable_Namespace_Block` | 29 |
-| `IParameters` | `Elaboratable_Parameter_Block` | 22 |
-| `IPi` | `Elaboratable_Dependent_Function_Type` | 75 |
-| `IPragma` | `Elaboratable_Pragma` | 45 |
-| `IPrimVal` | `Elaboratable_Primitive_Value` | 45 |
-| `IQuote` | `Elaboratable_Quote` | 25 |
-| `IQuoteDecl` | `Elaboratable_Quote_Declarations` | 18 |
-| `IQuoteName` | `Elaboratable_Quote_Name` | 17 |
-| `IRawImp` | `Kinded_Elaboratable_Term` | 25 |
-| `IRecord` | `Elaboratable_Record_Declaration` | 23 |
-| `IRewrite` | `Elaboratable_Rewrite` | 22 |
-| `IRunElab` | `Elaboratable_Run_Elaborator` | 17 |
-| `IRunElabDecl` | `Elaboratable_Run_Elaborator_Declaration` | 14 |
-| `ISearch` | `Elaboratable_Search` | 22 |
-| `ISetField` | `Elaboratable_Set_Field` | 22 |
-| `ISetFieldApp` | `Elaboratable_Apply_To_Field` | 22 |
-| `ITransform` | `Elaboratable_Transformation` | 18 |
-| `IType` | `Elaboratable_Type_Universe` | 25 |
-| `IUnifyLog` | `Elaboratable_Unification_Log` | 13 |
-| `IUnquote` | `Elaboratable_Unquote` | 23 |
-| `IUpdate` | `Elaboratable_Record_Update` | 35 |
-| `IVar` | `Elaboratable_Name` | 206 |
-| `IWithApp` | `Elaboratable_With_Apply` | 52 |
-| `IWithUnambigNames` | `Elaboratable_With_Unambiguous_Names` | 16 |
-| `MkIClaimData` | `Make_Elaboratable_Claim_Data` | 29 |
+| `IAlternative` | `Elaborable_Alternative` | 46 |
+| `IApp` | `Elaborable_Apply` | 108 |
+| `IArg` | `Kinded_Elaborable_Argument` | 3 |
+| `IAs` | `Elaborable_As_Pattern` | 59 |
+| `IAutoApp` | `Elaborable_Automatic_Apply` | 82 |
+| `IBindHere` | `Elaborable_Bind_Here` | 35 |
+| `IBindVar` | `Elaborable_Bind_Name` | 54 |
+| `IBuiltin` | `Elaborable_Builtin_Declaration` | 15 |
+| `ICase` | `Elaborable_Case` | 34 |
+| `ICaseLocal` | `Elaborable_Case_Local_Definition` | 15 |
+| `IClaim` | `Elaborable_Claim` | 39 |
+| `IClaimData` | `Elaborable_Claim_Data` | 6 |
+| `ICoerced` | `Elaborable_Coerced` | 21 |
+| `IData` | `Elaborable_Data_Declaration` | 35 |
+| `IDef` | `Elaborable_Definition` | 46 |
+| `IDelay` | `Elaborable_Delay` | 34 |
+| `IDelayed` | `Elaborable_Delayed_Type` | 35 |
+| `IFail` | `Elaborable_Expected_Failure` | 21 |
+| `IField` | `Elaborable_Field` | 15 |
+| `IField'` | `Elaborable_Field'` | 6 |
+| `IFieldUpdate` | `Elaborable_Field_Update` | 16 |
+| `IFieldUpdate'` | `Elaborable_Field_Update'` | 15 |
+| `IForce` | `Elaborable_Force` | 34 |
+| `IHole` | `Elaborable_Hole` | 24 |
+| `IImpClause` | `Kinded_Elaborable_Clause` | 3 |
+| `ILam` | `Elaborable_Lambda` | 61 |
+| `ILet` | `Elaborable_Binding` | 28 |
+| `ILocal` | `Elaborable_Local_Definitions` | 30 |
+| `ILog` | `Elaborable_Logging` | 17 |
+| `IMustUnify` | `Elaborable_Must_Unify` | 39 |
+| `INamedApp` | `Elaborable_Named_Apply` | 101 |
+| `INamespace` | `Elaborable_Namespace_Block` | 29 |
+| `IParameters` | `Elaborable_Parameter_Block` | 22 |
+| `IPi` | `Elaborable_Dependent_Function_Type` | 75 |
+| `IPragma` | `Elaborable_Pragma` | 45 |
+| `IPrimVal` | `Elaborable_Primitive_Value` | 45 |
+| `IQuote` | `Elaborable_Quote` | 25 |
+| `IQuoteDecl` | `Elaborable_Quote_Declarations` | 18 |
+| `IQuoteName` | `Elaborable_Quote_Name` | 17 |
+| `IRawImp` | `Kinded_Elaborable_Term` | 25 |
+| `IRecord` | `Elaborable_Record_Declaration` | 23 |
+| `IRewrite` | `Elaborable_Rewrite` | 22 |
+| `IRunElab` | `Elaborable_Run_Elaborator` | 17 |
+| `IRunElabDecl` | `Elaborable_Run_Elaborator_Declaration` | 14 |
+| `ISearch` | `Elaborable_Search` | 22 |
+| `ISetField` | `Elaborable_Set_Field` | 22 |
+| `ISetFieldApp` | `Elaborable_Apply_To_Field` | 22 |
+| `ITransform` | `Elaborable_Transformation` | 18 |
+| `IType` | `Elaborable_Type_Universe` | 25 |
+| `IUnifyLog` | `Elaborable_Unification_Log` | 13 |
+| `IUnquote` | `Elaborable_Unquote` | 23 |
+| `IUpdate` | `Elaborable_Record_Update` | 35 |
+| `IVar` | `Elaborable_Name` | 206 |
+| `IWithApp` | `Elaborable_With_Apply` | 52 |
+| `IWithUnambigNames` | `Elaborable_With_Unambiguous_Names` | 16 |
+| `MkIClaimData` | `Make_Elaborable_Claim_Data` | 29 |
 | `findIBinds` | `find_names_to_bind` | 49 |
-| `isIBindVar` | `is_elaboratable_bound_name` | 4 |
+| `isIBindVar` | `is_elaborable_bound_name` | 4 |
 | `isIPrimVal` | `is_primitive_value` | 4 |
-| `isIVar` | `is_elaboratable_name` | 4 |
-| `unIArg` | `elaboratable_argument_term` | 4 |
+| `isIVar` | `is_elaborable_name` | 4 |
+| `unIArg` | `elaborable_argument_term` | 4 |
 
 ## Reflection compatibility boundary
 
