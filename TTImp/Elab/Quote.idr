@@ -25,52 +25,52 @@ mutual
                {auto u : Ref UST UState} ->
                RawImp ->
                Core RawImp
-  getUnquote (Elaboratable_Dependent_Function_Type fc c p n arg ret)
-      = pure $ Elaboratable_Dependent_Function_Type fc c p n !(getUnquote arg) !(getUnquote ret)
-  getUnquote (Elaboratable_Lambda fc c p n arg sc)
-      = pure $ Elaboratable_Lambda fc c p n !(getUnquote arg) !(getUnquote sc)
-  getUnquote (Elaboratable_Binding fc lhsFC c n ty val sc)
-      = pure $ Elaboratable_Binding fc lhsFC c n !(getUnquote ty) !(getUnquote val) !(getUnquote sc)
-  getUnquote (Elaboratable_Case fc opts sc ty cs)
-      = pure $ Elaboratable_Case fc opts
+  getUnquote (Elaborable_Dependent_Function_Type fc c p n arg ret)
+      = pure $ Elaborable_Dependent_Function_Type fc c p n !(getUnquote arg) !(getUnquote ret)
+  getUnquote (Elaborable_Lambda fc c p n arg sc)
+      = pure $ Elaborable_Lambda fc c p n !(getUnquote arg) !(getUnquote sc)
+  getUnquote (Elaborable_Binding fc lhsFC c n ty val sc)
+      = pure $ Elaborable_Binding fc lhsFC c n !(getUnquote ty) !(getUnquote val) !(getUnquote sc)
+  getUnquote (Elaborable_Case fc opts sc ty cs)
+      = pure $ Elaborable_Case fc opts
                 !(getUnquote sc) !(getUnquote ty)
                 !(traverse getUnquoteClause cs)
-  getUnquote (Elaboratable_Local_Definitions fc ds sc)
-      = pure $ Elaboratable_Local_Definitions fc !(traverse getUnquoteDecl ds) !(getUnquote sc)
-  getUnquote (Elaboratable_Record_Update fc ds sc)
-      = pure $ Elaboratable_Record_Update fc !(traverse getUnquoteUpdate ds) !(getUnquote sc)
-  getUnquote (Elaboratable_Apply fc f a)
-      = pure $ Elaboratable_Apply fc !(getUnquote f) !(getUnquote a)
-  getUnquote (Elaboratable_Automatic_Apply fc f a)
-      = pure $ Elaboratable_Automatic_Apply fc !(getUnquote f) !(getUnquote a)
-  getUnquote (Elaboratable_Named_Apply fc f n a)
-      = pure $ Elaboratable_Named_Apply fc !(getUnquote f) n !(getUnquote a)
-  getUnquote (Elaboratable_With_Apply fc f a)
-      = pure $ Elaboratable_With_Apply fc !(getUnquote f) !(getUnquote a)
-  getUnquote (Elaboratable_Alternative fc at as)
-      = pure $ Elaboratable_Alternative fc at !(traverse getUnquote as)
-  getUnquote (Elaboratable_Rewrite fc f a)
-      = pure $ Elaboratable_Rewrite fc !(getUnquote f) !(getUnquote a)
-  getUnquote (Elaboratable_Coerced fc t)
-      = pure $ Elaboratable_Coerced fc !(getUnquote t)
-  getUnquote (Elaboratable_Bind_Here fc m t)
-      = pure $ Elaboratable_Bind_Here fc m !(getUnquote t)
-  getUnquote (Elaboratable_As_Pattern fc nameFC u nm t)
-      = pure $ Elaboratable_As_Pattern fc nameFC u nm !(getUnquote t)
-  getUnquote (Elaboratable_Must_Unify fc r t)
-      = pure $ Elaboratable_Must_Unify fc r !(getUnquote t)
-  getUnquote (Elaboratable_Delayed_Type fc r t)
-      = pure $ Elaboratable_Delayed_Type fc r !(getUnquote t)
-  getUnquote (Elaboratable_Delay fc t)
-      = pure $ Elaboratable_Delay fc !(getUnquote t)
-  getUnquote (Elaboratable_Force fc t)
-      = pure $ Elaboratable_Force fc !(getUnquote t)
-  getUnquote (Elaboratable_Quote fc t)
-      = pure $ Elaboratable_Quote fc !(getUnquote t)
-  getUnquote (Elaboratable_Unquote fc tm)
+  getUnquote (Elaborable_Local_Definitions fc ds sc)
+      = pure $ Elaborable_Local_Definitions fc !(traverse getUnquoteDecl ds) !(getUnquote sc)
+  getUnquote (Elaborable_Record_Update fc ds sc)
+      = pure $ Elaborable_Record_Update fc !(traverse getUnquoteUpdate ds) !(getUnquote sc)
+  getUnquote (Elaborable_Apply fc f a)
+      = pure $ Elaborable_Apply fc !(getUnquote f) !(getUnquote a)
+  getUnquote (Elaborable_Automatic_Apply fc f a)
+      = pure $ Elaborable_Automatic_Apply fc !(getUnquote f) !(getUnquote a)
+  getUnquote (Elaborable_Named_Apply fc f n a)
+      = pure $ Elaborable_Named_Apply fc !(getUnquote f) n !(getUnquote a)
+  getUnquote (Elaborable_With_Apply fc f a)
+      = pure $ Elaborable_With_Apply fc !(getUnquote f) !(getUnquote a)
+  getUnquote (Elaborable_Alternative fc at as)
+      = pure $ Elaborable_Alternative fc at !(traverse getUnquote as)
+  getUnquote (Elaborable_Rewrite fc f a)
+      = pure $ Elaborable_Rewrite fc !(getUnquote f) !(getUnquote a)
+  getUnquote (Elaborable_Coerced fc t)
+      = pure $ Elaborable_Coerced fc !(getUnquote t)
+  getUnquote (Elaborable_Bind_Here fc m t)
+      = pure $ Elaborable_Bind_Here fc m !(getUnquote t)
+  getUnquote (Elaborable_As_Pattern fc nameFC u nm t)
+      = pure $ Elaborable_As_Pattern fc nameFC u nm !(getUnquote t)
+  getUnquote (Elaborable_Must_Unify fc r t)
+      = pure $ Elaborable_Must_Unify fc r !(getUnquote t)
+  getUnquote (Elaborable_Delayed_Type fc r t)
+      = pure $ Elaborable_Delayed_Type fc r !(getUnquote t)
+  getUnquote (Elaborable_Delay fc t)
+      = pure $ Elaborable_Delay fc !(getUnquote t)
+  getUnquote (Elaborable_Force fc t)
+      = pure $ Elaborable_Force fc !(getUnquote t)
+  getUnquote (Elaborable_Quote fc t)
+      = pure $ Elaborable_Quote fc !(getUnquote t)
+  getUnquote (Elaborable_Unquote fc tm)
       = do qv <- genVarName "q"
            update Unq ((qv, fc, tm) ::)
-           pure (Elaboratable_Unquote fc (Elaboratable_Name fc qv)) -- turned into just qv when reflecting
+           pure (Elaborable_Unquote fc (Elaborable_Name fc qv)) -- turned into just qv when reflecting
   getUnquote tm = pure tm
 
   getUnquoteClause : {auto c : Ref Ctxt Defs} ->
@@ -95,10 +95,10 @@ mutual
   getUnquoteUpdate : {auto c : Ref Ctxt Defs} ->
                      {auto q : Ref Unq (List (Name, FC, RawImp))} ->
                      {auto u : Ref UST UState} ->
-                     Elaboratable_Field_Update ->
-                     Core Elaboratable_Field_Update
-  getUnquoteUpdate (Elaboratable_Set_Field p t) = pure $ Elaboratable_Set_Field p !(getUnquote t)
-  getUnquoteUpdate (Elaboratable_Apply_To_Field p t) = pure $ Elaboratable_Apply_To_Field p !(getUnquote t)
+                     Elaborable_Field_Update ->
+                     Core Elaborable_Field_Update
+  getUnquoteUpdate (Elaborable_Set_Field p t) = pure $ Elaborable_Set_Field p !(getUnquote t)
+  getUnquoteUpdate (Elaborable_Apply_To_Field p t) = pure $ Elaborable_Apply_To_Field p !(getUnquote t)
 
   getUnquoteRecord : {auto c : Ref Ctxt Defs} ->
                      {auto q : Ref Unq (List (Name, FC, RawImp))} ->
@@ -126,22 +126,22 @@ mutual
                    {auto u : Ref UST UState} ->
                    ImpDecl ->
                    Core ImpDecl
-  getUnquoteDecl (Elaboratable_Claim (MkWithData fc (Make_Elaboratable_Claim_Data c v opts ty)))
-      = pure $ Elaboratable_Claim (MkWithData fc (Make_Elaboratable_Claim_Data c v opts !(traverse getUnquote ty)))
-  getUnquoteDecl (Elaboratable_Data_Declaration fc v mbt d)
-      = pure $ Elaboratable_Data_Declaration fc v mbt !(getUnquoteData d)
-  getUnquoteDecl (Elaboratable_Definition fc v d)
-      = pure $ Elaboratable_Definition fc v !(traverse getUnquoteClause d)
-  getUnquoteDecl (Elaboratable_Parameter_Block fc ps ds)
-      = pure $ Elaboratable_Parameter_Block fc -- We also unquote default arguments here too
+  getUnquoteDecl (Elaborable_Claim (MkWithData fc (Make_Elaborable_Claim_Data c v opts ty)))
+      = pure $ Elaborable_Claim (MkWithData fc (Make_Elaborable_Claim_Data c v opts !(traverse getUnquote ty)))
+  getUnquoteDecl (Elaborable_Data_Declaration fc v mbt d)
+      = pure $ Elaborable_Data_Declaration fc v mbt !(getUnquoteData d)
+  getUnquoteDecl (Elaborable_Definition fc v d)
+      = pure $ Elaborable_Definition fc v !(traverse getUnquoteClause d)
+  getUnquoteDecl (Elaborable_Parameter_Block fc ps ds)
+      = pure $ Elaborable_Parameter_Block fc -- We also unquote default arguments here too
                            !(traverseList1 (traverse (traverse getUnquote)) ps)
                            !(traverse getUnquoteDecl ds)
-  getUnquoteDecl (Elaboratable_Record_Declaration fc ns v mbt d)
-      = pure $ Elaboratable_Record_Declaration fc ns v mbt !(traverse getUnquoteRecord d)
-  getUnquoteDecl (Elaboratable_Namespace_Block fc ns ds)
-      = pure $ Elaboratable_Namespace_Block fc ns !(traverse getUnquoteDecl ds)
-  getUnquoteDecl (Elaboratable_Transformation fc n l r)
-      = pure $ Elaboratable_Transformation fc n !(getUnquote l) !(getUnquote r)
+  getUnquoteDecl (Elaborable_Record_Declaration fc ns v mbt d)
+      = pure $ Elaborable_Record_Declaration fc ns v mbt !(traverse getUnquoteRecord d)
+  getUnquoteDecl (Elaborable_Namespace_Block fc ns ds)
+      = pure $ Elaborable_Namespace_Block fc ns !(traverse getUnquoteDecl ds)
+  getUnquoteDecl (Elaborable_Transformation fc n l r)
+      = pure $ Elaborable_Transformation fc n !(getUnquote l) !(getUnquote r)
   getUnquoteDecl d = pure d
 
 bindUnqs : {vars : _} ->

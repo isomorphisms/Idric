@@ -181,9 +181,9 @@ cOp BelieveMe     [_, _, x] = "idris2_newReference(" ++ x ++ ")"
 cOp Crash         [_, msg]  = "idris2_crash(" ++ msg ++ ");"
 cOp fn args = show fn ++ "(" ++ (showSep ", " $ toList args) ++ ")"
 
-varName : AVar -> String
-varName (ALocal i) = "var_" ++ (show i)
-varName (ANull)    = "NULL"
+varName : Administrative_Normal_Form_Variable -> String
+varName (Administrative_Normal_Form_Local_Variable i) = "var_" ++ (show i)
+varName (Administrative_Normal_Form_Erased_Variable)    = "NULL"
 
 data ArgCounter : Type where
 data EnvTracker : Type where
@@ -206,7 +206,7 @@ constantName = \case
         go x y = "idris2_constant_\{x}_\{y}"
 
 ReuseMap = SortedMap Name String
-Owned = SortedSet AVar
+Owned = SortedSet Administrative_Normal_Form_Variable
 
 ||| Environment for precise reference counting.
 ||| If variable borrowed (that is, it is not in the owned set) when used, call a function idris2_newReference.
@@ -303,13 +303,13 @@ removeReuseConstructors : {auto oft : Ref OutfileText Output}
                         -> Core ()
 removeReuseConstructors = applyFunctionToVars "idris2_removeReuseConstructor"
 
-avarToC : Env -> AVar -> String
+avarToC : Env -> Administrative_Normal_Form_Variable -> String
 avarToC env var =
     if contains var env.owned then varName var
         -- case when the variable is borrowed
     else "idris2_newReference(" ++ varName var ++ ")"
 
-avarsToC : Owned -> List AVar -> List String
+avarsToC : Owned -> List Administrative_Normal_Form_Variable -> List String
 avarsToC _ [] = []
 avarsToC owned (v::vars) =
   let v' = varName v in
@@ -317,14 +317,14 @@ avarsToC owned (v::vars) =
           then v'::avarsToC (delete v owned) vars
           else "idris2_newReference(\{v'})"::avarsToC owned vars -- when v is borrowed
 
-moveFromOwnedToBorrowed : Env -> SortedSet AVar -> Env
+moveFromOwnedToBorrowed : Env -> SortedSet Administrative_Normal_Form_Variable -> Env
 moveFromOwnedToBorrowed env vars = { owned $= (`difference` vars) } env
 
 fillArgs : {auto oft : Ref OutfileText Output}
          -> {auto il : Ref IndentLevel Nat}
          -> Env
          -> String
-         -> List AVar
+         -> List Administrative_Normal_Form_Variable
          -> Nat
          -> Core ()
 fillArgs _ _ [] _ = pure ()
@@ -339,7 +339,7 @@ makeClosure : {auto a : Ref ArgCounter Nat}
             -> {auto e : Ref EnvTracker Env}
             -> FC
             -> Name
-            -> List AVar
+            -> List Administrative_Normal_Form_Variable
             -> Nat
             -> Core String
 makeClosure fc n args missing = do
@@ -355,9 +355,9 @@ makeClosure fc n args missing = do
 MaxExtractFunArgs : Nat
 MaxExtractFunArgs = 16
 
-integer_switch : List AConstAlt -> Bool
+integer_switch : List Administrative_Normal_Form_Constant_Alternative -> Bool
 integer_switch [] = True
-integer_switch (MkAConstAlt c _  :: _) =
+integer_switch (Make_Administrative_Normal_Form_Constant_Alternative c _  :: _) =
     case c of
         (I x) => True
         (I8 x) => True
@@ -401,7 +401,7 @@ dropUnusedReuseCons reuseMap usedCons =
 
 ||| The function takes as arguments the current owned vars and set vars that will be used.
 ||| Returns variables to remove and actual owned vars.
-dropUnusedOwnedVars : Owned -> SortedSet AVar -> (List String, Owned)
+dropUnusedOwnedVars : Owned -> SortedSet Administrative_Normal_Form_Variable -> (List String, Owned)
 dropUnusedOwnedVars owned usedVars =
     let actualOwned = intersection owned usedVars in
     let shouldDrop = difference owned actualOwned in
@@ -453,7 +453,7 @@ mutual
                  -> {auto il : Ref IndentLevel Nat}
                  -> {auto _ : Ref ConstDef (SortedMap Constant ConstDef)}
                  -> Env
-                 -> String -> String -> List Int -> ANF -> TailPositionStatus
+                 -> String -> String -> List Int -> Administrative_Normal_Form -> TailPositionStatus
                  -> Core ()
     concaseBody env returnvar expr args body tailPosition = do
         increaseIndentation
@@ -475,12 +475,12 @@ mutual
                       -> {auto il : Ref IndentLevel Nat}
                       -> {auto e : Ref EnvTracker Env}
                       -> {auto _ : Ref ConstDef (SortedMap Constant ConstDef)}
-                      -> ANF
+                      -> Administrative_Normal_Form
                       -> TailPositionStatus
                       -> Core String
 
-    cStatementsFromANF (AV fc x) _ = pure $ avarToC !(get EnvTracker) x
-    cStatementsFromANF (AAppName fc _ n args) tailPosition = do
+    cStatementsFromANF (Administrative_Normal_Form_Variable_Expression fc x) _ = pure $ avarToC !(get EnvTracker) x
+    cStatementsFromANF (Administrative_Normal_Form_Named_Function_Application fc _ n args) tailPosition = do
         let nargs = length args
         case tailPosition of
             InTailPosition => makeClosure fc n args 0
@@ -491,28 +491,28 @@ mutual
                     let args' = avarsToC env.owned args
                     pure "idris2_trampoline(\{cName n}(\{concat $ intersperse ", " args'}))"
 
-    cStatementsFromANF (AUnderApp fc n missing args) _ = makeClosure fc n args missing
-    cStatementsFromANF (AApp fc _ closure arg) tailPosition = do
+    cStatementsFromANF (Administrative_Normal_Form_Partial_Application fc n missing args) _ = makeClosure fc n args missing
+    cStatementsFromANF (Administrative_Normal_Form_Closure_Application fc _ closure arg) tailPosition = do
        env <- get EnvTracker
        pure $ (case tailPosition of
            NotInTailPosition =>          "idris2_apply_closure"
            InTailPosition    => "idris2_tailcall_apply_closure") ++ "(\{avarToC env closure}, \{avarToC env arg})"
 
-    cStatementsFromANF (ALet fc var value body) tailPosition = do
+    cStatementsFromANF (Administrative_Normal_Form_Binding fc var value body) tailPosition = do
         env <- get EnvTracker
         let usedVars = freeVariables body
-        let borrowVal = intersection env.owned (delete (ALocal var) usedVars)
-        let owned' = if contains (ALocal var) usedVars then insert (ALocal var) borrowVal else borrowVal
+        let borrowVal = intersection env.owned (delete (Administrative_Normal_Form_Local_Variable var) usedVars)
+        let owned' = if contains (Administrative_Normal_Form_Local_Variable var) usedVars then insert (Administrative_Normal_Form_Local_Variable var) borrowVal else borrowVal
         let usedCons = usedConstructors value
         -- When translating value into C, we borrow variables that will be used in body
         let valueEnv = { reuseMap $= (`intersectionMap` usedCons) } (moveFromOwnedToBorrowed env borrowVal)
         put EnvTracker valueEnv
         emit fc $ "Idris2_Value * var_\{show var} = \{!(cStatementsFromANF value NotInTailPosition)};"
-        unless (contains (ALocal var) usedVars) $ emit fc $ "idris2_removeReference(var_\{show var});"
+        unless (contains (Administrative_Normal_Form_Local_Variable var) usedVars) $ emit fc $ "idris2_removeReference(var_\{show var});"
         put EnvTracker ({ owned := owned', reuseMap $= (`differenceMap` usedCons) } env)
         cStatementsFromANF body tailPosition
 
-    cStatementsFromANF (ACon fc n coninfo tag args) _ = do
+    cStatementsFromANF (Administrative_Normal_Form_Constructor_Value fc n coninfo tag args) _ = do
         if coninfo == NIL || coninfo == NOTHING || coninfo == ZERO || coninfo == UNIT
             then pure "(NULL /* \{show n} */)"
             else do
@@ -538,9 +538,9 @@ mutual
                 fillArgs env "\{constr}->args" args 0
                 pure "(Idris2_Value*)\{constr}"
 
-    cStatementsFromANF (AOp fc _ op args) _ = do
+    cStatementsFromANF (Administrative_Normal_Form_Primitive_Operation fc _ op args) _ = do
         let resultVar = "primVar_" ++ !(getNextCounter)
-        let argsVect : Env -> Vect ar AVar -> Vect ar String
+        let argsVect : Env -> Vect ar Administrative_Normal_Form_Variable -> Vect ar String
             argsVect _ [] = []
             argsVect env (v :: vars) =
               let ownedVars = if contains v env.owned then singleton v else empty
@@ -551,7 +551,7 @@ mutual
         removeVars $ toList $ map varName args
         pure resultVar
 
-    cStatementsFromANF (AExtPrim fc _ p args) _ = do
+    cStatementsFromANF (Administrative_Normal_Form_External_Primitive fc _ p args) _ = do
         let prims : List String =
             ["prim__newIORef", "prim__readIORef", "prim__writeIORef", "prim__newArray",
              "prim__arrayGet", "prim__arraySet", "prim__getField", "prim__setField",
@@ -563,12 +563,12 @@ mutual
         emit fc $ "// call to external primitive " ++ cName p
         pure $ "idris2_\{cName p}("++ showSep ", " (map varName args) ++")"
 
-    cStatementsFromANF (AConCase fc sc alts mDef) tailPosition = do
+    cStatementsFromANF (Administrative_Normal_Form_Constructor_Case fc sc alts mDef) tailPosition = do
         let sc' = varName sc
         switchReturnVar <- getNewVarThatWillNotBeFreedAtEndOfBlock
         emit fc "Idris2_Value * \{switchReturnVar} = NULL;"
         env <- get EnvTracker
-        _ <- foldlC (\els, (MkAConAlt name coninfo tag args body) => do
+        _ <- foldlC (\els, (Make_Administrative_Normal_Form_Constructor_Alternative name coninfo tag args body) => do
             let erased = coninfo == NIL || coninfo == NOTHING || coninfo == ZERO || coninfo == UNIT
             if erased then emit emptyFC "\{els}if (NULL == \{sc'} /* \{show name} \{show coninfo} */) {"
                 else if coninfo == CONS || coninfo == JUST || coninfo == SUCC
@@ -578,7 +578,7 @@ mutual
                         Nothing   => emit emptyFC "\{els}if (! strcmp(((Idris2_Constructor *)\{sc'})->name, idris2_constr_\{cName name})) {"
                         Just tag' => emit emptyFC "\{els}if (((Idris2_Constructor *)\{sc'})->tag == \{show tag'} /* \{show name} */) {"
 
-            let conArgs = ALocal <$> args
+            let conArgs = Administrative_Normal_Form_Local_Variable <$> args
             let ownedWithArgs = union (fromList conArgs) $ if erased then delete sc env.owned else env.owned
             let (shouldDrop, actualOwned) = dropUnusedOwnedVars ownedWithArgs (freeVariables body)
             let usedCons = usedConstructors body
@@ -603,7 +603,7 @@ mutual
         emit emptyFC "}"
         pure switchReturnVar
 
-    cStatementsFromANF (AConstCase fc sc alts def) tailPosition = do
+    cStatementsFromANF (Administrative_Normal_Form_Constant_Case fc sc alts def) tailPosition = do
         let sc' = varName sc
         switchReturnVar <- getNewVarThatWillNotBeFreedAtEndOfBlock
         emit fc "Idris2_Value *\{switchReturnVar} = NULL;"
@@ -612,18 +612,18 @@ mutual
             True => do
                 tmpint <- getNewVarThatWillNotBeFreedAtEndOfBlock
                 emit emptyFC "int64_t \{tmpint} = idris2_extractInt(\{sc'});"
-                _ <- foldlC (\els, (MkAConstAlt c body) => do
+                _ <- foldlC (\els, (Make_Administrative_Normal_Form_Constant_Alternative c body) => do
                     emit emptyFC "\{els}if (\{tmpint} == \{const2Integer c 0}) {"
                     concaseBody env switchReturnVar "" [] body tailPosition
                     pure "} else ") "" alts
                 pure ()
 
             False => do
-                _ <- foldlC (\els, (MkAConstAlt c body) => do
+                _ <- foldlC (\els, (Make_Administrative_Normal_Form_Constant_Alternative c body) => do
                     case c of
                         Str x => emit emptyFC "\{els}if (! strcmp(\{cStringQuoted x}, ((Idris2_String *)\{sc'})->str)) {"
                         Db  x => emit emptyFC "\{els}if (((Idris2_Double *)\{sc'})->d == \{show x}) {"
-                        x => throw $ InternalError "[refc] AConstCase : unsupported type. \{show fc} \{show x}"
+                        x => throw $ InternalError "[refc] Administrative_Normal_Form_Constant_Case : unsupported type. \{show fc} \{show x}"
                     concaseBody env switchReturnVar "" [] body tailPosition
                     pure "} else ") "" alts
                 pure ()
@@ -636,8 +636,8 @@ mutual
         emit emptyFC "}"
         pure switchReturnVar
 
-    cStatementsFromANF (APrimVal fc (I x)) tailPosition = cStatementsFromANF (APrimVal fc (I64 $ cast x)) tailPosition
-    cStatementsFromANF (APrimVal fc c) _ = do
+    cStatementsFromANF (Administrative_Normal_Form_Primitive_Value fc (I x)) tailPosition = cStatementsFromANF (Administrative_Normal_Form_Primitive_Value fc (I64 $ cast x)) tailPosition
+    cStatementsFromANF (Administrative_Normal_Form_Primitive_Value fc c) _ = do
       constdefs <- get ConstDef
       case lookup c constdefs of
            Just cdef => pure "((Idris2_Value*)&\{constantName cdef})" -- the constant already booked.
@@ -674,8 +674,8 @@ mutual
             PrT t => pure $ cPrimType t
             WorldVal => pure "(NULL /* World */)"
 
-    cStatementsFromANF (AErased fc) _ = pure "NULL"
-    cStatementsFromANF (ACrash fc x) _ = pure "(NULL /* CRASH */)"
+    cStatementsFromANF (Administrative_Normal_Form_Erased_Value fc) _ = pure "NULL"
+    cStatementsFromANF (Administrative_Normal_Form_Crash fc x) _ = pure "(NULL /* CRASH */)"
 
 addCommaToList : List String -> List String
 addCommaToList [] = []
@@ -809,9 +809,9 @@ createCFunctions : {auto c : Ref Ctxt Defs}
                 -> {auto h : Ref HeaderFiles (SortedSet String)}
                 -> {default [] additionalFFILangs : List String}
                 -> Name
-                -> ANFDef
+                -> Administrative_Normal_Form_Definition
                 -> Core ()
-createCFunctions n (MkAFun args anf) = do
+createCFunctions n (Make_Administrative_Normal_Form_Function args anf) = do
     let nargs = length args
     let fn = "Idris2_Value *\{cName !(getFullName n)}"
             ++ (if nargs == 0 then "(void)"
@@ -819,7 +819,7 @@ createCFunctions n (MkAFun args anf) = do
                else ("\n(\n" ++ (showSep "\n" $ addCommaToList (map (\i =>  "  Idris2_Value * var_" ++ (show i)) args))) ++ "\n)")
     update FunctionDefinitions $ \otherDefs => (fn ++ ";\n") :: otherDefs
 
-    let argsVars = fromList $ ALocal <$> args
+    let argsVars = fromList $ Administrative_Normal_Form_Local_Variable <$> args
     let bodyFreeVars = freeVariables anf
     let shouldDrop = difference argsVars bodyFreeVars
     let argsNrs = getArgsNrList args Z
@@ -840,17 +840,17 @@ createCFunctions n (MkAFun args anf) = do
     pure ()
 
 
-createCFunctions n (MkACon Nothing _ _) = do
+createCFunctions n (Make_Administrative_Normal_Form_Constructor Nothing _ _) = do
   let n' = cName n
   update FunctionDefinitions $ \otherDefs => "char const idris2_constr_\{n'}[];" :: otherDefs
   emit EmptyFC "char const idris2_constr_\{n'}[] = \{cStringQuoted $ show n};"
   pure ()
 
-createCFunctions n (MkACon tag arity nt) = do
+createCFunctions n (Make_Administrative_Normal_Form_Constructor tag arity nt) = do
   emit EmptyFC $ ( "// \{show n} Constructor tag " ++ show tag ++ " arity " ++ show arity) -- Nothing to compile here
 
 
-createCFunctions n (MkAForeign ccs fargs ret) = do
+createCFunctions n (Make_Administrative_Normal_Form_Foreign_Function ccs fargs ret) = do
   case parseCC (additionalFFILangs ++ ["RefC", "C"]) ccs of
       Just (lang, fctForeignName :: extLibOpts) => do
           let cLang = if lang == "RefC"
@@ -902,7 +902,7 @@ createCFunctions n (MkAForeign ccs fargs ret) = do
       _ => throw $ InternalError "[refc] FFI not found for \{cName n}"
           -- not really total but this way this internal error does not contaminate everything else
 
-createCFunctions n (MkAError exp) = throw $ InternalError "[refc] Error with expression: \{show exp}"
+createCFunctions n (Make_Administrative_Normal_Form_Error exp) = throw $ InternalError "[refc] Error with expression: \{show exp}"
 -- not really total but this way this internal error does not contaminate everything else
 
 
@@ -968,7 +968,7 @@ footer = do
 export
 generateCSourceFile : {auto c : Ref Ctxt Defs}
                    -> {default [] additionalFFILangs : List String}
-                   -> List (Name, ANFDef)
+                   -> List (Name, Administrative_Normal_Form_Definition)
                    -> (outn : String)
                    -> Core ()
 generateCSourceFile defs outn =
@@ -996,13 +996,13 @@ compileExpr : UsePhase
            -> ClosedTerm
            -> (outfile : String)
            -> Core (Maybe String)
-compileExpr ANF c s _ outputDir tm outfile =
+compileExpr Administrative_Normal_Form c s _ outputDir tm outfile =
   do let outn = outputDir </> outfile ++ ".c"
      let outobj = outputDir </> outfile ++ ".o"
      let outexec = outputDir </> outfile
 
      coreLift_ $ mkdirAll outputDir
-     cdata <- getCompileData False ANF tm
+     cdata <- getCompileData False Administrative_Normal_Form tm
      let defs = anf cdata
 
      generateCSourceFile defs outn
@@ -1019,10 +1019,10 @@ executeExpr : Ref Ctxt Defs -> Ref Syn SyntaxInfo ->
               (execDir : String) -> ClosedTerm -> Core ()
 executeExpr c s tmpDir tm = do
   do let outfile = "_tmp_refc"
-     Just _ <- compileExpr ANF c s tmpDir tmpDir tm outfile
+     Just _ <- compileExpr Administrative_Normal_Form c s tmpDir tmpDir tm outfile
        | Nothing => do coreLift_ $ putStrLn "Error: failed to compile"
      coreLift_ $ system (tmpDir </> outfile)
 
 export
 codegenRefC : Codegen
-codegenRefC = MkCG (compileExpr ANF) executeExpr Nothing Nothing
+codegenRefC = MkCG (compileExpr Administrative_Normal_Form) executeExpr Nothing Nothing

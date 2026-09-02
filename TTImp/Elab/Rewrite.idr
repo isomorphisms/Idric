@@ -144,9 +144,9 @@ checkRewrite {vars} rigc elabinfo nest env ifc rule tm (Just expected)
                 inScope {e=e'} vfc env' $ \e'' =>
                   let offset = mkSizeOf [rname, pname] in
                   check {e = e''} rigc elabinfo (weakenNs offset nest) env'
-                    (apply (Elaboratable_Name vfc lemma.name)
-                      [ Elaboratable_Name vfc pname
-                      , Elaboratable_Name vfc rname
+                    (apply (Elaborable_Name vfc lemma.name)
+                      [ Elaborable_Name vfc pname
+                      , Elaborable_Name vfc rname
                       , tm ])
                     (Just (gnf env' (weakenNs offset expTy)))
            rwty <- getTerm grwty

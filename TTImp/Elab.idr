@@ -260,13 +260,13 @@ checkTermSub defining mode opts nest env env' sub tm ty
                 Core RawImp
     bindImps' loc env [] ty = pure ty
     bindImps' loc env ((n, ty) :: ntys) sc
-        = pure $ Elaboratable_Dependent_Function_Type loc erased Implicit (Just n)
+        = pure $ Elaborable_Dependent_Function_Type loc erased Implicit (Just n)
                      (Implicit loc True) !(bindImps' loc env ntys sc)
 
     bindImps : FC -> Env Term vs -> List (Name, Term vs) -> RawImp ->
                Core RawImp
-    bindImps loc env ns (Elaboratable_Bind_Here fc m ty)
-        = pure $ Elaboratable_Bind_Here fc m !(bindImps' loc env ns ty)
+    bindImps loc env ns (Elaborable_Bind_Here fc m ty)
+        = pure $ Elaborable_Bind_Here fc m !(bindImps' loc env ns ty)
     bindImps loc env ns ty = bindImps' loc env ns ty
 
 export

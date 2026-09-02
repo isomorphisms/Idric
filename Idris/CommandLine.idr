@@ -138,7 +138,7 @@ data CLOpt
   DumpCases String |
    ||| Dump lambda lifted defs before compiling
   DumpLifted String |
-   ||| Dump ANF defs before compiling
+   ||| Dump Administrative_Normal_Form defs before compiling
   DumpANF String |
    ||| Dump VM code defs before compiling
   DumpVMCode String |
@@ -370,7 +370,7 @@ options = [MkOpt ["--check", "-c"] [] [CheckOnly]
            MkOpt ["--dumplifted"] [Required "output file"] (\f => [DumpLifted f])
               Nothing, -- dump lambda lifted trees to the given file
            MkOpt ["--dumpanf"] [Required "output file"] (\f => [DumpANF f])
-              Nothing, -- dump ANF to the given file
+              Nothing, -- dump Administrative_Normal_Form to the given file
            MkOpt ["--dumpvmcode"] [Required "output file"] (\f => [DumpVMCode f])
               Nothing, -- dump VM Code to the given file
            MkOpt ["--debug-elab-check"] [] [DebugElabCheck]

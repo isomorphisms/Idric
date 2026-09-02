@@ -29,7 +29,7 @@ getFnString : {auto c : Ref Ctxt Defs} ->
               {auto s : Ref Syn SyntaxInfo} ->
               {auto o : Ref ROpts REPLOpts} ->
                RawImp -> Core String
-getFnString (Elaboratable_Primitive_Value _ (Str st)) = pure st
+getFnString (Elaborable_Primitive_Value _ (Str st)) = pure st
 getFnString tm
     = do inidx <- resolveName (UN $ Basic "[foreign]")
          let fc = getFC tm
@@ -120,7 +120,7 @@ findInferrable defs ty = fi 0 0 [] NatSet.empty ty
     fi pos i args acc ret = findInf acc args ret
 
 checkForShadowing : (env : StringMap FC) -> RawImp -> StringMap (FC, FC)
-checkForShadowing env (Elaboratable_Dependent_Function_Type fc _ _ nm argTy retTy)
+checkForShadowing env (Elaborable_Dependent_Function_Type fc _ _ nm argTy retTy)
     = do let argShadowing = checkForShadowing empty argTy
          let retShadowing =
             case nm of
@@ -162,7 +162,7 @@ processType {vars} eopts nest env fc rig vis opts ty_raw
          ty <-
              wrapErrorC eopts (InType fc n) $
                    checkTerm idx InType (HolesOkay :: eopts) nest env
-                             (Elaboratable_Bind_Here fc (PI erased) ty_raw.val)
+                             (Elaborable_Bind_Here fc (PI erased) ty_raw.val)
                              (gType fc u)
          logTermNF "declare.type" 3 ("Type of " ++ show n) Env.empty (abstractFullEnvType tfc env ty)
 

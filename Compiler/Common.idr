@@ -57,12 +57,12 @@ record Codegen where
 -- Say which phase of compilation is the last one to use - it saves time if
 -- you only ask for what you need.
 public export
-data UsePhase = Cases | Lifted | ANF | VMCode
+data UsePhase = Cases | Lifted | Administrative_Normal_Form | VMCode
 
 Eq UsePhase where
   (==) Cases Cases = True
   (==) Lifted Lifted = True
-  (==) ANF ANF = True
+  (==) Administrative_Normal_Form Administrative_Normal_Form = True
   (==) VMCode VMCode = True
   (==) _ _ = False
 
@@ -72,7 +72,7 @@ Ord UsePhase where
       tag : UsePhase -> Int
       tag Cases = 0
       tag Lifted = 1
-      tag ANF = 2
+      tag Administrative_Normal_Form = 2
       tag VMCode = 3
 
 public export
@@ -89,8 +89,8 @@ record CompileData where
        -- ^ lambda lifted definitions, if required. Only the top level names
        -- will be in the context, and (for the moment...) I don't expect to
        -- need to look anything up, so it's just an alist.
-  anf : List (Name, ANFDef)
-       -- ^ lambda lifted and converted to ANF (all arguments to functions
+  anf : List (Name, Administrative_Normal_Form_Definition)
+       -- ^ lambda lifted and converted to Administrative_Normal_Form (all arguments to functions
        -- and constructors transformed to either variables or Null if erased)
   vmcode : List (Name, VMDef)
        -- ^ A much simplified virtual machine code, suitable for passing
@@ -276,7 +276,7 @@ getCompileDataWith exports doLazyAnnots phase_in tm_in
          let phase = foldl {t=List} (flip $ maybe id max) phase_in $
                        [ Cases <$ dumpcases sopts
                        , Lifted <$ dumplifted sopts
-                       , ANF <$ dumpanf sopts
+                       , Administrative_Normal_Form <$ dumpanf sopts
                        , VMCode <$ dumpvmcode sopts
                        ]
 
@@ -355,8 +355,8 @@ getCompileDataWith exports doLazyAnnots phase_in tm_in
          let lifted = (mainname, MkLFun Scope.empty Scope.empty liftedtm) ::
                       (ldefs ++ concat lifted_in)
 
-         anf <- if phase >= ANF
-                   then logTime 2 "Get ANF" $ traverse (\ (n, d) => pure (n, !(toANF d))) lifted
+         anf <- if phase >= Administrative_Normal_Form
+                   then logTime 2 "Get Administrative_Normal_Form" $ traverse (\ (n, d) => pure (n, !(to_administrative_normal_form d))) lifted
                    else pure []
          vmcode <- if phase >= VMCode
                       then logTime 2 "Get VM Code" $ pure (allDefs anf)
@@ -372,7 +372,7 @@ getCompileDataWith exports doLazyAnnots phase_in tm_in
                dumpIR f lifted
 
          whenJust (dumpanf sopts) $ \ f =>
-            do coreLift $ putStrLn $ "Dumping ANF defs to " ++ f
+            do coreLift $ putStrLn $ "Dumping Administrative_Normal_Form defs to " ++ f
                dumpIR f anf
 
          whenJust (dumpvmcode sopts) $ \ f =>
@@ -441,8 +441,8 @@ getIncCompileData doLazyAnnots phase
                               traverse (lambdaLift doLazyAnnots) cseDefs
                          else pure []
          let lifted = concat lifted_in
-         anf <- if phase >= ANF
-                   then logTime 2 "Get ANF" $ traverse (\ (n, d) => pure (n, !(toANF d))) lifted
+         anf <- if phase >= Administrative_Normal_Form
+                   then logTime 2 "Get Administrative_Normal_Form" $ traverse (\ (n, d) => pure (n, !(to_administrative_normal_form d))) lifted
                    else pure []
          vmcode <- if phase >= VMCode
                       then logTime 2 "Get VM Code" $ pure (allDefs anf)

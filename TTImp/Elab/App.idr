@@ -298,21 +298,21 @@ mutual
                    (knownRet : Bool) -> RawImp ->
                    Core Bool
   needsDelayExpr False _ = pure False
-  needsDelayExpr True (Elaboratable_Name fc n)
+  needsDelayExpr True (Elaborable_Name fc n)
       = do defs <- get Ctxt
            pure $ case !(lookupCtxtName n (gamma defs)) of
                        (_ :: _ :: _) => True
                        _ => False
-  needsDelayExpr True (Elaboratable_Apply _ f _) = needsDelayExpr True f
-  needsDelayExpr True (Elaboratable_Automatic_Apply _ f _) = needsDelayExpr True f
-  needsDelayExpr True (Elaboratable_Named_Apply _ f _ _) = needsDelayExpr True f
-  needsDelayExpr True (Elaboratable_Lambda {}) = pure True
-  needsDelayExpr True (Elaboratable_Case {}) = pure True
-  needsDelayExpr True (Elaboratable_Local_Definitions {}) = pure True
-  needsDelayExpr True (Elaboratable_Record_Update {}) = pure True
-  needsDelayExpr True (Elaboratable_Alternative {}) = pure True
-  needsDelayExpr True (Elaboratable_Search {}) = pure True
-  needsDelayExpr True (Elaboratable_Rewrite {}) = pure True
+  needsDelayExpr True (Elaborable_Apply _ f _) = needsDelayExpr True f
+  needsDelayExpr True (Elaborable_Automatic_Apply _ f _) = needsDelayExpr True f
+  needsDelayExpr True (Elaborable_Named_Apply _ f _ _) = needsDelayExpr True f
+  needsDelayExpr True (Elaborable_Lambda {}) = pure True
+  needsDelayExpr True (Elaborable_Case {}) = pure True
+  needsDelayExpr True (Elaborable_Local_Definitions {}) = pure True
+  needsDelayExpr True (Elaborable_Record_Update {}) = pure True
+  needsDelayExpr True (Elaborable_Alternative {}) = pure True
+  needsDelayExpr True (Elaborable_Search {}) = pure True
+  needsDelayExpr True (Elaborable_Rewrite {}) = pure True
   needsDelayExpr True _ = pure False
 
   -- On the LHS, for any concrete thing, we need to make sure we know
@@ -320,16 +320,16 @@ mutual
   -- out to be polymorphic
   needsDelayLHS : {auto c : Ref Ctxt Defs} ->
                   RawImp -> Core Bool
-  needsDelayLHS (Elaboratable_Name fc n) = pure True
-  needsDelayLHS (Elaboratable_Apply _ f _) = needsDelayLHS f
-  needsDelayLHS (Elaboratable_Automatic_Apply _ f _) = needsDelayLHS f
-  needsDelayLHS (Elaboratable_Named_Apply _ f _ _) = needsDelayLHS f
-  needsDelayLHS (Elaboratable_Alternative {}) = pure True
-  needsDelayLHS (Elaboratable_As_Pattern _ _ _ _ t) = needsDelayLHS t
-  needsDelayLHS (Elaboratable_Search {}) = pure True
-  needsDelayLHS (Elaboratable_Primitive_Value {}) = pure True
-  needsDelayLHS (Elaboratable_Type_Universe _) = pure True
-  needsDelayLHS (Elaboratable_With_Unambiguous_Names _ _ t) = needsDelayLHS t
+  needsDelayLHS (Elaborable_Name fc n) = pure True
+  needsDelayLHS (Elaborable_Apply _ f _) = needsDelayLHS f
+  needsDelayLHS (Elaborable_Automatic_Apply _ f _) = needsDelayLHS f
+  needsDelayLHS (Elaborable_Named_Apply _ f _ _) = needsDelayLHS f
+  needsDelayLHS (Elaborable_Alternative {}) = pure True
+  needsDelayLHS (Elaborable_As_Pattern _ _ _ _ t) = needsDelayLHS t
+  needsDelayLHS (Elaborable_Search {}) = pure True
+  needsDelayLHS (Elaborable_Primitive_Value {}) = pure True
+  needsDelayLHS (Elaborable_Type_Universe _) = pure True
+  needsDelayLHS (Elaborable_With_Unambiguous_Names _ _ t) = needsDelayLHS t
   needsDelayLHS _ = pure False
 
   needsDelay : {auto c : Ref Ctxt Defs} ->
@@ -399,13 +399,13 @@ mutual
       dotTerm : RawImp -> RawImp
       dotTerm tm
           = case tm of
-                 Elaboratable_Must_Unify {} => tm
-                 Elaboratable_Bind_Name {} => tm
+                 Elaborable_Must_Unify {} => tm
+                 Elaborable_Bind_Name {} => tm
                  Implicit {} => tm
-                 Elaboratable_As_Pattern _ _ _ _ (Elaboratable_Bind_Name {}) => tm
-                 Elaboratable_As_Pattern _ _ _ _ (Implicit {}) => tm
-                 Elaboratable_As_Pattern fc nameFC p t arg => Elaboratable_As_Pattern fc nameFC p t (Elaboratable_Must_Unify fc ErasedArg tm)
-                 _ => Elaboratable_Must_Unify (getFC tm) ErasedArg tm
+                 Elaborable_As_Pattern _ _ _ _ (Elaborable_Bind_Name {}) => tm
+                 Elaborable_As_Pattern _ _ _ _ (Implicit {}) => tm
+                 Elaborable_As_Pattern fc nameFC p t arg => Elaborable_As_Pattern fc nameFC p t (Elaborable_Must_Unify fc ErasedArg tm)
+                 _ => Elaborable_Must_Unify (getFC tm) ErasedArg tm
   dotErased _ _ _ _ _ tm = pure tm
 
   -- Check the rest of an application given the argument type and the
@@ -569,7 +569,7 @@ mutual
   findBindAllExpPattern = lookup (UN Underscore)
 
   isImplicitAs : RawImp -> Bool
-  isImplicitAs (Elaboratable_As_Pattern _ _ UseLeft _ (Implicit {})) = True
+  isImplicitAs (Elaborable_As_Pattern _ _ UseLeft _ (Implicit {})) = True
   isImplicitAs _ = False
 
   isBindAllExpPattern : Name -> Bool
@@ -808,13 +808,13 @@ checkApp : {vars : _} ->
            (namedargs : List (Name, RawImp)) ->
            Maybe (Glued vars) ->
            Core (Term vars, Glued vars)
-checkApp rig elabinfo nest env fc (Elaboratable_Apply fc' fn arg) expargs autoargs namedargs exp
+checkApp rig elabinfo nest env fc (Elaborable_Apply fc' fn arg) expargs autoargs namedargs exp
    = checkApp rig elabinfo nest env fc' fn (arg :: expargs) autoargs namedargs exp
-checkApp rig elabinfo nest env fc (Elaboratable_Automatic_Apply fc' fn arg) expargs autoargs namedargs exp
+checkApp rig elabinfo nest env fc (Elaborable_Automatic_Apply fc' fn arg) expargs autoargs namedargs exp
    = checkApp rig elabinfo nest env fc' fn expargs (arg :: autoargs) namedargs exp
-checkApp rig elabinfo nest env fc (Elaboratable_Named_Apply fc' fn nm arg) expargs autoargs namedargs exp
+checkApp rig elabinfo nest env fc (Elaborable_Named_Apply fc' fn nm arg) expargs autoargs namedargs exp
    = checkApp rig elabinfo nest env fc' fn expargs autoargs ((nm, arg) :: namedargs) exp
-checkApp rig elabinfo nest env fc (Elaboratable_Name fc' n) expargs autoargs namedargs exp
+checkApp rig elabinfo nest env fc (Elaborable_Name fc' n) expargs autoargs namedargs exp
    = do (ntm, arglen, nty_in) <- getVarType elabinfo.elabMode rig nest env fc' n
         nty <- getNF nty_in
         prims <- getPrimitiveNames
@@ -869,7 +869,7 @@ checkApp rig elabinfo nest env fc (Elaboratable_Name fc' n) expargs autoargs nam
     -- If it's a primitive function applied to a constant on the LHS, treat it
     -- as an expression because we'll normalise the function away and match on
     -- the result
-    updateElabInfo prims (InLHS _) n [Elaboratable_Primitive_Value fc c] elabinfo =
+    updateElabInfo prims (InLHS _) n [Elaborable_Primitive_Value fc c] elabinfo =
         do if isPrimName prims !(getFullName n)
               then pure ({ elabMode := InExpr } elabinfo)
               else pure elabinfo

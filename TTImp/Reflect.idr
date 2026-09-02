@@ -92,7 +92,7 @@ mutual
                (UN (Basic "IVar"), [fc, n])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           n' <- reify defs !(evalClosure defs n)
-                          pure (Elaboratable_Name fc' n')
+                          pure (Elaborable_Name fc' n')
                (UN (Basic "IPi"), [fc, c, p, mn, aty, rty])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           c' <- reify defs !(evalClosure defs c)
@@ -100,7 +100,7 @@ mutual
                           mn' <- reify defs !(evalClosure defs mn)
                           aty' <- reify defs !(evalClosure defs aty)
                           rty' <- reify defs !(evalClosure defs rty)
-                          pure (Elaboratable_Dependent_Function_Type fc' c' p' mn' aty' rty')
+                          pure (Elaborable_Dependent_Function_Type fc' c' p' mn' aty' rty')
                (UN (Basic "ILam"), [fc, c, p, mn, aty, lty])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           c' <- reify defs !(evalClosure defs c)
@@ -108,7 +108,7 @@ mutual
                           mn' <- reify defs !(evalClosure defs mn)
                           aty' <- reify defs !(evalClosure defs aty)
                           lty' <- reify defs !(evalClosure defs lty)
-                          pure (Elaboratable_Lambda fc' c' p' mn' aty' lty')
+                          pure (Elaborable_Lambda fc' c' p' mn' aty' lty')
                (UN (Basic "ILet"), [fc, lhsFC, c, n, ty, val, sc])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           lhsFC' <- reify defs !(evalClosure defs lhsFC)
@@ -117,120 +117,120 @@ mutual
                           ty' <- reify defs !(evalClosure defs ty)
                           val' <- reify defs !(evalClosure defs val)
                           sc' <- reify defs !(evalClosure defs sc)
-                          pure (Elaboratable_Binding fc' lhsFC' c' n' ty' val' sc')
+                          pure (Elaborable_Binding fc' lhsFC' c' n' ty' val' sc')
                (UN (Basic "ICase"), [fc, opts, sc, ty, cs])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           opts' <- reify defs !(evalClosure defs opts)
                           sc' <- reify defs !(evalClosure defs sc)
                           ty' <- reify defs !(evalClosure defs ty)
                           cs' <- reify defs !(evalClosure defs cs)
-                          pure (Elaboratable_Case fc' opts' sc' ty' cs')
+                          pure (Elaborable_Case fc' opts' sc' ty' cs')
                (UN (Basic "ILocal"), [fc, ds, sc])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           ds' <- reify defs !(evalClosure defs ds)
                           sc' <- reify defs !(evalClosure defs sc)
-                          pure (Elaboratable_Local_Definitions fc' ds' sc')
+                          pure (Elaborable_Local_Definitions fc' ds' sc')
                (UN (Basic "IUpdate"), [fc, ds, sc])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           ds' <- reify defs !(evalClosure defs ds)
                           sc' <- reify defs !(evalClosure defs sc)
-                          pure (Elaboratable_Record_Update fc' ds' sc')
+                          pure (Elaborable_Record_Update fc' ds' sc')
                (UN (Basic "IApp"), [fc, f, a])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           f' <- reify defs !(evalClosure defs f)
                           a' <- reify defs !(evalClosure defs a)
-                          pure (Elaboratable_Apply fc' f' a')
+                          pure (Elaborable_Apply fc' f' a')
                (UN (Basic "INamedApp"), [fc, f, m, a])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           f' <- reify defs !(evalClosure defs f)
                           m' <- reify defs !(evalClosure defs m)
                           a' <- reify defs !(evalClosure defs a)
-                          pure (Elaboratable_Named_Apply fc' f' m' a')
+                          pure (Elaborable_Named_Apply fc' f' m' a')
                (UN (Basic "IAutoApp"), [fc, f, a])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           f' <- reify defs !(evalClosure defs f)
                           a' <- reify defs !(evalClosure defs a)
-                          pure (Elaboratable_Automatic_Apply fc' f' a')
+                          pure (Elaborable_Automatic_Apply fc' f' a')
                (UN (Basic "IWithApp"), [fc, f, a])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           f' <- reify defs !(evalClosure defs f)
                           a' <- reify defs !(evalClosure defs a)
-                          pure (Elaboratable_With_Apply fc' f' a')
+                          pure (Elaborable_With_Apply fc' f' a')
                (UN (Basic "ISearch"), [fc, d])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           d' <- reify defs !(evalClosure defs d)
-                          pure (Elaboratable_Search fc' d')
+                          pure (Elaborable_Search fc' d')
                (UN (Basic "IAlternative"), [fc, t, as])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
                           as' <- reify defs !(evalClosure defs as)
-                          pure (Elaboratable_Alternative fc' t' as')
+                          pure (Elaborable_Alternative fc' t' as')
                (UN (Basic "IRewrite"), [fc, t, sc])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
                           sc' <- reify defs !(evalClosure defs sc)
-                          pure (Elaboratable_Rewrite fc' t' sc')
+                          pure (Elaborable_Rewrite fc' t' sc')
                (UN (Basic "IBindHere"), [fc, t, sc])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
                           sc' <- reify defs !(evalClosure defs sc)
-                          pure (Elaboratable_Bind_Here fc' t' sc')
+                          pure (Elaborable_Bind_Here fc' t' sc')
                (UN (Basic "IBindVar"), [fc, n])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           n' <- reify defs !(evalClosure defs n)
-                          pure (Elaboratable_Bind_Name fc' n')
+                          pure (Elaborable_Bind_Name fc' n')
                (UN (Basic "IAs"), [fc, nameFC, s, n, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           nameFC' <- reify defs !(evalClosure defs nameFC)
                           s' <- reify defs !(evalClosure defs s)
                           n' <- reify defs !(evalClosure defs n)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_As_Pattern fc' nameFC' s' n' t')
+                          pure (Elaborable_As_Pattern fc' nameFC' s' n' t')
                (UN (Basic "IMustUnify"), [fc, r, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           r' <- reify defs !(evalClosure defs r)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_Must_Unify fc' r' t')
+                          pure (Elaborable_Must_Unify fc' r' t')
                (UN (Basic "IDelayed"), [fc, r, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           r' <- reify defs !(evalClosure defs r)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_Delayed_Type fc' r' t')
+                          pure (Elaborable_Delayed_Type fc' r' t')
                (UN (Basic "IDelay"), [fc, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_Delay fc' t')
+                          pure (Elaborable_Delay fc' t')
                (UN (Basic "IForce"), [fc, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_Force fc' t')
+                          pure (Elaborable_Force fc' t')
                (UN (Basic "IQuote"), [fc, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_Quote fc' t')
+                          pure (Elaborable_Quote fc' t')
                (UN (Basic "IQuoteName"), [fc, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_Quote_Name fc' t')
+                          pure (Elaborable_Quote_Name fc' t')
                (UN (Basic "IQuoteDecl"), [fc, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_Quote_Declarations fc' t')
+                          pure (Elaborable_Quote_Declarations fc' t')
                (UN (Basic "IUnquote"), [fc, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_Unquote fc' t')
+                          pure (Elaborable_Unquote fc' t')
                (UN (Basic "IPrimVal"), [fc, t])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_Primitive_Value fc' t')
+                          pure (Elaborable_Primitive_Value fc' t')
                (UN (Basic "IType"), [fc])
                     => do fc' <- reify defs !(evalClosure defs fc)
-                          pure (Elaboratable_Type_Universe fc')
+                          pure (Elaborable_Type_Universe fc')
                (UN (Basic "IHole"), [fc, n])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           n' <- reify defs !(evalClosure defs n)
-                          pure (Elaboratable_Hole fc' n')
+                          pure (Elaborable_Hole fc' n')
                (UN (Basic "Implicit"), [fc, n])
                     => do fc' <- reify defs !(evalClosure defs fc)
                           n' <- reify defs !(evalClosure defs n)
@@ -239,22 +239,22 @@ mutual
                     => do fc' <- reify defs !(evalClosure defs fc)
                           ns' <- reify defs !(evalClosure defs ns)
                           t' <- reify defs !(evalClosure defs t)
-                          pure (Elaboratable_With_Unambiguous_Names fc' ns' t')
+                          pure (Elaborable_With_Unambiguous_Names fc' ns' t')
                _ => cantReify val "TTImp"
     reify defs val = cantReify val "TTImp"
 
   export
-  Reify Elaboratable_Field_Update where
+  Reify Elaborable_Field_Update where
     reify defs val@(NDCon _ n _ _ args)
         = case (dropAllNS !(full (gamma defs) n), args) of
                (UN (Basic "ISetField"), [(_, x), (_, y)])
                     => do x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
-                          pure (Elaboratable_Set_Field x' y')
+                          pure (Elaborable_Set_Field x' y')
                (UN (Basic "ISetFieldApp"), [(_, x), (_, y)])
                     => do x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
-                          pure (Elaboratable_Apply_To_Field x' y')
+                          pure (Elaborable_Apply_To_Field x' y')
                _ => cantReify val "IFieldUpdate"
     reify defs val = cantReify val "IFieldUpdate"
 
@@ -351,7 +351,7 @@ mutual
     reify defs val = cantReify val "Data"
 
   export
-  Reify Elaboratable_Field where
+  Reify Elaborable_Field where
     reify defs val@(NDCon _ n _ _ args)
         = case (dropAllNS !(full (gamma defs) n), map snd args) of
                (UN (Basic "MkIField"), [v,w,x,y,z])
@@ -415,7 +415,7 @@ mutual
     reify defs val = cantReify val "Clause"
 
   export
-  Reify (Elaboratable_Claim_Data Name) where
+  Reify (Elaborable_Claim_Data Name) where
     reify defs val@(NDCon _ n _ _ args)
         = case (dropAllNS !(full (gamma defs) n), map snd args) of
                (UN (Basic "MkIClaimData"), [w, x, y, z])
@@ -423,7 +423,7 @@ mutual
                           x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
                           z' <- reify defs !(evalClosure defs z)
-                          pure (Make_Elaboratable_Claim_Data w' x' y' z')
+                          pure (Make_Elaborable_Claim_Data w' x' y' z')
                _ => cantReify val "IClaimData"
     reify defs val = cantReify val "IClaimData"
 
@@ -433,60 +433,60 @@ mutual
         = case (dropAllNS !(full (gamma defs) n), map snd args) of
                (UN (Basic "IClaim"), [v])
                     => do v' <- reify defs !(evalClosure defs v)
-                          pure (Elaboratable_Claim v')
+                          pure (Elaborable_Claim v')
                (UN (Basic "IData"), [x,y,z,w])
                     => do x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
                           z' <- reify defs !(evalClosure defs z)
                           w' <- reify defs !(evalClosure defs w)
-                          pure (Elaboratable_Data_Declaration x' y' z' w')
+                          pure (Elaborable_Data_Declaration x' y' z' w')
                (UN (Basic "IDef"), [x,y,z])
                     => do x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
                           z' <- reify defs !(evalClosure defs z)
-                          pure (Elaboratable_Definition x' y' z')
+                          pure (Elaborable_Definition x' y' z')
                (UN (Basic "IParameters"), [x,y,z])
                     => do x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
                           z' <- reify defs !(evalClosure defs z)
-                          pure (Elaboratable_Parameter_Block x' (map fromOldParams y') z')
+                          pure (Elaborable_Parameter_Block x' (map fromOldParams y') z')
                (UN (Basic "IRecord"), [w,x,y,z,u])
                     => do w' <- reify defs !(evalClosure defs w)
                           x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
                           z' <- reify defs !(evalClosure defs z)
                           u' <- reify defs !(evalClosure defs u)
-                          pure (Elaboratable_Record_Declaration w' x' y' z' u')
+                          pure (Elaborable_Record_Declaration w' x' y' z' u')
                (UN (Basic "IFail"), [w,x,y])
                     => do w' <- reify defs !(evalClosure defs w)
                           x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
-                          pure (Elaboratable_Expected_Failure w' x' y')
+                          pure (Elaborable_Expected_Failure w' x' y')
                (UN (Basic "INamespace"), [w,x,y])
                     => do w' <- reify defs !(evalClosure defs w)
                           x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
-                          pure (Elaboratable_Namespace_Block w' x' y')
+                          pure (Elaborable_Namespace_Block w' x' y')
                (UN (Basic "ITransform"), [w,x,y,z])
                     => do w' <- reify defs !(evalClosure defs w)
                           x' <- reify defs !(evalClosure defs x)
                           y' <- reify defs !(evalClosure defs y)
                           z' <- reify defs !(evalClosure defs z)
-                          pure (Elaboratable_Transformation w' x' y' z')
+                          pure (Elaborable_Transformation w' x' y' z')
                (UN (Basic "ILog"), [x])
                     => do x' <- reify defs !(evalClosure defs x)
-                          pure (Elaboratable_Logging x')
+                          pure (Elaborable_Logging x')
                _ => cantReify val "Decl"
     reify defs val = cantReify val "Decl"
 
 mutual
   export
   Reflect RawImp where
-    reflect fc defs lhs env (Elaboratable_Name tfc n)
+    reflect fc defs lhs env (Elaborable_Name tfc n)
         = do fc' <- reflect fc defs lhs env tfc
              n' <- reflect fc defs lhs env n
              appCon fc defs (reflectionttimp "IVar") [fc', n']
-    reflect fc defs lhs env (Elaboratable_Dependent_Function_Type tfc c p mn aty rty)
+    reflect fc defs lhs env (Elaborable_Dependent_Function_Type tfc c p mn aty rty)
         = do fc' <- reflect fc defs lhs env tfc
              c' <- reflect fc defs lhs env c
              p' <- reflect fc defs lhs env p
@@ -494,7 +494,7 @@ mutual
              aty' <- reflect fc defs lhs env aty
              rty' <- reflect fc defs lhs env rty
              appCon fc defs (reflectionttimp "IPi") [fc', c', p', mn', aty', rty']
-    reflect fc defs lhs env (Elaboratable_Lambda tfc c p mn aty rty)
+    reflect fc defs lhs env (Elaborable_Lambda tfc c p mn aty rty)
         = do fc' <- reflect fc defs lhs env tfc
              c' <- reflect fc defs lhs env c
              p' <- reflect fc defs lhs env p
@@ -502,7 +502,7 @@ mutual
              aty' <- reflect fc defs lhs env aty
              rty' <- reflect fc defs lhs env rty
              appCon fc defs (reflectionttimp "ILam") [fc', c', p', mn', aty', rty']
-    reflect fc defs lhs env (Elaboratable_Binding tfc lhsFC c n aty aval sc)
+    reflect fc defs lhs env (Elaborable_Binding tfc lhsFC c n aty aval sc)
         = do fc' <- reflect fc defs lhs env tfc
              lhsFC' <- reflect fc defs lhs env lhsFC
              c' <- reflect fc defs lhs env c
@@ -511,125 +511,125 @@ mutual
              aval' <- reflect fc defs lhs env aval
              sc' <- reflect fc defs lhs env sc
              appCon fc defs (reflectionttimp "ILet") [fc', lhsFC', c', n', aty', aval', sc']
-    reflect fc defs lhs env (Elaboratable_Case tfc opts sc ty cs)
+    reflect fc defs lhs env (Elaborable_Case tfc opts sc ty cs)
         = do fc' <- reflect fc defs lhs env tfc
              opts' <- reflect fc defs lhs env opts
              sc' <- reflect fc defs lhs env sc
              ty' <- reflect fc defs lhs env ty
              cs' <- reflect fc defs lhs env cs
              appCon fc defs (reflectionttimp "ICase") [fc', opts', sc', ty', cs']
-    reflect fc defs lhs env (Elaboratable_Local_Definitions tfc ds sc)
+    reflect fc defs lhs env (Elaborable_Local_Definitions tfc ds sc)
         = do fc' <- reflect fc defs lhs env tfc
              ds' <- reflect fc defs lhs env ds
              sc' <- reflect fc defs lhs env sc
              appCon fc defs (reflectionttimp "ILocal") [fc', ds', sc']
-    reflect fc defs lhs env (Elaboratable_Case_Local_Definition tfc u i args t)
+    reflect fc defs lhs env (Elaborable_Case_Local_Definition tfc u i args t)
         = reflect fc defs lhs env t -- shouldn't see this anyway...
-    reflect fc defs lhs env (Elaboratable_Record_Update tfc ds sc)
+    reflect fc defs lhs env (Elaborable_Record_Update tfc ds sc)
         = do fc' <- reflect fc defs lhs env tfc
              ds' <- reflect fc defs lhs env ds
              sc' <- reflect fc defs lhs env sc
              appCon fc defs (reflectionttimp "IUpdate") [fc', ds', sc']
-    reflect fc defs lhs env (Elaboratable_Apply tfc f a)
+    reflect fc defs lhs env (Elaborable_Apply tfc f a)
         = do fc' <- reflect fc defs lhs env tfc
              f' <- reflect fc defs lhs env f
              a' <- reflect fc defs lhs env a
              appCon fc defs (reflectionttimp "IApp") [fc', f', a']
-    reflect fc defs lhs env (Elaboratable_Automatic_Apply tfc f a)
+    reflect fc defs lhs env (Elaborable_Automatic_Apply tfc f a)
         = do fc' <- reflect fc defs lhs env tfc
              f' <- reflect fc defs lhs env f
              a' <- reflect fc defs lhs env a
              appCon fc defs (reflectionttimp "IAutoApp") [fc', f', a']
-    reflect fc defs lhs env (Elaboratable_Named_Apply tfc f m a)
+    reflect fc defs lhs env (Elaborable_Named_Apply tfc f m a)
         = do fc' <- reflect fc defs lhs env tfc
              f' <- reflect fc defs lhs env f
              m' <- reflect fc defs lhs env m
              a' <- reflect fc defs lhs env a
              appCon fc defs (reflectionttimp "INamedApp") [fc', f', m', a']
-    reflect fc defs lhs env (Elaboratable_With_Apply tfc f a)
+    reflect fc defs lhs env (Elaborable_With_Apply tfc f a)
         = do fc' <- reflect fc defs lhs env tfc
              f' <- reflect fc defs lhs env f
              a' <- reflect fc defs lhs env a
              appCon fc defs (reflectionttimp "IWithApp") [fc', f', a']
-    reflect fc defs lhs env (Elaboratable_Search tfc d)
+    reflect fc defs lhs env (Elaborable_Search tfc d)
         = do fc' <- reflect fc defs lhs env tfc
              d' <- reflect fc defs lhs env d
              appCon fc defs (reflectionttimp "ISearch") [fc', d']
-    reflect fc defs lhs env (Elaboratable_Alternative tfc t as)
+    reflect fc defs lhs env (Elaborable_Alternative tfc t as)
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              as' <- reflect fc defs lhs env as
              appCon fc defs (reflectionttimp "IAlternative") [fc', t', as']
-    reflect fc defs lhs env (Elaboratable_Rewrite tfc t sc)
+    reflect fc defs lhs env (Elaborable_Rewrite tfc t sc)
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              sc' <- reflect fc defs lhs env sc
              appCon fc defs (reflectionttimp "IRewrite") [fc', t', sc']
-    reflect fc defs lhs env (Elaboratable_Coerced tfc d) = reflect fc defs lhs env d
-    reflect fc defs lhs env (Elaboratable_Bind_Here tfc n sc)
+    reflect fc defs lhs env (Elaborable_Coerced tfc d) = reflect fc defs lhs env d
+    reflect fc defs lhs env (Elaborable_Bind_Here tfc n sc)
         = do fc' <- reflect fc defs lhs env tfc
              n' <- reflect fc defs lhs env n
              sc' <- reflect fc defs lhs env sc
              appCon fc defs (reflectionttimp "IBindHere") [fc', n', sc']
-    reflect fc defs lhs env (Elaboratable_Bind_Name tfc n)
+    reflect fc defs lhs env (Elaborable_Bind_Name tfc n)
         = do fc' <- reflect fc defs lhs env tfc
              n' <- reflect fc defs lhs env n
              appCon fc defs (reflectionttimp "IBindVar") [fc', n']
-    reflect fc defs lhs env (Elaboratable_As_Pattern tfc nameFC s n t)
+    reflect fc defs lhs env (Elaborable_As_Pattern tfc nameFC s n t)
         = do fc' <- reflect fc defs lhs env tfc
              nameFC' <- reflect fc defs lhs env nameFC
              s' <- reflect fc defs lhs env s
              n' <- reflect fc defs lhs env n
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IAs") [fc', nameFC', s', n', t']
-    reflect fc defs lhs env (Elaboratable_Must_Unify tfc r t)
+    reflect fc defs lhs env (Elaborable_Must_Unify tfc r t)
         = do fc' <- reflect fc defs lhs env tfc
              r' <- reflect fc defs lhs env r
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IMustUnify") [fc', r', t']
-    reflect fc defs lhs env (Elaboratable_Delayed_Type tfc r t)
+    reflect fc defs lhs env (Elaborable_Delayed_Type tfc r t)
         = do fc' <- reflect fc defs lhs env tfc
              r' <- reflect fc defs lhs env r
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IDelayed") [fc', r', t']
-    reflect fc defs lhs env (Elaboratable_Delay tfc t)
+    reflect fc defs lhs env (Elaborable_Delay tfc t)
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IDelay") [fc', t']
-    reflect fc defs lhs env (Elaboratable_Force tfc t)
+    reflect fc defs lhs env (Elaborable_Force tfc t)
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IForce") [fc', t']
-    reflect fc defs lhs env (Elaboratable_Quote tfc t)
+    reflect fc defs lhs env (Elaborable_Quote tfc t)
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IQuote") [fc', t']
-    reflect fc defs lhs env (Elaboratable_Quote_Name tfc t)
+    reflect fc defs lhs env (Elaborable_Quote_Name tfc t)
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IQuoteName") [fc', t']
-    reflect fc defs lhs env (Elaboratable_Quote_Declarations tfc t)
+    reflect fc defs lhs env (Elaborable_Quote_Declarations tfc t)
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IQuoteDecl") [fc', t']
-    reflect fc defs lhs env (Elaboratable_Unquote tfc (Elaboratable_Name _ t))
+    reflect fc defs lhs env (Elaborable_Unquote tfc (Elaborable_Name _ t))
         = pure (Ref tfc Bound t)
-    reflect fc defs lhs env (Elaboratable_Unquote tfc t)
+    reflect fc defs lhs env (Elaborable_Unquote tfc t)
         = throw (InternalError "Can't reflect an unquote: escapes should be lifted out")
-    reflect fc defs lhs env (Elaboratable_Run_Elaborator tfc _ t)
+    reflect fc defs lhs env (Elaborable_Run_Elaborator tfc _ t)
         = throw (InternalError "Can't reflect a %runElab")
-    reflect fc defs lhs env (Elaboratable_Primitive_Value tfc t)
+    reflect fc defs lhs env (Elaborable_Primitive_Value tfc t)
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IPrimVal") [fc', t']
-    reflect fc defs lhs env (Elaboratable_Type_Universe tfc)
+    reflect fc defs lhs env (Elaborable_Type_Universe tfc)
         = do fc' <- reflect fc defs lhs env tfc
              appCon fc defs (reflectionttimp "IType") [fc']
-    reflect fc defs lhs env (Elaboratable_Hole tfc t)
+    reflect fc defs lhs env (Elaborable_Hole tfc t)
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IHole") [fc', t']
-    reflect fc defs lhs env (Elaboratable_Unification_Log tfc _ t)
+    reflect fc defs lhs env (Elaborable_Unification_Log tfc _ t)
         = reflect fc defs lhs env t
     reflect fc defs True env (Implicit tfc t)
         = pure (Erased fc Placeholder)
@@ -637,19 +637,19 @@ mutual
         = do fc' <- reflect fc defs lhs env tfc
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "Implicit") [fc', t']
-    reflect fc defs lhs env (Elaboratable_With_Unambiguous_Names tfc ns t)
+    reflect fc defs lhs env (Elaborable_With_Unambiguous_Names tfc ns t)
         = do fc' <- reflect fc defs lhs env tfc
              ns' <- reflect fc defs lhs env ns
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "IWithUnambigNames") [fc', ns', t']
 
   export
-  Reflect Elaboratable_Field_Update where
-    reflect fc defs lhs env (Elaboratable_Set_Field p t)
+  Reflect Elaborable_Field_Update where
+    reflect fc defs lhs env (Elaborable_Set_Field p t)
         = do p' <- reflect fc defs lhs env p
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "ISetField") [p', t']
-    reflect fc defs lhs env (Elaboratable_Apply_To_Field p t)
+    reflect fc defs lhs env (Elaborable_Apply_To_Field p t)
         = do p' <- reflect fc defs lhs env p
              t' <- reflect fc defs lhs env t
              appCon fc defs (reflectionttimp "ISetFieldApp") [p', t']
@@ -725,7 +725,7 @@ mutual
              appCon fc defs (reflectionttimp "MkLater") [x', y', z']
 
   export
-  Reflect Elaboratable_Field where
+  Reflect Elaborable_Field where
     reflect fc defs lhs env field -- Order matters to maintain compatibility with elab reflection
         = do v' <- reflect fc defs lhs env field.fc
              w' <- reflect fc defs lhs env field.rig
@@ -771,8 +771,8 @@ mutual
              appCon fc defs (reflectionttimp "ImpossibleClause") [x', y']
 
   export
-  Reflect (Elaboratable_Claim_Data Name) where
-    reflect fc defs lhs env (Make_Elaboratable_Claim_Data w x y z)
+  Reflect (Elaborable_Claim_Data Name) where
+    reflect fc defs lhs env (Make_Elaborable_Claim_Data w x y z)
         = do w' <- reflect fc defs lhs env w
              x' <- reflect fc defs lhs env x
              y' <- reflect fc defs lhs env y
@@ -781,54 +781,54 @@ mutual
 
   export
   Reflect ImpDecl where
-    reflect fc defs lhs env (Elaboratable_Claim v)
+    reflect fc defs lhs env (Elaborable_Claim v)
         = do v' <- reflect fc defs lhs env v
              appCon fc defs (reflectionttimp "IClaim") [v']
-    reflect fc defs lhs env (Elaboratable_Data_Declaration x y z w)
+    reflect fc defs lhs env (Elaborable_Data_Declaration x y z w)
         = do x' <- reflect fc defs lhs env x
              y' <- reflect fc defs lhs env y
              z' <- reflect fc defs lhs env z
              w' <- reflect fc defs lhs env w
              appCon fc defs (reflectionttimp "IData") [x', y', z', w']
-    reflect fc defs lhs env (Elaboratable_Definition x y z)
+    reflect fc defs lhs env (Elaborable_Definition x y z)
         = do x' <- reflect fc defs lhs env x
              y' <- reflect fc defs lhs env y
              z' <- reflect fc defs lhs env z
              appCon fc defs (reflectionttimp "IDef") [x', y', z']
-    reflect fc defs lhs env (Elaboratable_Parameter_Block x y z)
+    reflect fc defs lhs env (Elaborable_Parameter_Block x y z)
         = do x' <- reflect fc defs lhs env x
              y' <- reflect fc defs lhs env (map toOldParams y)
              z' <- reflect fc defs lhs env z
              appCon fc defs (reflectionttimp "IParameters") [x', y', z']
-    reflect fc defs lhs env (Elaboratable_Record_Declaration w x y z u)
+    reflect fc defs lhs env (Elaborable_Record_Declaration w x y z u)
         = do w' <- reflect fc defs lhs env w
              x' <- reflect fc defs lhs env x
              y' <- reflect fc defs lhs env y
              z' <- reflect fc defs lhs env z
              u' <- reflect fc defs lhs env u
              appCon fc defs (reflectionttimp "IRecord") [w', x', y', z', u']
-    reflect fc defs lhs env (Elaboratable_Expected_Failure x y z)
+    reflect fc defs lhs env (Elaborable_Expected_Failure x y z)
         = do x' <- reflect fc defs lhs env x
              y' <- reflect fc defs lhs env y
              z' <- reflect fc defs lhs env z
              appCon fc defs (reflectionttimp "IFail") [x', y', z']
-    reflect fc defs lhs env (Elaboratable_Namespace_Block x y z)
+    reflect fc defs lhs env (Elaborable_Namespace_Block x y z)
         = do x' <- reflect fc defs lhs env x
              y' <- reflect fc defs lhs env y
              z' <- reflect fc defs lhs env z
              appCon fc defs (reflectionttimp "INamespace") [x', y', z']
-    reflect fc defs lhs env (Elaboratable_Transformation w x y z)
+    reflect fc defs lhs env (Elaborable_Transformation w x y z)
         = do w' <- reflect fc defs lhs env w
              x' <- reflect fc defs lhs env x
              y' <- reflect fc defs lhs env y
              z' <- reflect fc defs lhs env z
              appCon fc defs (reflectionttimp "ITransform") [w', x', y', z']
-    reflect fc defs lhs env (Elaboratable_Run_Elaborator_Declaration w x)
+    reflect fc defs lhs env (Elaborable_Run_Elaborator_Declaration w x)
         = throw (GenericMsg fc "Can't reflect a %runElab")
-    reflect fc defs lhs env (Elaboratable_Pragma _ _ x)
+    reflect fc defs lhs env (Elaborable_Pragma _ _ x)
         = throw (GenericMsg fc "Can't reflect a pragma")
-    reflect fc defs lhs env (Elaboratable_Logging x)
+    reflect fc defs lhs env (Elaborable_Logging x)
         = do x' <- reflect fc defs lhs env x
              appCon fc defs (reflectionttimp "ILog") [x']
-    reflect fc defs lhs env (Elaboratable_Builtin_Declaration {})
+    reflect fc defs lhs env (Elaborable_Builtin_Declaration {})
         = throw (GenericMsg fc "Can't reflect a %builtin")

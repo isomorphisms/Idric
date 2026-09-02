@@ -65,16 +65,16 @@ mkType : FC -> List (Name, Maybe Name, PiInfo RawImp, RigCount, RawImp) ->
          RawImp -> RawImp
 mkType loc [] ret = ret
 mkType loc ((_, n, p, c, ty) :: rest) ret
-    = Elaboratable_Dependent_Function_Type loc c p n ty (mkType loc rest ret)
+    = Elaborable_Dependent_Function_Type loc c p n ty (mkType loc rest ret)
 
 mkApp : FC -> Name ->
         List (Name, Maybe Name, PiInfo RawImp, RigCount, RawImp) -> RawImp
 mkApp loc n args
-    = apply (Elaboratable_Name loc n) (mapMaybe getArg args)
+    = apply (Elaborable_Name loc n) (mapMaybe getArg args)
   where
     getArg : (Name, Maybe Name, PiInfo RawImp, RigCount, RawImp) ->
              Maybe RawImp
-    getArg (x, _, Explicit, _, _) = Just (Elaboratable_Name loc x)
+    getArg (x, _, Explicit, _, _) = Just (Elaborable_Name loc x)
     getArg _ = Nothing
 
 -- Return a top level type for the lemma, and an expression which applies

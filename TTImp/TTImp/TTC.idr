@@ -16,191 +16,191 @@ import Libraries.Data.WithDefault
 mutual
   export
   TTC RawImp where
-    toBuf (Elaboratable_Name fc n) = do tag 0; toBuf fc; toBuf n
-    toBuf (Elaboratable_Dependent_Function_Type fc r p n argTy retTy)
+    toBuf (Elaborable_Name fc n) = do tag 0; toBuf fc; toBuf n
+    toBuf (Elaborable_Dependent_Function_Type fc r p n argTy retTy)
         = do tag 1; toBuf fc; toBuf r; toBuf p; toBuf n
              toBuf argTy; toBuf retTy
-    toBuf (Elaboratable_Lambda fc r p n argTy scope)
+    toBuf (Elaborable_Lambda fc r p n argTy scope)
         = do tag 2; toBuf fc; toBuf r; toBuf p; toBuf n;
              toBuf argTy; toBuf scope
-    toBuf (Elaboratable_Binding fc lhsFC r n nTy nVal scope)
+    toBuf (Elaborable_Binding fc lhsFC r n nTy nVal scope)
         = do tag 3; toBuf fc; toBuf lhsFC; toBuf r; toBuf n;
              toBuf nTy; toBuf nVal; toBuf scope
-    toBuf (Elaboratable_Case fc opts y ty xs)
+    toBuf (Elaborable_Case fc opts y ty xs)
         = do tag 4; toBuf fc; toBuf opts; toBuf y; toBuf ty; toBuf xs
-    toBuf (Elaboratable_Local_Definitions fc xs sc)
+    toBuf (Elaborable_Local_Definitions fc xs sc)
         = do tag 5; toBuf fc; toBuf xs; toBuf sc
-    toBuf (Elaboratable_Case_Local_Definition fc _ _ _ sc)
+    toBuf (Elaborable_Case_Local_Definition fc _ _ _ sc)
         = toBuf sc
-    toBuf (Elaboratable_Record_Update fc fs rec)
+    toBuf (Elaborable_Record_Update fc fs rec)
         = do tag 6; toBuf fc; toBuf fs; toBuf rec
-    toBuf (Elaboratable_Apply fc fn arg)
+    toBuf (Elaborable_Apply fc fn arg)
         = do tag 7; toBuf fc; toBuf fn; toBuf arg
-    toBuf (Elaboratable_Named_Apply fc fn y arg)
+    toBuf (Elaborable_Named_Apply fc fn y arg)
         = do tag 8; toBuf fc; toBuf fn; toBuf y; toBuf arg
-    toBuf (Elaboratable_With_Apply fc fn arg)
+    toBuf (Elaborable_With_Apply fc fn arg)
         = do tag 9; toBuf fc; toBuf fn; toBuf arg
-    toBuf (Elaboratable_Search fc depth)
+    toBuf (Elaborable_Search fc depth)
         = do tag 10; toBuf fc; toBuf depth
-    toBuf (Elaboratable_Alternative fc y xs)
+    toBuf (Elaborable_Alternative fc y xs)
         = do tag 11; toBuf fc; toBuf y; toBuf xs
-    toBuf (Elaboratable_Rewrite fc x y)
+    toBuf (Elaborable_Rewrite fc x y)
         = do tag 12; toBuf fc; toBuf x; toBuf y
-    toBuf (Elaboratable_Coerced fc y)
+    toBuf (Elaborable_Coerced fc y)
         = do tag 13; toBuf fc; toBuf y
 
-    toBuf (Elaboratable_Bind_Here fc m y)
+    toBuf (Elaborable_Bind_Here fc m y)
         = do tag 14; toBuf fc; toBuf m; toBuf y
-    toBuf (Elaboratable_Bind_Name fc y)
+    toBuf (Elaborable_Bind_Name fc y)
         = do tag 15; toBuf fc; toBuf y
-    toBuf (Elaboratable_As_Pattern fc nameFC s y pattern)
+    toBuf (Elaborable_As_Pattern fc nameFC s y pattern)
         = do tag 16; toBuf fc; toBuf nameFC; toBuf s; toBuf y;
              toBuf pattern
-    toBuf (Elaboratable_Must_Unify fc r pattern)
+    toBuf (Elaborable_Must_Unify fc r pattern)
         -- No need to record 'r', it's for type errors only
         = do tag 17; toBuf fc; toBuf pattern
 
-    toBuf (Elaboratable_Delayed_Type fc r y)
+    toBuf (Elaborable_Delayed_Type fc r y)
         = do tag 18; toBuf fc; toBuf r; toBuf y
-    toBuf (Elaboratable_Delay fc t)
+    toBuf (Elaborable_Delay fc t)
         = do tag 19; toBuf fc; toBuf t
-    toBuf (Elaboratable_Force fc t)
+    toBuf (Elaborable_Force fc t)
         = do tag 20; toBuf fc; toBuf t
 
-    toBuf (Elaboratable_Quote fc t)
+    toBuf (Elaborable_Quote fc t)
         = do tag 21; toBuf fc; toBuf t
-    toBuf (Elaboratable_Quote_Name fc t)
+    toBuf (Elaborable_Quote_Name fc t)
         = do tag 22; toBuf fc; toBuf t
-    toBuf (Elaboratable_Quote_Declarations fc t)
+    toBuf (Elaborable_Quote_Declarations fc t)
         = do tag 23; toBuf fc; toBuf t
-    toBuf (Elaboratable_Unquote fc t)
+    toBuf (Elaborable_Unquote fc t)
         = do tag 24; toBuf fc; toBuf t
-    toBuf (Elaboratable_Run_Elaborator fc re t)
+    toBuf (Elaborable_Run_Elaborator fc re t)
         = do tag 25; toBuf fc; toBuf re; toBuf t
 
-    toBuf (Elaboratable_Primitive_Value fc y)
+    toBuf (Elaborable_Primitive_Value fc y)
         = do tag 26; toBuf fc; toBuf y
-    toBuf (Elaboratable_Type_Universe fc)
+    toBuf (Elaborable_Type_Universe fc)
         = do tag 27; toBuf fc
-    toBuf (Elaboratable_Hole fc y)
+    toBuf (Elaborable_Hole fc y)
         = do tag 28; toBuf fc; toBuf y
-    toBuf (Elaboratable_Unification_Log fc lvl x) = toBuf x
+    toBuf (Elaborable_Unification_Log fc lvl x) = toBuf x
 
     toBuf (Implicit fc i)
         = do tag 29; toBuf fc; toBuf i
-    toBuf (Elaboratable_With_Unambiguous_Names fc ns rhs)
+    toBuf (Elaborable_With_Unambiguous_Names fc ns rhs)
         = do tag 30; toBuf fc; toBuf ns; toBuf rhs
-    toBuf (Elaboratable_Automatic_Apply fc fn arg)
+    toBuf (Elaborable_Automatic_Apply fc fn arg)
         = do tag 31; toBuf fc; toBuf fn; toBuf arg
 
     fromBuf
         = case !getTag of
                0 => do fc <- fromBuf; n <- fromBuf;
-                       pure (Elaboratable_Name fc n)
+                       pure (Elaborable_Name fc n)
                1 => do fc <- fromBuf;
                        r <- fromBuf; p <- fromBuf;
                        n <- fromBuf
                        argTy <- fromBuf; retTy <- fromBuf
-                       pure (Elaboratable_Dependent_Function_Type fc r p n argTy retTy)
+                       pure (Elaborable_Dependent_Function_Type fc r p n argTy retTy)
                2 => do fc <- fromBuf;
                        r <- fromBuf; p <- fromBuf; n <- fromBuf
                        argTy <- fromBuf; scope <- fromBuf
-                       pure (Elaboratable_Lambda fc r p n argTy scope)
+                       pure (Elaborable_Lambda fc r p n argTy scope)
                3 => do fc <- fromBuf;
                        lhsFC <- fromBuf;
                        r <- fromBuf; n <- fromBuf
                        nTy <- fromBuf; nVal <- fromBuf
                        scope <- fromBuf
-                       pure (Elaboratable_Binding fc lhsFC r n nTy nVal scope)
+                       pure (Elaborable_Binding fc lhsFC r n nTy nVal scope)
                4 => do fc <- fromBuf; opts <- fromBuf; y <- fromBuf;
                        ty <- fromBuf; xs <- fromBuf
-                       pure (Elaboratable_Case fc opts y ty xs)
+                       pure (Elaborable_Case fc opts y ty xs)
                5 => do fc <- fromBuf;
                        xs <- fromBuf; sc <- fromBuf
-                       pure (Elaboratable_Local_Definitions fc xs sc)
+                       pure (Elaborable_Local_Definitions fc xs sc)
                6 => do fc <- fromBuf; fs <- fromBuf
                        rec <- fromBuf
-                       pure (Elaboratable_Record_Update fc fs rec)
+                       pure (Elaborable_Record_Update fc fs rec)
                7 => do fc <- fromBuf; fn <- fromBuf
                        arg <- fromBuf
-                       pure (Elaboratable_Apply fc fn arg)
+                       pure (Elaborable_Apply fc fn arg)
                8 => do fc <- fromBuf; fn <- fromBuf
                        y <- fromBuf; arg <- fromBuf
-                       pure (Elaboratable_Named_Apply fc fn y arg)
+                       pure (Elaborable_Named_Apply fc fn y arg)
                9 => do fc <- fromBuf; fn <- fromBuf
                        arg <- fromBuf
-                       pure (Elaboratable_With_Apply fc fn arg)
+                       pure (Elaborable_With_Apply fc fn arg)
                10 => do fc <- fromBuf; depth <- fromBuf
-                        pure (Elaboratable_Search fc depth)
+                        pure (Elaborable_Search fc depth)
                11 => do fc <- fromBuf; y <- fromBuf
                         xs <- fromBuf
-                        pure (Elaboratable_Alternative fc y xs)
+                        pure (Elaborable_Alternative fc y xs)
                12 => do fc <- fromBuf; x <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Rewrite fc x y)
+                        pure (Elaborable_Rewrite fc x y)
                13 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Coerced fc y)
+                        pure (Elaborable_Coerced fc y)
                14 => do fc <- fromBuf; m <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Bind_Here fc m y)
+                        pure (Elaborable_Bind_Here fc m y)
                15 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Bind_Name fc y)
+                        pure (Elaborable_Bind_Name fc y)
                16 => do fc <- fromBuf; nameFC <- fromBuf
                         side <- fromBuf;
                         y <- fromBuf; pattern <- fromBuf
-                        pure (Elaboratable_As_Pattern fc nameFC side y pattern)
+                        pure (Elaborable_As_Pattern fc nameFC side y pattern)
                17 => do fc <- fromBuf
                         pattern <- fromBuf
-                        pure (Elaboratable_Must_Unify fc UnknownDot pattern)
+                        pure (Elaborable_Must_Unify fc UnknownDot pattern)
 
                18 => do fc <- fromBuf; r <- fromBuf
                         y <- fromBuf
-                        pure (Elaboratable_Delayed_Type fc r y)
+                        pure (Elaborable_Delayed_Type fc r y)
                19 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Delay fc y)
+                        pure (Elaborable_Delay fc y)
                20 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Force fc y)
+                        pure (Elaborable_Force fc y)
 
                21 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Quote fc y)
+                        pure (Elaborable_Quote fc y)
                22 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Quote_Name fc y)
+                        pure (Elaborable_Quote_Name fc y)
                23 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Quote_Declarations fc y)
+                        pure (Elaborable_Quote_Declarations fc y)
                24 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Unquote fc y)
+                        pure (Elaborable_Unquote fc y)
                25 => do fc <- fromBuf; re <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Run_Elaborator fc re y)
+                        pure (Elaborable_Run_Elaborator fc re y)
 
                26 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Primitive_Value fc y)
+                        pure (Elaborable_Primitive_Value fc y)
                27 => do fc <- fromBuf
-                        pure (Elaboratable_Type_Universe fc)
+                        pure (Elaborable_Type_Universe fc)
                28 => do fc <- fromBuf; y <- fromBuf
-                        pure (Elaboratable_Hole fc y)
+                        pure (Elaborable_Hole fc y)
                29 => do fc <- fromBuf
                         i <- fromBuf
                         pure (Implicit fc i)
                30 => do fc <- fromBuf
                         ns <- fromBuf
                         rhs <- fromBuf
-                        pure (Elaboratable_With_Unambiguous_Names fc ns rhs)
+                        pure (Elaborable_With_Unambiguous_Names fc ns rhs)
                31 => do fc <- fromBuf; fn <- fromBuf
                         arg <- fromBuf
-                        pure (Elaboratable_Automatic_Apply fc fn arg)
+                        pure (Elaborable_Automatic_Apply fc fn arg)
                _ => corrupt "RawImp"
 
   export
-  TTC Elaboratable_Field_Update where
-    toBuf (Elaboratable_Set_Field p val)
+  TTC Elaborable_Field_Update where
+    toBuf (Elaborable_Set_Field p val)
         = do tag 0; toBuf p; toBuf val
-    toBuf (Elaboratable_Apply_To_Field p val)
+    toBuf (Elaborable_Apply_To_Field p val)
         = do tag 1; toBuf p; toBuf val
 
     fromBuf
         = case !getTag of
                0 => do p <- fromBuf; val <- fromBuf
-                       pure (Elaboratable_Set_Field p val)
+                       pure (Elaborable_Set_Field p val)
                1 => do p <- fromBuf; val <- fromBuf
-                       pure (Elaboratable_Apply_To_Field p val)
+                       pure (Elaborable_Apply_To_Field p val)
                _ => corrupt "IFieldUpdate"
 
   export
@@ -349,71 +349,71 @@ mutual
                _ => corrupt "FnOpt"
 
   export
-  TTC (Elaboratable_Claim_Data Name) where
-    toBuf (Make_Elaboratable_Claim_Data rig vis opts type)
+  TTC (Elaborable_Claim_Data Name) where
+    toBuf (Make_Elaborable_Claim_Data rig vis opts type)
         = do toBuf rig; toBuf vis; toBuf opts; toBuf type
     fromBuf
         = do rig <- fromBuf
              vis <- fromBuf
              opts <- fromBuf
              type <- fromBuf
-             pure $ Make_Elaboratable_Claim_Data rig vis opts type
+             pure $ Make_Elaborable_Claim_Data rig vis opts type
 
   export
   TTC ImpDecl where
-    toBuf (Elaboratable_Claim claim)
+    toBuf (Elaborable_Claim claim)
         = do tag 0; toBuf claim
-    toBuf (Elaboratable_Data_Declaration fc vis mbtot d)
+    toBuf (Elaborable_Data_Declaration fc vis mbtot d)
         = do tag 1; toBuf fc; toBuf vis; toBuf mbtot; toBuf d
-    toBuf (Elaboratable_Definition fc n xs)
+    toBuf (Elaborable_Definition fc n xs)
         = do tag 2; toBuf fc; toBuf n; toBuf xs
-    toBuf (Elaboratable_Parameter_Block fc vis d)
+    toBuf (Elaborable_Parameter_Block fc vis d)
         = do tag 3; toBuf fc; toBuf vis; toBuf d
-    toBuf (Elaboratable_Record_Declaration fc ns vis mbtot r)
+    toBuf (Elaborable_Record_Declaration fc ns vis mbtot r)
         = do tag 4; toBuf fc; toBuf ns; toBuf vis; toBuf mbtot; toBuf r
-    toBuf (Elaboratable_Namespace_Block fc xs ds)
+    toBuf (Elaborable_Namespace_Block fc xs ds)
         = do tag 5; toBuf fc; toBuf xs; toBuf ds
-    toBuf (Elaboratable_Transformation fc n lhs rhs)
+    toBuf (Elaborable_Transformation fc n lhs rhs)
         = do tag 6; toBuf fc; toBuf n; toBuf lhs; toBuf rhs
-    toBuf (Elaboratable_Run_Elaborator_Declaration fc tm)
+    toBuf (Elaborable_Run_Elaborator_Declaration fc tm)
         = do tag 7; toBuf fc; toBuf tm
-    toBuf (Elaboratable_Pragma _ _ f) = throw (InternalError "Can't write Pragma")
-    toBuf (Elaboratable_Logging n)
+    toBuf (Elaborable_Pragma _ _ f) = throw (InternalError "Can't write Pragma")
+    toBuf (Elaborable_Logging n)
         = do tag 8; toBuf n
-    toBuf (Elaboratable_Builtin_Declaration fc type name)
+    toBuf (Elaborable_Builtin_Declaration fc type name)
         = do tag 9; toBuf fc; toBuf type; toBuf name
-    toBuf (Elaboratable_Expected_Failure {})
+    toBuf (Elaborable_Expected_Failure {})
         = pure ()
 
     fromBuf
         = case !getTag of
                0 => do claimData <- fromBuf
-                       pure (Elaboratable_Claim claimData)
+                       pure (Elaborable_Claim claimData)
                1 => do fc <- fromBuf; vis <- fromBuf
                        mbtot <- fromBuf; d <- fromBuf
-                       pure (Elaboratable_Data_Declaration fc vis mbtot d)
+                       pure (Elaborable_Data_Declaration fc vis mbtot d)
                2 => do fc <- fromBuf; n <- fromBuf
                        xs <- fromBuf
-                       pure (Elaboratable_Definition fc n xs)
+                       pure (Elaborable_Definition fc n xs)
                3 => do fc <- fromBuf; vis <- fromBuf
                        d <- fromBuf
-                       pure (Elaboratable_Parameter_Block fc vis d)
+                       pure (Elaborable_Parameter_Block fc vis d)
                4 => do fc <- fromBuf; ns <- fromBuf;
                        vis <- fromBuf; mbtot <- fromBuf;
                        r <- fromBuf
-                       pure (Elaboratable_Record_Declaration fc ns vis mbtot r)
+                       pure (Elaborable_Record_Declaration fc ns vis mbtot r)
                5 => do fc <- fromBuf; xs <- fromBuf
                        ds <- fromBuf
-                       pure (Elaboratable_Namespace_Block fc xs ds)
+                       pure (Elaborable_Namespace_Block fc xs ds)
                6 => do fc <- fromBuf; n <- fromBuf
                        lhs <- fromBuf; rhs <- fromBuf
-                       pure (Elaboratable_Transformation fc n lhs rhs)
+                       pure (Elaborable_Transformation fc n lhs rhs)
                7 => do fc <- fromBuf; tm <- fromBuf
-                       pure (Elaboratable_Run_Elaborator_Declaration fc tm)
+                       pure (Elaborable_Run_Elaborator_Declaration fc tm)
                8 => do n <- fromBuf
-                       pure (Elaboratable_Logging n)
+                       pure (Elaborable_Logging n)
                9 => do fc <- fromBuf
                        type <- fromBuf
                        name <- fromBuf
-                       pure (Elaboratable_Builtin_Declaration fc type name)
+                       pure (Elaborable_Builtin_Declaration fc type name)
                _ => corrupt "ImpDecl"
