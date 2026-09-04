@@ -5,66 +5,62 @@ support_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 compiler="$support_root/build/exec/idris2"
 
 usage() {
-  printf 'usage: ./_/edric --emit-one-step SOURCE -o ARTIFACT\n' >&2
+  echo "usage: ./_/edric --emit-one-step SOURCE -o ARTIFACT" >&2
+  exit 2
 }
 
-[ "$#" -eq 3 ] || { usage; exit 2; }
+[ "$#" -eq 3 ] || usage
 source=$1
-[ "$2" = "-o" ] || { usage; exit 2; }
-artifact=$3
+case "$2" in
+  -o|--output) ;;
+  *) usage ;;
+esac
+output=$3
 
-[ -f "$source" ] || { printf 'source not found: %s\n' "$source" >&2; exit 1; }
+[ -f "$source" ] || { echo "Idric one-step emitter: source not found: $source" >&2; exit 2; }
 [ -x "$compiler" ] || {
-  printf 'compiler not found: %s (run ./_/edric bootstrap first)\n' "$compiler" >&2
+  echo "Idric one-step emitter: compiler is not bootstrapped; run ./_/edric bootstrap" >&2
+  exit 2
+}
+
+caller_pwd=$(pwd)
+source_dir=$(CDPATH='' cd -- "$(dirname -- "$source")" && pwd)
+source_name=$(basename -- "$source")
+source_path="$source_dir/$source_name"
+case "$output" in
+  /*) output_path=$output ;;
+  *) output_path="$caller_pwd/$output" ;;
+esac
+output_dir=$(dirname -- "$output_path")
+output_name=$(basename -- "$output_path")
+mkdir -p "$output_dir"
+
+body_name=".$output_name.body.$$"
+body_path="$output_dir/$body_name"
+tmp="$output_path.tmp.$$"
+build_dir="$output_dir/.$output_name.build.$$"
+mkdir -p "$build_dir"
+trap 'rm -rf "$build_dir"; rm -f "$body_path" "$tmp"' EXIT HUP INT TERM
+
+idric_library_path="$support_root/libs/prelude/build/ttc:$support_root/libs/base/build/ttc:$support_root/libs/linear/build/ttc:$support_root/libs/network/build/ttc:$support_root/libs/contrib/build/ttc:$support_root/libs/test/build/ttc:"
+(
+  cd "$source_dir"
+  PATH="$support_root/.tools/bin:$PATH" \
+  IDRIS2_PREFIX="$support_root/bootstrap-build" \
+  IDRIS2_PATH="$idric_library_path" \
+    "$compiler" --cg idric-one-step --build-dir "$build_dir" \
+      --output-dir "$output_dir" -o "$body_name" "$source_name"
+)
+
+[ "$(head -n 1 "$body_path")" = "$(printf 'EDRIC_ONE_STEP_BODY\t1')" ] || {
+  echo "Idric one-step emitter: compiler returned the wrong artifact body" >&2
   exit 1
 }
 
-sha256_file() {
-  if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$1" | awk '{print $1}'
-  elif command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$1" | awk '{print $1}'
-  else
-    printf 'need sha256sum or shasum for deterministic receipts\n' >&2
-    exit 1
-  fi
-}
-
-artifact_dir=$(dirname -- "$artifact")
-artifact_base=$(basename -- "$artifact")
-mkdir -p "$artifact_dir"
-output_dir=$(CDPATH='' cd -- "$artifact_dir" && pwd)
-artifact_path="$output_dir/$artifact_base"
-work_dir="$output_dir/.${artifact_base}.work"
-body_name="$artifact_base.body"
-body="$output_dir/$body_name"
-rm -rf "$work_dir"
-mkdir -p "$work_dir"
-rm -f "$artifact_path" "$body"
-
-PATH="$support_root/.tools/bin:$PATH"
-export PATH
-IDRIS2_PREFIX="$support_root/build/env"
-export IDRIS2_PREFIX
-IDRIS2_PATH="$support_root/libs/prelude/build/ttc:$support_root/libs/base/build/ttc:$support_root/libs/network/build/ttc"
-export IDRIS2_PATH
-
-"$compiler" \
-  --cg idric-one-step \
-  --build-dir "$work_dir/build" \
-  --output-dir "$output_dir" \
-  -o "$body_name" \
-  "$source"
-
-first_line=$(sed -n '1p' "$body")
-expected_body_header=$(printf 'EDRIC_ONE_STEP_BODY\t1')
-[ "$first_line" = "$expected_body_header" ] || {
-  printf 'unexpected one-step compiler body header: %s\n' "$first_line" >&2
-  exit 1
-}
-
-source_sha256=$(sha256_file "$source")
-body_sha256=$(sha256_file "$body")
+set -- $(sha256sum "$source_path")
+source_sha256=$1
+set -- $(sha256sum "$body_path")
+body_sha256=$1
 compiler_head=$(git -C "$support_root" rev-parse HEAD)
 
 {
@@ -75,10 +71,10 @@ compiler_head=$(git -C "$support_root" rev-parse HEAD)
   printf 'representation\tidris2-anf-show-0.8.0\n'
   printf 'body_sha256\t%s\n' "$body_sha256"
   printf 'definitions_begin\n'
-  sed '1d' "$body"
+  tail -n +2 "$body_path"
   printf 'definitions_end\n'
   printf 'end\n'
-} > "$artifact_path"
-
-rm -rf "$work_dir"
-rm -f "$body"
+} > "$tmp"
+mv "$tmp" "$output_path"
+rm -rf "$build_dir"
+trap - EXIT HUP INT TERM
