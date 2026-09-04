@@ -3,47 +3,31 @@ set -eu
 
 support_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 source="$support_root/examples/compiler-one-step/PrintX.idric"
-artifact_dir="$support_root/build/one-step-test"
-artifact="$artifact_dir/PrintX.one-step"
-artifact2="$artifact_dir/PrintX.second.one-step"
-body="$artifact_dir/PrintX.body"
+temporary=$(mktemp -d)
+trap 'rm -rf "$temporary"' EXIT HUP INT TERM
+
+first="$temporary/print-x.first.one-step"
+second="$temporary/print-x.second.one-step"
+"$support_root/edric" --emit-one-step "$source" -o "$first"
+"$support_root/edric" --emit-one-step "$source" -o "$second"
+
+cmp "$first" "$second"
+source_sha=$(sha256sum "$source" | cut -d' ' -f1)
 compiler_head=$(git -C "$support_root" rev-parse HEAD)
+test "$(head -n 1 "$first")" = "$(printf 'EDRIC_ONE_STEP\t1')"
+grep -Fx "$(printf 'source_sha256\t%s' "$source_sha")" "$first"
+grep -Fx "$(printf 'compiler_head\tisomorphisms/Idric\t%s' "$compiler_head")" "$first"
+grep -Fx "$(printf 'core_typecheck\tPASS')" "$first"
+grep -Fx "$(printf 'representation\tidris2-anf-show-0.8.0')" "$first"
+grep -F "PrintX.main = [0]: %let v1 = ('X') in (Prelude.IO.prim__putChar(v1, v0))" "$first"
+test "$(tail -n 1 "$first")" = end
 
-rm -rf "$artifact_dir"
-mkdir -p "$artifact_dir"
-
-sh "$support_root/scripts/emit-one-step.sh" "$source" -o "$artifact"
-sh "$support_root/scripts/emit-one-step.sh" "$source" -o "$artifact2"
-
-cmp "$artifact" "$artifact2"
-
-expected_header=$(printf 'EDRIC_ONE_STEP\t1')
-expected_source=$(printf 'source_sha256\t%s' "$(sha256sum "$source" | awk '{print $1}')")
-expected_head=$(printf 'compiler_head\tisomorphisms/Idric\t%s' "$compiler_head")
-expected_typecheck=$(printf 'core_typecheck\tPASS')
-expected_representation=$(printf 'representation\tidris2-anf-show-0.8.0')
-expected_definition=$(printf "PrintX.main = [0]: %%let v1 = ('X') in (Prelude.IO.prim__putChar(v1, v0))")
-
-[ "$(sed -n '1p' "$artifact")" = "$expected_header" ]
-[ "$(sed -n '2p' "$artifact")" = "$expected_source" ]
-[ "$(sed -n '3p' "$artifact")" = "$expected_head" ]
-[ "$(sed -n '4p' "$artifact")" = "$expected_typecheck" ]
-[ "$(sed -n '5p' "$artifact")" = "$expected_representation" ]
-grep -Fx 'definitions_begin' "$artifact" >/dev/null
-grep -Fx "$expected_definition" "$artifact" >/dev/null
-grep -Fx 'definitions_end' "$artifact" >/dev/null
-[ "$(tail -n 1 "$artifact")" = end ]
-
+body="$temporary/body"
 {
   printf 'EDRIC_ONE_STEP_BODY\t1\n'
-  awk '
-    /^definitions_begin$/ { inside=1; next }
-    /^definitions_end$/ { inside=0 }
-    inside { print }
-  ' "$artifact"
+  sed -n '/^definitions_begin$/,/^definitions_end$/p' "$first" | sed '1d;$d'
 } > "$body"
-body_hash=$(sha256sum "$body" | awk '{print $1}')
-recorded_body_hash=$(awk -F '\t' '$1 == "body_sha256" { print $2 }' "$artifact")
-[ "$body_hash" = "$recorded_body_hash" ]
+body_sha=$(sha256sum "$body" | cut -d' ' -f1)
+grep -Fx "$(printf 'body_sha256\t%s' "$body_sha")" "$first"
 
-printf 'one-step compiler handoff: PASS\n'
+printf '%s\n' 'Idric compiler one-step emitter: PASS'
