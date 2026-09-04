@@ -283,7 +283,7 @@ defaultHashFn
          Nothing <- coreLift $ pathLookup ["sha256"]
            | Just p => pure $ Just p
          Nothing <- coreLift $ pathLookup ["openssl"]
-           | Just p => pure $ Just p ++ " sha256"
+           | Just p => pure $ Just $ p ++ " sha256"
          pure Nothing
 
 export
