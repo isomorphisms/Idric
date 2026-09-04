@@ -1,0 +1,11 @@
+module Main
+
+import Data.Vect
+
+%default total
+
+prepend : {n : ℕ} → a → Vect n a → Vect (S n) a
+prepend item items = item :: items
+
+main : IO ()
+main = printLn (prepend 1 [2, 3])

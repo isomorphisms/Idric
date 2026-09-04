@@ -1,0 +1,296 @@
+module MathematicalSpaces
+
+%default total
+%unbound_implicits off
+
+-- This module is the small common semantic core shared by the Euclidean,
+-- indexed-contraction, and topology experiments.  Space names are indexed by
+-- their known rank, so one name cannot be paired with contradictory ranks.
+-- Rank equality alone is still not space equality.
+
+public export
+data SpaceName : ℕ -> Type where
+  PlaneName      : SpaceName 2
+  ImagePlaneName : SpaceName 2
+  RealThreeName  : SpaceName 3
+  Real128Name    : SpaceName 128
+
+public export
+data FiniteSpace : Type where
+  NamedFiniteSpace : {rank : ℕ} -> SpaceName rank -> FiniteSpace
+
+public export
+spaceRank : FiniteSpace -> ℕ
+spaceRank (NamedFiniteSpace {rank} _) = rank
+
+public export
+spaceName : (space : FiniteSpace) -> SpaceName (spaceRank space)
+spaceName (NamedFiniteSpace name) = name
+
+public export
+planeSpace : FiniteSpace
+planeSpace = NamedFiniteSpace PlaneName
+
+public export
+imagePlaneSpace : FiniteSpace
+imagePlaneSpace = NamedFiniteSpace ImagePlaneName
+
+public export
+realThreeSpace : FiniteSpace
+realThreeSpace = NamedFiniteSpace RealThreeName
+
+public export
+real128Space : FiniteSpace
+real128Space = NamedFiniteSpace Real128Name
+
+-- Integer coordinates are exact executable samples of the named real
+-- coordinate spaces.  ExactVectorSample and ExactCovectorSample below
+-- represent only this sample language; they are not definitions of the
+-- complete real scalar field or of every vector in the ambient space.  This
+-- preserves the R^128 oracle without pretending Integer is the field of reals.
+
+-- UNSAFE REPRESENTATION BOUNDARY.  The raw coordinates, their constructors,
+-- and every operation that exposes or rebuilds them are deliberately named
+-- Raw... or Unsafe... .  They remain public only so the exact #47 fixture and
+-- the closed transform interpreter can be compiler-normalized across modules.
+-- Using this boundary, a caller can explicitly discard a role or space name by
+-- destructing and rebuilding coordinates.  The ordinary semantic API below
+-- never performs such a conversion implicitly.
+
+public export
+data RawExactCoordinates : ℕ -> Type where
+  UnsafeCoordinateNil : RawExactCoordinates Z
+  UnsafeCoordinateCons :
+    {n : ℕ} ->
+    Integer -> RawExactCoordinates n -> RawExactCoordinates (S n)
+
+public export
+unsafeZeroCoordinates : (n : ℕ) -> RawExactCoordinates n
+unsafeZeroCoordinates Z = UnsafeCoordinateNil
+unsafeZeroCoordinates (S n) = UnsafeCoordinateCons 0 (unsafeZeroCoordinates n)
+
+public export
+unsafeAddCoordinates :
+  {n : ℕ} ->
+  RawExactCoordinates n -> RawExactCoordinates n -> RawExactCoordinates n
+unsafeAddCoordinates UnsafeCoordinateNil UnsafeCoordinateNil = UnsafeCoordinateNil
+unsafeAddCoordinates
+  (UnsafeCoordinateCons left leftRest)
+  (UnsafeCoordinateCons right rightRest) =
+    UnsafeCoordinateCons
+      (left + right)
+      (unsafeAddCoordinates leftRest rightRest)
+
+public export
+unsafeNegateCoordinates : {n : ℕ} -> RawExactCoordinates n -> RawExactCoordinates n
+unsafeNegateCoordinates UnsafeCoordinateNil = UnsafeCoordinateNil
+unsafeNegateCoordinates (UnsafeCoordinateCons value rest) =
+  UnsafeCoordinateCons (-value) (unsafeNegateCoordinates rest)
+
+public export
+unsafeSubtractCoordinates :
+  {n : ℕ} ->
+  RawExactCoordinates n -> RawExactCoordinates n -> RawExactCoordinates n
+unsafeSubtractCoordinates UnsafeCoordinateNil UnsafeCoordinateNil = UnsafeCoordinateNil
+unsafeSubtractCoordinates
+  (UnsafeCoordinateCons left leftRest)
+  (UnsafeCoordinateCons right rightRest) =
+    UnsafeCoordinateCons
+      (left - right)
+      (unsafeSubtractCoordinates leftRest rightRest)
+
+public export
+unsafeScaleCoordinates :
+  {n : ℕ} -> Integer -> RawExactCoordinates n -> RawExactCoordinates n
+unsafeScaleCoordinates scalar UnsafeCoordinateNil = UnsafeCoordinateNil
+unsafeScaleCoordinates scalar (UnsafeCoordinateCons value rest) =
+  UnsafeCoordinateCons
+    (scalar * value)
+    (unsafeScaleCoordinates scalar rest)
+
+-- This raw pairing is the implementation escape hatch used by safe covector
+-- evaluation.  Calling it on two extracted vector samples explicitly leaves
+-- the checked vector/covector API; `dot` is the metric-requiring operation.
+public export
+unsafePairCoordinates :
+  {n : ℕ} ->
+  RawExactCoordinates n -> RawExactCoordinates n -> Integer
+unsafePairCoordinates UnsafeCoordinateNil UnsafeCoordinateNil = 0
+unsafePairCoordinates
+  (UnsafeCoordinateCons left leftRest)
+  (UnsafeCoordinateCons right rightRest) =
+    left * right + unsafePairCoordinates leftRest rightRest
+
+-- Exact vector and covector samples are intentionally different indexed
+-- datatypes.  Their shared space index enforces both nominal identity and rank.
+
+public export
+data ExactVectorSample : FiniteSpace -> Type where
+  UnsafeVectorCoordinates :
+    {rank : ℕ} ->
+    {name : SpaceName rank} ->
+    RawExactCoordinates rank ->
+    ExactVectorSample (NamedFiniteSpace name)
+
+public export
+data ExactCovectorSample : FiniteSpace -> Type where
+  UnsafeCovectorCoordinates :
+    {rank : ℕ} ->
+    {name : SpaceName rank} ->
+    RawExactCoordinates rank ->
+    ExactCovectorSample (NamedFiniteSpace name)
+
+public export
+unsafeCoordinatesOfVector :
+  {space : FiniteSpace} ->
+  ExactVectorSample space ->
+  RawExactCoordinates (spaceRank space)
+unsafeCoordinatesOfVector (UnsafeVectorCoordinates coordinates) = coordinates
+
+public export
+unsafeCoordinatesOfCovector :
+  {space : FiniteSpace} ->
+  ExactCovectorSample space ->
+  RawExactCoordinates (spaceRank space)
+unsafeCoordinatesOfCovector (UnsafeCovectorCoordinates coordinates) = coordinates
+
+public export
+addVector :
+  {space : FiniteSpace} ->
+  ExactVectorSample space ->
+  ExactVectorSample space ->
+  ExactVectorSample space
+addVector
+  (UnsafeVectorCoordinates left)
+  (UnsafeVectorCoordinates right) =
+    UnsafeVectorCoordinates (unsafeAddCoordinates left right)
+
+public export
+negateVector :
+  {space : FiniteSpace} ->
+  ExactVectorSample space ->
+  ExactVectorSample space
+negateVector (UnsafeVectorCoordinates coordinates) =
+  UnsafeVectorCoordinates (unsafeNegateCoordinates coordinates)
+
+public export
+differenceVector :
+  {space : FiniteSpace} ->
+  ExactVectorSample space ->
+  ExactVectorSample space ->
+  ExactVectorSample space
+differenceVector
+  (UnsafeVectorCoordinates left)
+  (UnsafeVectorCoordinates right) =
+    UnsafeVectorCoordinates (unsafeSubtractCoordinates left right)
+
+public export
+scaleVector :
+  {space : FiniteSpace} ->
+  Integer -> ExactVectorSample space -> ExactVectorSample space
+scaleVector scalar (UnsafeVectorCoordinates coordinates) =
+  UnsafeVectorCoordinates (unsafeScaleCoordinates scalar coordinates)
+
+public export
+addCovector :
+  {space : FiniteSpace} ->
+  ExactCovectorSample space ->
+  ExactCovectorSample space ->
+  ExactCovectorSample space
+addCovector
+  (UnsafeCovectorCoordinates left)
+  (UnsafeCovectorCoordinates right) =
+    UnsafeCovectorCoordinates (unsafeAddCoordinates left right)
+
+public export
+negateCovector :
+  {space : FiniteSpace} ->
+  ExactCovectorSample space -> ExactCovectorSample space
+negateCovector (UnsafeCovectorCoordinates coordinates) =
+  UnsafeCovectorCoordinates (unsafeNegateCoordinates coordinates)
+
+public export
+scaleCovector :
+  {space : FiniteSpace} ->
+  Integer -> ExactCovectorSample space -> ExactCovectorSample space
+scaleCovector scalar (UnsafeCovectorCoordinates coordinates) =
+  UnsafeCovectorCoordinates (unsafeScaleCoordinates scalar coordinates)
+
+-- Evaluation is the canonical vector/covector contraction.  There is no safe
+-- exact-vector-sample to exact-covector-sample conversion in this module and
+-- hence no metric-free dot product between two vector samples in the checked
+-- API.  Crossing the explicitly unsafe representation boundary is not an
+-- inferred mathematical operation.
+public export
+contract :
+  {space : FiniteSpace} ->
+  ExactCovectorSample space -> ExactVectorSample space -> Integer
+contract
+  (UnsafeCovectorCoordinates covectorCoordinates)
+  (UnsafeVectorCoordinates vectorCoordinates) =
+    unsafePairCoordinates covectorCoordinates vectorCoordinates
+
+-- Small named fixtures used by the focused compiler tests.
+
+public export
+planeVector : Integer -> Integer -> ExactVectorSample planeSpace
+planeVector first second =
+  UnsafeVectorCoordinates
+    (UnsafeCoordinateCons first (UnsafeCoordinateCons second UnsafeCoordinateNil))
+
+public export
+planeCovector : Integer -> Integer -> ExactCovectorSample planeSpace
+planeCovector first second =
+  UnsafeCovectorCoordinates
+    (UnsafeCoordinateCons first (UnsafeCoordinateCons second UnsafeCoordinateNil))
+
+public export
+imagePlaneVector : Integer -> Integer -> ExactVectorSample imagePlaneSpace
+imagePlaneVector first second =
+  UnsafeVectorCoordinates
+    (UnsafeCoordinateCons first (UnsafeCoordinateCons second UnsafeCoordinateNil))
+
+public export
+imagePlaneCovector : Integer -> Integer -> ExactCovectorSample imagePlaneSpace
+imagePlaneCovector first second =
+  UnsafeCovectorCoordinates
+    (UnsafeCoordinateCons first (UnsafeCoordinateCons second UnsafeCoordinateNil))
+
+public export
+threeVector : Integer -> Integer -> Integer -> ExactVectorSample realThreeSpace
+threeVector first second third =
+  UnsafeVectorCoordinates
+    (UnsafeCoordinateCons first
+      (UnsafeCoordinateCons second
+        (UnsafeCoordinateCons third UnsafeCoordinateNil)))
+
+public export
+threeCovector : Integer -> Integer -> Integer -> ExactCovectorSample realThreeSpace
+threeCovector first second third =
+  UnsafeCovectorCoordinates
+    (UnsafeCoordinateCons first
+      (UnsafeCoordinateCons second
+        (UnsafeCoordinateCons third UnsafeCoordinateNil)))
+
+-- A typed one-index kernel is enough to force the first Einstein boundary.
+-- The glyph used for an index is surface syntax; contractibility additionally
+-- requires opposite variance and the same full named-space index.
+
+public export
+data Variance = Lower | Upper
+
+public export
+data IndexedValue : Variance -> FiniteSpace -> Type where
+  LowerIndex :
+    {space : FiniteSpace} ->
+    ExactCovectorSample space -> IndexedValue Lower space
+  UpperIndex :
+    {space : FiniteSpace} ->
+    ExactVectorSample space -> IndexedValue Upper space
+
+public export
+contractIndex :
+  {space : FiniteSpace} ->
+  IndexedValue Lower space -> IndexedValue Upper space -> Integer
+contractIndex (LowerIndex covector) (UpperIndex vector) =
+  contract covector vector

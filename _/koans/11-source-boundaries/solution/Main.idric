@@ -1,0 +1,14 @@
+module Main
+
+import IdrisCompatibility
+
+%default total
+
+increment : ℕ → ℕ
+increment = \value ⇒ S value
+
+boundary_value : ℕ
+boundary_value = increment compatibility_value
+
+main : IO ()
+main = printLn boundary_value

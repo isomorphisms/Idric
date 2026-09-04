@@ -1,0 +1,12 @@
+module Main
+
+%default total
+
+increment : ℕ → ℕ
+increment = \number ⇒ S number
+
+twice : (a → a) → a → a
+twice = \function ⇒ \value ⇒ function (function value)
+
+main : IO ()
+main = printLn (twice increment 5)

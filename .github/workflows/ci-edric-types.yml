@@ -3,15 +3,15 @@ name: Edric type-system smoke
 on:
   pull_request:
     paths:
-      - 'examples/units-time-intervals/**'
-      - 'tests/idris2/basic/edric007/**'
-      - 'edric'
+      - '_/examples/units-time-intervals/**'
+      - '_/tests/idris2/basic/edric007/**'
+      - '_/edric'
       - '.github/workflows/ci-edric-types.yml'
   push:
     paths:
-      - 'examples/units-time-intervals/**'
-      - 'tests/idris2/basic/edric007/**'
-      - 'edric'
+      - '_/examples/units-time-intervals/**'
+      - '_/tests/idris2/basic/edric007/**'
+      - '_/edric'
       - '.github/workflows/ci-edric-types.yml'
 
 jobs:
@@ -21,4 +21,4 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Bootstrap Edric and run focused smoke suite
-        run: ./edric all
+        run: ./_/edric all

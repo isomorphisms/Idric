@@ -1,0 +1,104 @@
+module NamedFacts
+
+import TopologyFacts
+
+%default total
+%unbound_implicits off
+
+-- A deliberately tiny boundary between ordinary type checking and named
+-- mathematical knowledge.  The hypothesis and conclusion families are part of
+-- the type of each entry.  Provenance fields are human-declared attribution,
+-- not authenticated external evidence.
+
+public export
+record FactProvenance where
+  constructor MkFactProvenance
+  factNamespace : String
+  factName : String
+  factVersion : String
+  -- A declared code-source locator, not a checked citation.
+  factSource : String
+
+public export
+data NamedFact :
+    (hypothesis : Type) ->
+    (conclusion : hypothesis -> Type) ->
+    Type where
+  DeclareNamedFact :
+    {hypothesis : Type} ->
+    {conclusion : hypothesis -> Type} ->
+    FactProvenance ->
+    ((witness : hypothesis) -> conclusion witness) ->
+    NamedFact hypothesis conclusion
+
+public export
+data TypedContext : Type -> Type where
+  ContextContains :
+    {hypothesis : Type} ->
+    (witness : hypothesis) ->
+    TypedContext hypothesis
+
+public export
+contextWitness :
+  {hypothesis : Type} ->
+  TypedContext hypothesis ->
+  hypothesis
+contextWitness (ContextContains witness) = witness
+
+public export
+data FactOrigin = NamedFactLookup FactProvenance
+
+-- This constructor records that the value came through explicit named-fact
+-- application, not from ordinary unification or dependent-index normalization.
+public export
+data FactAnswer : Type -> Type where
+  FromNamedFact :
+    {result : Type} ->
+    FactProvenance ->
+    result ->
+    FactAnswer result
+
+public export
+factConclusion : {result : Type} -> FactAnswer result -> result
+factConclusion (FromNamedFact _ conclusion) = conclusion
+
+public export
+answerOrigin : {result : Type} -> FactAnswer result -> FactOrigin
+answerOrigin (FromNamedFact provenance _) = NamedFactLookup provenance
+
+public export
+factExplanation : {result : Type} -> FactAnswer result -> String
+factExplanation (FromNamedFact provenance _) =
+  "named fact "
+    ++ factNamespace provenance
+    ++ "."
+    ++ factName provenance
+    ++ "@"
+    ++ factVersion provenance
+
+public export
+answerProvenance : {result : Type} -> FactAnswer result -> FactProvenance
+answerProvenance (FromNamedFact provenance _) = provenance
+
+public export
+lookupNamedFact :
+  {hypothesis : Type} ->
+  {conclusion : hypothesis -> Type} ->
+  (fact : NamedFact hypothesis conclusion) ->
+  (context : TypedContext hypothesis) ->
+  FactAnswer (conclusion (contextWitness context))
+lookupNamedFact
+  (DeclareNamedFact provenance derive)
+  (ContextContains witness) =
+    FromNamedFact provenance (derive witness)
+
+public export
+jordanSeparationFact : NamedFact EmbeddedCircleInS2 JordanSeparation
+jordanSeparationFact =
+  DeclareNamedFact
+    (MkFactProvenance
+      "topology"
+      "jordan-separation"
+      "1"
+      "TopologyFacts.jordanSeparation")
+    jordanSeparation

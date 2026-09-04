@@ -1,9 +1,0 @@
-module Main
-
-%default total
-
-keep_runtime_value : (0 compile_time_number : Nat) → Nat → Nat
-keep_runtime_value compile_time_number runtime_number = runtime_number
-
-main : IO ()
-main = printLn (keep_runtime_value 100 7)

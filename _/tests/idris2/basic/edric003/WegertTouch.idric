@@ -1,0 +1,22 @@
+module WegertTouch
+
+public export
+choice existing_touch_target one_of
+  fixed_value ℕ
+  zero ℕ
+  pole ℕ
+
+public export
+choice touch_beginning one_of
+  near_existing existing_touch_target
+  empty_domain
+
+public export
+choice placement_kind one_of
+  new_zero
+  new_pole
+
+public export
+choice recursive_chain one_of
+  chain_end
+  chain_link recursive_chain

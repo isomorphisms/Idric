@@ -1,0 +1,37 @@
+module Main
+
+import WegertTouch
+
+describe_existing : existing_touch_target -> String
+describe_existing (fixed_value value) = "fixed_value " ++ show value
+describe_existing (zero value) = "zero " ++ show value
+describe_existing (pole value) = "pole " ++ show value
+
+describe_beginning : touch_beginning -> String
+describe_beginning (near_existing target) =
+  "near_existing (" ++ describe_existing target ++ ")"
+describe_beginning empty_domain = "empty_domain"
+
+describe_placement : placement_kind -> String
+describe_placement new_zero = "new_zero"
+describe_placement new_pole = "new_pole"
+
+chain_depth : recursive_chain -> ℕ
+chain_depth chain_end = Z
+chain_depth (chain_link chain_end) = 1
+chain_depth (chain_link (chain_link rest)) = 2 + chain_depth rest
+
+identity : a -> a
+identity value = value
+
+main : IO ()
+main = do
+  putStrLn $ describe_existing (fixed_value 2)
+  putStrLn $ describe_existing (zero 3)
+  putStrLn $ describe_existing (pole 5)
+  putStrLn $ describe_beginning (near_existing (pole 7))
+  putStrLn $ describe_beginning empty_domain
+  putStrLn $ describe_placement new_zero
+  putStrLn $ describe_placement new_pole
+  printLn $ identity $
+    chain_depth (chain_link (chain_link (chain_link chain_end)))
