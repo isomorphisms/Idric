@@ -232,6 +232,7 @@ availableCGs o
        ("javascript", Javascript),
        ("refc", RefC),
        ("gambit", Gambit),
+       ("idric-one-step", Other "idric-one-step"),
        ("vmcode-interp", VMCodeInterp)] ++ additionalCGs o
 
 export
@@ -282,7 +283,7 @@ defaultHashFn
          Nothing <- coreLift $ pathLookup ["sha256"]
            | Just p => pure $ Just p
          Nothing <- coreLift $ pathLookup ["openssl"]
-           | Just p => pure $ Just $ p ++ " sha256"
+           | Just p => pure $ Just p ++ " sha256"
          pure Nothing
 
 export
