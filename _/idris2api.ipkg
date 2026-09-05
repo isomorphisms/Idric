@@ -13,6 +13,7 @@ modules =
     Compiler.Common,
     Compiler.CompileExpr,
     Compiler.Generated,
+    Compiler.IdricOneStep,
     Compiler.Inline,
     Compiler.LambdaLift,
     Compiler.NoMangle,
