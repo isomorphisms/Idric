@@ -232,6 +232,7 @@ availableCGs o
        ("javascript", Javascript),
        ("refc", RefC),
        ("gambit", Gambit),
+       ("idric-one-step", Other "idric-one-step"),
        ("vmcode-interp", VMCodeInterp)] ++ additionalCGs o
 
 export

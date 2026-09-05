@@ -8,6 +8,7 @@ import Compiler.Scheme.Gambit
 import Compiler.ES.Node
 import Compiler.ES.Javascript
 import Compiler.Common
+import Compiler.IdricOneStep
 import Compiler.Inline
 import Compiler.Interpreter.VMCode
 
@@ -275,6 +276,7 @@ getCG Node = pure $ Just codegenNode
 getCG Javascript = pure $ Just codegenJavascript
 getCG RefC = pure $ Just codegenRefC
 getCG VMCodeInterp = pure $ Just codegenVMCodeInterp
+getCG (Other "idric-one-step") = pure $ Just codegenIdricOneStep
 getCG (Other s) = getCodegen s
 
 export

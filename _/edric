@@ -16,14 +16,16 @@ export PATH
 
 usage() {
 	cat <<'USAGE'
-usage: ./edric [scheme|bootstrap|test|all]
-       ./edric test --only TEST_FILTER
+usage: ./_/edric [scheme|bootstrap|test|all]
+       ./_/edric test --only TEST_FILTER
+       ./_/edric --emit-one-step SOURCE -o ARTIFACT
 
-  scheme     install the pinned threaded Chez Scheme under .tools
-  bootstrap  install Chez Scheme, then bootstrap Idris 2
-  test       run the focused Edric handoff test with an existing build
-             or run one test selected by --only
-  all        install Chez Scheme, bootstrap Idris 2, and run the handoff test
+  scheme           install the pinned threaded Chez Scheme under .tools
+  bootstrap        install Chez Scheme, then bootstrap Idris 2
+  test             run the focused Edric handoff test with an existing build
+                   or run one test selected by --only
+  --emit-one-step  typecheck SOURCE and emit the deterministic ANF handoff
+  all              install Chez Scheme, bootstrap Idris 2, and run the handoff test
 
 With no command, all is used.
 USAGE
@@ -51,6 +53,7 @@ smoke_test() {
 	run_test idris2/basic/edric005
 	run_test idris2/basic/edric006
 	run_test idris2/basic/edric009
+	sh "$repo_root/scripts/test-one-step-emitter.sh"
 }
 
 command=${1:-all}
@@ -85,6 +88,10 @@ test)
 		exit 2
 		;;
 	esac
+	;;
+--emit-one-step)
+	[ "$#" -eq 3 ] || { usage >&2; exit 2; }
+	exec sh "$repo_root/scripts/emit-one-step.sh" "$@"
 	;;
 all)
 	[ "$#" -eq 0 ] || { usage >&2; exit 2; }
