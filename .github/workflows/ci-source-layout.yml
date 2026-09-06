@@ -18,3 +18,10 @@ jobs:
           test -d TTImp
           test -L _/src
           test "$(readlink _/src)" = ".."
+      - name: Verify top-level edric compatibility entrypoint
+        shell: sh
+        run: |
+          test -x edric
+          dash -n edric
+          sh -n edric
+          ./edric --help | grep -F 'usage: ./_/edric'
