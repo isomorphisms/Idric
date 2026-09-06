@@ -1,0 +1,40 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+hidden_root=$repo_root/_
+
+[ -x "$hidden_root/edric" ] || {
+    printf '%s\n' 'edric: _/edric is missing or not executable' >&2
+    exit 127
+}
+
+sh "$hidden_root/edric" "$@"
+
+# Keep build-system state under _/, while preserving stable top-level paths
+# for Catfood and for people invoking the compiler directly.
+link_hidden_output() {
+    name=$1
+    target=_/$name
+    source=$repo_root/$target
+    destination=$repo_root/$name
+
+    [ -e "$source" ] || return 0
+    if [ -L "$destination" ]; then
+        ln -sfn "$target" "$destination"
+    elif [ ! -e "$destination" ]; then
+        ln -s "$target" "$destination"
+    fi
+}
+
+link_hidden_output .tools
+link_hidden_output bootstrap-build
+link_hidden_output build
+
+if [ -x "$hidden_root/build/exec/idris2" ]; then
+    if [ -L "$repo_root/idris2" ]; then
+        ln -sfn _/build/exec/idris2 "$repo_root/idris2"
+    elif [ ! -e "$repo_root/idris2" ]; then
+        ln -s _/build/exec/idris2 "$repo_root/idris2"
+    fi
+fi
