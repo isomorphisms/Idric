@@ -96,6 +96,10 @@ processDecl decl
 returnsTypeUniverse : PTerm -> Bool
 returnsTypeUniverse (PType _) = True
 returnsTypeUniverse (PPi _ _ _ _ _ returnType) = returnsTypeUniverse returnType
+returnsTypeUniverse (NewPi (MkWithData _ (MkPBinderScope _ returnType)))
+    = returnsTypeUniverse returnType
+returnsTypeUniverse (Forall (MkWithData _ (_, returnType)))
+    = returnsTypeUniverse returnType
 returnsTypeUniverse _ = False
 
 claimIntroducesTypeLevelDefinition : PClaimData -> Bool
