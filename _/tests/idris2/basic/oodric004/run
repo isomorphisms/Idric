@@ -1,0 +1,4 @@
+. ../../../testutils.sh
+
+idris2 --check OodricTypeSynonymOrder.idr >/dev/null
+printf '%s\n' 'OODRIC_TYPE_SYNONYM_ORDER_OK'

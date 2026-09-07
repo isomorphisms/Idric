@@ -1,4 +1,4 @@
 . ../../../testutils.sh
 
-idris2 OodricForwardReference.idr
+idris2 --check OodricForwardReference.idr
 printf '%s\n' 'OODRIC_FORWARD_REFERENCE_OK'

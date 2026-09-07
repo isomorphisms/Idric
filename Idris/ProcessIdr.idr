@@ -87,8 +87,42 @@ processDecl decl
             (\err => do giveUpConstraints -- or we'll keep trying...
                         pure [err])
 
+-- Oodriç's TTImp declaration scheduler only helps when it receives a whole
+-- declaration list. Ordinary source modules arrive here as PDecls, and the
+-- historical traversal handed them to TTImp one at a time. Claims therefore
+-- pass immediately while adjacent definition bodies wait until the next
+-- structural declaration or the end of the sequence. This retains
+-- per-declaration error recovery and the source order that type synonyms need.
+processDeclarationSequence : {auto c : Ref Ctxt Defs} ->
+                             {auto u : Ref UST UState} ->
+                             {auto s : Ref Syn SyntaxInfo} ->
+                             {auto m : Ref MD Metadata} ->
+                             {auto o : Ref ROpts REPLOpts} ->
+                             List PDecl -> List PDecl -> Core (List Error)
+processDeclarationSequence pendingDefinitions []
+    = concat <$> traverse processDecl (reverse pendingDefinitions)
+processDeclarationSequence pendingDefinitions
+    (claim@(MkWithData _ (PClaim _)) :: declarations)
+    = do errors <- processDecl claim
+         remainingErrors <- processDeclarationSequence pendingDefinitions declarations
+         pure (errors ++ remainingErrors)
+processDeclarationSequence pendingDefinitions
+    (definition@(MkWithData _ (PDef _)) :: declarations)
+    = processDeclarationSequence (definition :: pendingDefinitions) declarations
+processDeclarationSequence pendingDefinitions
+    (namespaceBlock@(MkWithData _ (PNamespace _ _)) :: declarations)
+    = do namespaceErrors <- processDecl namespaceBlock
+         definitionErrors <- concat <$> traverse processDecl (reverse pendingDefinitions)
+         remainingErrors <- processDeclarationSequence [] declarations
+         pure (namespaceErrors ++ definitionErrors ++ remainingErrors)
+processDeclarationSequence pendingDefinitions (declaration :: declarations)
+    = do definitionErrors <- concat <$> traverse processDecl (reverse pendingDefinitions)
+         declarationErrors <- processDecl declaration
+         remainingErrors <- processDeclarationSequence [] declarations
+         pure (definitionErrors ++ declarationErrors ++ remainingErrors)
+
 processDecls decls
-    = do errs <- concat <$> traverse processDecl decls
+    = do errs <- processDeclarationSequence [] decls
          Nothing <- checkDelayedHoles
              | Just err => pure (if null errs then [err] else errs)
          pure errs

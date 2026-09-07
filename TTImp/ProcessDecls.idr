@@ -152,18 +152,18 @@ TTImp.Elab.Check.processDecl = process
 
 
 -- Oodriç experiment: ordinary function bodies no longer prevent the compiler
--- from seeing declarations written later in the same module.  The first walk
--- establishes every non-definition declaration; the second checks function
--- bodies.  Namespace blocks participate in the same two walks so a reader may
--- put the purpose-level definitions before their supporting declarations.
+-- from seeing adjacent claims written later in the same declaration sequence.
+-- Claims are processed immediately and definition bodies are queued.  The
+-- queue is checked at the next structural declaration (data, record,
+-- interface/implementation, parameter block, and so on), or at the end of the
+-- sequence.  Namespace blocks schedule their own declaration sequences.
 --
 -- This deliberately does not claim that every declaration kind is now fully
 -- order-independent.  Parameter blocks, records, run-elaborator declarations,
 -- transformations, and dependent declaration relationships still need their
--- own semantics.  Keeping that boundary explicit gives the experiment a place
--- to grow without pretending the first successful forward reference solved the
--- whole language-design problem.
-process_non_definition_declarations :
+-- own semantics.  Structural declarations are scheduling barriers because a
+-- preceding type-synonym body may need to reduce while they are elaborated.
+process_declaration_sequence :
   {vars : _} ->
   {auto c : Ref Ctxt Defs} ->
   {auto m : Ref MD Metadata} ->
@@ -172,48 +172,30 @@ process_non_definition_declarations :
   {auto o : Ref ROpts REPLOpts} ->
   List ElabOpt ->
   NestedNames vars -> Env Term vars ->
-  List ImpDecl -> Core ()
-process_non_definition_declarations eopts nest env [] = pure ()
-process_non_definition_declarations eopts nest env
-    (Elaborable_Definition _ _ _ :: remaining_declarations)
-    = process_non_definition_declarations eopts nest env remaining_declarations
-process_non_definition_declarations eopts nest env
-    (Elaborable_Namespace_Block _ namespace_name namespace_declarations :: remaining_declarations)
-    = do withExtendedNS namespace_name $
-           process_non_definition_declarations eopts nest env namespace_declarations
-         process_non_definition_declarations eopts nest env remaining_declarations
-process_non_definition_declarations eopts nest env
+  List ImpDecl -> List ImpDecl -> Core ()
+process_declaration_sequence eopts nest env pending_definitions []
+    = traverse_ (processDecl eopts nest env) (reverse pending_definitions)
+process_declaration_sequence eopts nest env pending_definitions
+    (claim@(Elaborable_Claim _) :: remaining_declarations)
+    = do processDecl eopts nest env claim
+         process_declaration_sequence eopts nest env pending_definitions remaining_declarations
+process_declaration_sequence eopts nest env pending_definitions
+    (definition@(Elaborable_Definition _ _ _) :: remaining_declarations)
+    = process_declaration_sequence eopts nest env
+        (definition :: pending_definitions) remaining_declarations
+process_declaration_sequence eopts nest env pending_definitions
+    (namespace_block@(Elaborable_Namespace_Block _ _ _) :: remaining_declarations)
+    = do processDecl eopts nest env namespace_block
+         traverse_ (processDecl eopts nest env) (reverse pending_definitions)
+         process_declaration_sequence eopts nest env [] remaining_declarations
+process_declaration_sequence eopts nest env pending_definitions
     (declaration :: remaining_declarations)
-    = do processDecl eopts nest env declaration
-         process_non_definition_declarations eopts nest env remaining_declarations
-
-process_delayed_function_definitions :
-  {vars : _} ->
-  {auto c : Ref Ctxt Defs} ->
-  {auto m : Ref MD Metadata} ->
-  {auto u : Ref UST UState} ->
-  {auto s : Ref Syn SyntaxInfo} ->
-  {auto o : Ref ROpts REPLOpts} ->
-  List ElabOpt ->
-  NestedNames vars -> Env Term vars ->
-  List ImpDecl -> Core ()
-process_delayed_function_definitions eopts nest env [] = pure ()
-process_delayed_function_definitions eopts nest env
-    (declaration@(Elaborable_Definition _ _ _) :: remaining_declarations)
-    = do processDecl eopts nest env declaration
-         process_delayed_function_definitions eopts nest env remaining_declarations
-process_delayed_function_definitions eopts nest env
-    (Elaborable_Namespace_Block _ namespace_name namespace_declarations :: remaining_declarations)
-    = do withExtendedNS namespace_name $
-           process_delayed_function_definitions eopts nest env namespace_declarations
-         process_delayed_function_definitions eopts nest env remaining_declarations
-process_delayed_function_definitions eopts nest env
-    (_ :: remaining_declarations)
-    = process_delayed_function_definitions eopts nest env remaining_declarations
+    = do traverse_ (processDecl eopts nest env) (reverse pending_definitions)
+         processDecl eopts nest env declaration
+         process_declaration_sequence eopts nest env [] remaining_declarations
 
 process_declarations_without_definition_order eopts nest env declarations
-    = do process_non_definition_declarations eopts nest env declarations
-         process_delayed_function_definitions eopts nest env declarations
+    = process_declaration_sequence eopts nest env [] declarations
 
 
 export
