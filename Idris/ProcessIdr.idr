@@ -106,6 +106,14 @@ claimIntroducesTypeLevelDefinition : PClaimData -> Bool
 claimIntroducesTypeLevelDefinition claim
     = returnsTypeUniverse claim.type.val.type
 
+claimNeedsPriorDefinitions : PClaimData -> Bool
+claimNeedsPriorDefinitions claim = any needsPriorDefinitions claim.opts
+  where
+    needsPriorDefinitions : PFnOpt -> Bool
+    needsPriorDefinitions (PForeign _) = True
+    needsPriorDefinitions (PForeignExport _) = True
+    needsPriorDefinitions _ = False
+
 processDeclarationSequence : {auto c : Ref Ctxt Defs} ->
                              {auto u : Ref UST UState} ->
                              {auto s : Ref Syn SyntaxInfo} ->
@@ -116,10 +124,16 @@ processDeclarationSequence _ pendingDefinitions []
     = concat <$> traverse processDecl (reverse pendingDefinitions)
 processDeclarationSequence _ pendingDefinitions
     (claim@(MkWithData _ (PClaim claimData)) :: declarations)
-    = do errors <- processDecl claim
+    = do definitionErrors <-
+           if claimNeedsPriorDefinitions claimData
+              then concat <$> traverse processDecl (reverse pendingDefinitions)
+              else pure []
+         errors <- processDecl claim
          remainingErrors <- processDeclarationSequence
-           (claimIntroducesTypeLevelDefinition claimData) pendingDefinitions declarations
-         pure (errors ++ remainingErrors)
+           (claimIntroducesTypeLevelDefinition claimData)
+           (if claimNeedsPriorDefinitions claimData then [] else pendingDefinitions)
+           declarations
+         pure (definitionErrors ++ errors ++ remainingErrors)
 processDeclarationSequence True pendingDefinitions
     (definition@(MkWithData _ (PDef _)) :: declarations)
     = do definitionErrors <- processDecl definition
@@ -130,10 +144,10 @@ processDeclarationSequence False pendingDefinitions
     = processDeclarationSequence False (definition :: pendingDefinitions) declarations
 processDeclarationSequence _ pendingDefinitions
     (namespaceBlock@(MkWithData _ (PNamespace _ _)) :: declarations)
-    = do namespaceErrors <- processDecl namespaceBlock
-         definitionErrors <- concat <$> traverse processDecl (reverse pendingDefinitions)
+    = do definitionErrors <- concat <$> traverse processDecl (reverse pendingDefinitions)
+         namespaceErrors <- processDecl namespaceBlock
          remainingErrors <- processDeclarationSequence False [] declarations
-         pure (namespaceErrors ++ definitionErrors ++ remainingErrors)
+         pure (definitionErrors ++ namespaceErrors ++ remainingErrors)
 processDeclarationSequence _ pendingDefinitions (declaration :: declarations)
     = do definitionErrors <- concat <$> traverse processDecl (reverse pendingDefinitions)
          declarationErrors <- processDecl declaration

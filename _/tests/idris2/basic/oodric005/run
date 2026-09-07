@@ -1,0 +1,4 @@
+. ../../../testutils.sh
+
+idris2 --check OodricForeignClaimBarrier.idr >/dev/null
+printf '%s\n' 'OODRIC_FOREIGN_CLAIM_BARRIER_OK'

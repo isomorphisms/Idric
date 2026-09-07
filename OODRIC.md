@@ -10,9 +10,19 @@ This branch is allowed to break inherited Idris behavior while that question is 
 
 ## First executable slice
 
-The first slice separates adjacent ordinary function claims from their definition bodies. Claims are established immediately while term-level bodies wait until the next structural declaration, or the end of the declaration sequence. Definitions whose claims return `Type` remain immediate because later elaboration may need to reduce them. Namespace blocks schedule their own sequences. Consequently, a purpose-level definition can use a later helper when that helper has an explicit claim and no intervening data, record, interface/implementation, parameter, or other structural declaration forms a scheduling boundary.
+The first slice separates adjacent ordinary function claims from their definition bodies. Claims are established immediately while term-level bodies wait until the next structural declaration, or the end of the declaration sequence. Definitions whose claims return `Type` remain immediate because later elaboration may need to reduce them. Namespace blocks are structural boundaries, and schedule their own internal sequences. Consequently, a purpose-level definition can use a later helper when that helper has an explicit claim in the same declaration sequence and no intervening data, record, interface/implementation, parameter, namespace, or other structural declaration forms a scheduling boundary.
 
 Those structural boundaries are significant. Type-synonym bodies can be required by later data, record, interface, or implementation declarations, so delaying every definition body until after every non-definition declaration breaks otherwise valid Idriç. The `oodric004` regression test keeps that boundary honest.
+
+Foreign claims are also evaluation boundaries: their calling-convention terms
+are normalized while the claim is elaborated. They therefore flush earlier
+definition bodies before the foreign declaration is processed. The
+`oodric005` regression test covers that compiler/library boundary.
+
+Namespaces cannot in general be hoisted ahead of preceding bodies: a
+dependent claim inside a namespace can require an earlier body to normalize.
+Oodriç therefore supports purpose-first order within a namespace, but does not
+currently make an outer definition depend on a namespace declared later.
 
 This is intentionally narrower than the final question. Parameter blocks, records, data dependencies, transformations, run-elaborator declarations, and genuinely circular dependencies still need deliberate treatment. A green forward-reference example is evidence for one step, not a claim that declaration order is fully irrelevant.
 

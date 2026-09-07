@@ -176,6 +176,16 @@ type_level_claim_name (Elaborable_Claim claim)
          else Nothing
 type_level_claim_name _ = Nothing
 
+claim_needs_prior_definitions : ImpDecl -> Bool
+claim_needs_prior_definitions (Elaborable_Claim claim)
+    = any needs_prior_definitions claim.val.opts
+  where
+    needs_prior_definitions : FnOpt -> Bool
+    needs_prior_definitions (ForeignFn _) = True
+    needs_prior_definitions (ForeignExport _) = True
+    needs_prior_definitions _ = False
+claim_needs_prior_definitions _ = False
+
 process_declaration_sequence :
   {vars : _} ->
   {auto c : Ref Ctxt Defs} ->
@@ -190,12 +200,15 @@ process_declaration_sequence eopts nest env type_level_names pending_definitions
     = traverse_ (processDecl eopts nest env) (reverse pending_definitions)
 process_declaration_sequence eopts nest env type_level_names pending_definitions
     (claim@(Elaborable_Claim _) :: remaining_declarations)
-    = do processDecl eopts nest env claim
+    = do when (claim_needs_prior_definitions claim) $
+           traverse_ (processDecl eopts nest env) (reverse pending_definitions)
+         processDecl eopts nest env claim
          let updated_type_level_names = case type_level_claim_name claim of
                Nothing => type_level_names
                Just name => name :: type_level_names
          process_declaration_sequence eopts nest env updated_type_level_names
-           pending_definitions remaining_declarations
+           (if claim_needs_prior_definitions claim then [] else pending_definitions)
+           remaining_declarations
 process_declaration_sequence eopts nest env type_level_names pending_definitions
     (definition@(Elaborable_Definition _ name _) :: remaining_declarations)
     = if elem name type_level_names
@@ -206,8 +219,8 @@ process_declaration_sequence eopts nest env type_level_names pending_definitions
                 (definition :: pending_definitions) remaining_declarations
 process_declaration_sequence eopts nest env type_level_names pending_definitions
     (namespace_block@(Elaborable_Namespace_Block _ _ _) :: remaining_declarations)
-    = do processDecl eopts nest env namespace_block
-         traverse_ (processDecl eopts nest env) (reverse pending_definitions)
+    = do traverse_ (processDecl eopts nest env) (reverse pending_definitions)
+         processDecl eopts nest env namespace_block
          process_declaration_sequence eopts nest env type_level_names [] remaining_declarations
 process_declaration_sequence eopts nest env type_level_names pending_definitions
     (declaration :: remaining_declarations)
