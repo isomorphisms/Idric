@@ -163,6 +163,19 @@ TTImp.Elab.Check.processDecl = process
 -- transformations, and dependent declaration relationships still need their
 -- own semantics.  Structural declarations are scheduling barriers because a
 -- preceding type-synonym body may need to reduce while they are elaborated.
+returns_type_universe : RawImp -> Bool
+returns_type_universe (Elaborable_Type_Universe _) = True
+returns_type_universe (Elaborable_Dependent_Function_Type _ _ _ _ _ return_type)
+    = returns_type_universe return_type
+returns_type_universe _ = False
+
+type_level_claim_name : ImpDecl -> Maybe Name
+type_level_claim_name (Elaborable_Claim claim)
+    = if returns_type_universe claim.val.type.val
+         then Just claim.val.type.tyName.val
+         else Nothing
+type_level_claim_name _ = Nothing
+
 process_declaration_sequence :
   {vars : _} ->
   {auto c : Ref Ctxt Defs} ->
@@ -172,30 +185,38 @@ process_declaration_sequence :
   {auto o : Ref ROpts REPLOpts} ->
   List ElabOpt ->
   NestedNames vars -> Env Term vars ->
-  List ImpDecl -> List ImpDecl -> Core ()
-process_declaration_sequence eopts nest env pending_definitions []
+  List Name -> List ImpDecl -> List ImpDecl -> Core ()
+process_declaration_sequence eopts nest env type_level_names pending_definitions []
     = traverse_ (processDecl eopts nest env) (reverse pending_definitions)
-process_declaration_sequence eopts nest env pending_definitions
+process_declaration_sequence eopts nest env type_level_names pending_definitions
     (claim@(Elaborable_Claim _) :: remaining_declarations)
     = do processDecl eopts nest env claim
-         process_declaration_sequence eopts nest env pending_definitions remaining_declarations
-process_declaration_sequence eopts nest env pending_definitions
-    (definition@(Elaborable_Definition _ _ _) :: remaining_declarations)
-    = process_declaration_sequence eopts nest env
-        (definition :: pending_definitions) remaining_declarations
-process_declaration_sequence eopts nest env pending_definitions
+         let updated_type_level_names = case type_level_claim_name claim of
+               Nothing => type_level_names
+               Just name => name :: type_level_names
+         process_declaration_sequence eopts nest env updated_type_level_names
+           pending_definitions remaining_declarations
+process_declaration_sequence eopts nest env type_level_names pending_definitions
+    (definition@(Elaborable_Definition _ name _) :: remaining_declarations)
+    = if elem name type_level_names
+         then do processDecl eopts nest env definition
+                 process_declaration_sequence eopts nest env type_level_names
+                   pending_definitions remaining_declarations
+         else process_declaration_sequence eopts nest env type_level_names
+                (definition :: pending_definitions) remaining_declarations
+process_declaration_sequence eopts nest env type_level_names pending_definitions
     (namespace_block@(Elaborable_Namespace_Block _ _ _) :: remaining_declarations)
     = do processDecl eopts nest env namespace_block
          traverse_ (processDecl eopts nest env) (reverse pending_definitions)
-         process_declaration_sequence eopts nest env [] remaining_declarations
-process_declaration_sequence eopts nest env pending_definitions
+         process_declaration_sequence eopts nest env type_level_names [] remaining_declarations
+process_declaration_sequence eopts nest env type_level_names pending_definitions
     (declaration :: remaining_declarations)
     = do traverse_ (processDecl eopts nest env) (reverse pending_definitions)
          processDecl eopts nest env declaration
-         process_declaration_sequence eopts nest env [] remaining_declarations
+         process_declaration_sequence eopts nest env type_level_names [] remaining_declarations
 
 process_declarations_without_definition_order eopts nest env declarations
-    = process_declaration_sequence eopts nest env [] declarations
+    = process_declaration_sequence eopts nest env [] [] declarations
 
 
 export

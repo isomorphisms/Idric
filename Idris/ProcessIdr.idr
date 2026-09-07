@@ -93,36 +93,51 @@ processDecl decl
 -- pass immediately while adjacent definition bodies wait until the next
 -- structural declaration or the end of the sequence. This retains
 -- per-declaration error recovery and the source order that type synonyms need.
+returnsTypeUniverse : PTerm -> Bool
+returnsTypeUniverse (PType _) = True
+returnsTypeUniverse (PPi _ _ _ _ _ returnType) = returnsTypeUniverse returnType
+returnsTypeUniverse _ = False
+
+claimIntroducesTypeLevelDefinition : PClaimData -> Bool
+claimIntroducesTypeLevelDefinition claim
+    = returnsTypeUniverse claim.type.val.type
+
 processDeclarationSequence : {auto c : Ref Ctxt Defs} ->
                              {auto u : Ref UST UState} ->
                              {auto s : Ref Syn SyntaxInfo} ->
                              {auto m : Ref MD Metadata} ->
                              {auto o : Ref ROpts REPLOpts} ->
-                             List PDecl -> List PDecl -> Core (List Error)
-processDeclarationSequence pendingDefinitions []
+                             Bool -> List PDecl -> List PDecl -> Core (List Error)
+processDeclarationSequence _ pendingDefinitions []
     = concat <$> traverse processDecl (reverse pendingDefinitions)
-processDeclarationSequence pendingDefinitions
-    (claim@(MkWithData _ (PClaim _)) :: declarations)
+processDeclarationSequence _ pendingDefinitions
+    (claim@(MkWithData _ (PClaim claimData)) :: declarations)
     = do errors <- processDecl claim
-         remainingErrors <- processDeclarationSequence pendingDefinitions declarations
+         remainingErrors <- processDeclarationSequence
+           (claimIntroducesTypeLevelDefinition claimData) pendingDefinitions declarations
          pure (errors ++ remainingErrors)
-processDeclarationSequence pendingDefinitions
+processDeclarationSequence True pendingDefinitions
     (definition@(MkWithData _ (PDef _)) :: declarations)
-    = processDeclarationSequence (definition :: pendingDefinitions) declarations
-processDeclarationSequence pendingDefinitions
+    = do definitionErrors <- processDecl definition
+         remainingErrors <- processDeclarationSequence False pendingDefinitions declarations
+         pure (definitionErrors ++ remainingErrors)
+processDeclarationSequence False pendingDefinitions
+    (definition@(MkWithData _ (PDef _)) :: declarations)
+    = processDeclarationSequence False (definition :: pendingDefinitions) declarations
+processDeclarationSequence _ pendingDefinitions
     (namespaceBlock@(MkWithData _ (PNamespace _ _)) :: declarations)
     = do namespaceErrors <- processDecl namespaceBlock
          definitionErrors <- concat <$> traverse processDecl (reverse pendingDefinitions)
-         remainingErrors <- processDeclarationSequence [] declarations
+         remainingErrors <- processDeclarationSequence False [] declarations
          pure (namespaceErrors ++ definitionErrors ++ remainingErrors)
-processDeclarationSequence pendingDefinitions (declaration :: declarations)
+processDeclarationSequence _ pendingDefinitions (declaration :: declarations)
     = do definitionErrors <- concat <$> traverse processDecl (reverse pendingDefinitions)
          declarationErrors <- processDecl declaration
-         remainingErrors <- processDeclarationSequence [] declarations
+         remainingErrors <- processDeclarationSequence False [] declarations
          pure (definitionErrors ++ declarationErrors ++ remainingErrors)
 
 processDecls decls
-    = do errs <- processDeclarationSequence [] decls
+    = do errs <- processDeclarationSequence False [] decls
          Nothing <- checkDelayedHoles
              | Just err => pure (if null errs then [err] else errs)
          pure errs
