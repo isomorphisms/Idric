@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+. ../../../testutils.sh
+
+idris2 OodricForwardReference.idr
+printf '%s\n' 'OODRIC_FORWARD_REFERENCE_OK'
