@@ -1,6 +1,3 @@
-#!/bin/sh
-set -eu
-
 . ../../../testutils.sh
 
 idris2 OodricForwardReference.idr
