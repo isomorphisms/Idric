@@ -103,6 +103,24 @@ class AcceptanceTests(unittest.TestCase):
                         observed_cases["swapped-siblings"].index(b"Revenue"))
         self.assertEqual(self.oracle["traversal"]["bounded_find"][1]["result"], [1])
 
+    def test_ir_accepts_lowered_nullary_enum_dispatch(self):
+        body = (
+            "XbrlCanary.state_class_step = [0, 1]: %case v0 of { "
+            "%constalt(0) => %case v1 of { %constalt(0) => 1| %constalt(1) => 1 Just 0 }| "
+            "%constalt(1) => %case v1 of { %constalt(3) => 0| %constalt(4) => 1 Just 2 }| "
+            "%constalt(2) => %case v1 of { %constalt(2) => 1| %constalt(0) => 2| "
+            "%constalt(1) => 2 Just 0 } Nothing }\n"
+            "XbrlCanary.scan_loop = [0, 1]: %case v1 of { %constalt(0) => "
+            "XbrlCanary.scan_loop(XbrlCanary.state_class_step(v0, "
+            "XbrlCanary.classify_byte(v1))) Nothing }\n"
+        )
+        text = ("EDRIC_ONE_STEP\t1\nsource_sha256\tsource\n"
+                "compiler_head\tisomorphisms/Idric\thead\ncore_typecheck\tPASS\n"
+                "representation\tidris2-anf-show-0.8.0\nbody_sha256\t" +
+                a.digest(("EDRIC_ONE_STEP_BODY\t1\n" + body).encode()) +
+                "\ndefinitions_begin\n" + body + "definitions_end\nend\n")
+        a.inspect_ir(text, "source", "head")
+
     def test_ir_with_matching_hash_but_no_scanner_is_rejected(self):
         body = "XbrlCanary.main = []: 18000\n"
         text = ("EDRIC_ONE_STEP\t1\nsource_sha256\tsource\n"

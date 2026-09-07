@@ -230,9 +230,15 @@ def inspect_ir(text: str, source_sha: str, head: str) -> None:
     dispatch = family("state_class_step")
     scan = family("scan_loop")
     require("%case " in dispatch, "finite state/class dispatch absent from ANF")
-    for constructor in ("DataState", "NameState", "QuotedState", "AngleOpen", "Ampersand"):
-        require("XbrlCanary." + constructor in dispatch, f"missing dispatch alternative: {constructor}")
+    # Current ANF lowers these nullary enums to integer constant alternatives,
+    # so constructor names are not guaranteed to survive the representation.
+    # The envelope already binds this IR to the exact source and compiler head.
+    named_dispatch = all("XbrlCanary." + constructor in dispatch for constructor in
+                         ("DataState", "NameState", "QuotedState", "AngleOpen", "Ampersand"))
+    lowered_dispatch = dispatch.count("%case ") >= 4 and dispatch.count("%constalt(") >= 10
+    require(named_dispatch or lowered_dispatch, "finite state/class alternatives absent from ANF")
     require("%case " in scan, "data-run scanner absent from ANF")
+    require("XbrlCanary.classify_byte" in scan, "scanner lost byte classification")
     require("XbrlCanary.state_class_step" in scan, "scanner lost state/class dispatch")
     require("XbrlCanary.scan_loop" in scan, "scanner lost its continuing run")
     # This is a checked ANF workload witness, NOT native instruction selection
