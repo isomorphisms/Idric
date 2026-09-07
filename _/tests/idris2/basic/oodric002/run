@@ -1,0 +1,4 @@
+. ../../../testutils.sh
+
+idris2 OodricMorningRoutine.idr -o oodric_morning_routine >/dev/null
+./build/exec/oodric_morning_routine

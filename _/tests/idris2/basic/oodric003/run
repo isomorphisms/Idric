@@ -1,0 +1,4 @@
+. ../../../testutils.sh
+
+idris2 OodricNamespaceRoutine.idr -o oodric_namespace_routine >/dev/null
+./build/exec/oodric_namespace_routine
