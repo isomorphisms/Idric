@@ -106,12 +106,21 @@ claimIntroducesTypeLevelDefinition : PClaimData -> Bool
 claimIntroducesTypeLevelDefinition claim
     = returnsTypeUniverse claim.type.val.type
 
+plainForeignString : PTerm -> Bool
+plainForeignString (PPrimVal _ (Str _)) = True
+plainForeignString (PString _ _ chunks) = all plainChunk chunks
+  where
+    plainChunk : PStr -> Bool
+    plainChunk (StrLiteral _ _) = True
+    plainChunk (StrInterp _ _) = False
+plainForeignString _ = False
+
 claimNeedsPriorDefinitions : PClaimData -> Bool
 claimNeedsPriorDefinitions claim = any needsPriorDefinitions claim.opts
   where
     needsPriorDefinitions : PFnOpt -> Bool
-    needsPriorDefinitions (PForeign _) = True
-    needsPriorDefinitions (PForeignExport _) = True
+    needsPriorDefinitions (PForeign terms) = any (not . plainForeignString) terms
+    needsPriorDefinitions (PForeignExport terms) = any (not . plainForeignString) terms
     needsPriorDefinitions _ = False
 
 processDeclarationSequence : {auto c : Ref Ctxt Defs} ->

@@ -176,13 +176,17 @@ type_level_claim_name (Elaborable_Claim claim)
          else Nothing
 type_level_claim_name _ = Nothing
 
+plain_foreign_string : RawImp -> Bool
+plain_foreign_string (Elaborable_Primitive_Value _ (Str _)) = True
+plain_foreign_string _ = False
+
 claim_needs_prior_definitions : ImpDecl -> Bool
 claim_needs_prior_definitions (Elaborable_Claim claim)
     = any needs_prior_definitions claim.val.opts
   where
     needs_prior_definitions : FnOpt -> Bool
-    needs_prior_definitions (ForeignFn _) = True
-    needs_prior_definitions (ForeignExport _) = True
+    needs_prior_definitions (ForeignFn terms) = any (not . plain_foreign_string) terms
+    needs_prior_definitions (ForeignExport terms) = any (not . plain_foreign_string) terms
     needs_prior_definitions _ = False
 claim_needs_prior_definitions _ = False
 

@@ -1,0 +1,4 @@
+. ../../../testutils.sh
+
+idris2 --check OodricLiteralForeignForward.idr >/dev/null
+printf '%s\n' 'OODRIC_LITERAL_FOREIGN_FORWARD_OK'

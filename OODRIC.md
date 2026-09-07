@@ -14,10 +14,12 @@ The first slice separates adjacent ordinary function claims from their definitio
 
 Those structural boundaries are significant. Type-synonym bodies can be required by later data, record, interface, or implementation declarations, so delaying every definition body until after every non-definition declaration breaks otherwise valid Idriç. The `oodric004` regression test keeps that boundary honest.
 
-Foreign claims are also evaluation boundaries: their calling-convention terms
-are normalized while the claim is elaborated. They therefore flush earlier
-definition bodies before the foreign declaration is processed. The
-`oodric005` regression test covers that compiler/library boundary.
+Computed foreign calling conventions are also evaluation boundaries: their
+terms are normalized while the claim is elaborated. They therefore flush
+earlier definition bodies before the foreign declaration is processed. Plain
+string foreign conventions need no such flush, so a purpose-level wrapper can
+remain before the primitive it calls. The `oodric005` and `oodric006`
+regression tests cover both sides of that compiler/library boundary.
 
 Namespaces cannot in general be hoisted ahead of preceding bodies: a
 dependent claim inside a namespace can require an earlier body to normalize.
