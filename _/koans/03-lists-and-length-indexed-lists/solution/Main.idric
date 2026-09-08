@@ -2,13 +2,11 @@ module Main
 
 import Data.Vect
 
-%default total
-
 -- Idris 2 still exposes its length-indexed list as Data.Vect.Vect.
-numbers : List ℕ
+numbers : List Number
 numbers = [2, 4, 6]
 
-exactly_three : Vect 3 ℕ
+exactly_three : Vect 3 Number
 exactly_three = [2, 4, 6]
 
 prepend : a → Vect n a → Vect (S n) a
@@ -17,4 +15,4 @@ prepend value values = value :: values
 main : IO ()
 main = do
   printLn (List.length numbers)
-  printLn (prepend 0 exactly_three)
+  printLn (prepend 1 exactly_three)

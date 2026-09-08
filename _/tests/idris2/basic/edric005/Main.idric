@@ -1,14 +1,15 @@
 module Main
 
+import Data.Text
 import IdrisCompat
 
-unicode_function : Integer→Integer
+unicode_function : ±Number→±Number
 unicode_function = \value⇒value + 1
 
-unicode_apply : (Integer→Integer)→Integer→Integer
+unicode_apply : (±Number→±Number)→±Number→±Number
 unicode_apply = \function⇒\value⇒function value
 
-ascii_function : Integer -> Integer
+ascii_function : ±Number -> ±Number
 ascii_function = \value => value + 1
 
 unicode_order : Bool
@@ -17,8 +18,11 @@ unicode_order = 1≤2
 ascii_order : Bool
 ascii_order = 1 <= 2
 
-syntax_literal : String
+syntax_literal : Text
 syntax_literal = "-> => → ⇒ ← ≤"
+
+text_words : Text → List Text
+text_words text = Data.Text.words text
 
 main : IO ()
 main = do
@@ -32,4 +36,6 @@ main = do
   printLn unicode_order
   printLn ascii_order
   printLn idris_compat_value
+  printLn idris_string_module_words
+  printLn $ text_words "Data.Text is source vocabulary"
   putStrLn syntax_literal

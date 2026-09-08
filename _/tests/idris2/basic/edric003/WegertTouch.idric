@@ -1,10 +1,14 @@
 module WegertTouch
 
 public export
+TouchCoordinate : Type
+TouchCoordinate = ±Number
+
+public export
 choice existing_touch_target one_of
-  fixed_value ℕ
-  zero ℕ
-  pole ℕ
+  fixed_value TouchCoordinate
+  zero TouchCoordinate
+  pole TouchCoordinate
 
 public export
 choice touch_beginning one_of

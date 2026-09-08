@@ -1,0 +1,4 @@
+module ZeroIsNotNumber
+
+invalid_zero : Number
+invalid_zero = 0
