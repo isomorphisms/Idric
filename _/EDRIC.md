@@ -31,6 +31,10 @@ source remains unchanged. The inherited names are implementation and
 compatibility spellings, not names for new Idriç APIs, examples, or teaching
 material.
 
+Fresh `.idric` source imports `Data.Text` when it needs the inherited text
+operations. The frontend lowers that exact module boundary to `Data.String`;
+ordinary `.idr` module names remain unchanged.
+
 `Number` and `Text` describe general language values. Code should still use a
 more specific semantic type—source location, byte count, path, protocol field,
 and so on—when operations or invariants differ. The older `ℕ` input spelling is
@@ -218,6 +222,8 @@ A new thread working on Edric should:
 - Ordinary `.idr` use of `choice` and `one_of` as identifiers: preserved and regression-tested.
 - Idriç source spells nonnegative whole numbers `Number` and decoded character
   text `Text`; the frontend lowers both to inherited bootstrap representations.
+- Idriç source spells the inherited text-operation module `Data.Text`; the
+  frontend lowers that exact module boundary to `Data.String`.
 - The older `ℕ` spelling remains a migration alias, not the current spelling.
 - Idriç source accepts `→`, `⇒`, `←`, and `≤` as compact aliases for `->`, `=>`, `<-`, and `<=`; the ASCII spellings remain accepted.
 - The aliases are filename-scoped to `.idric`; ordinary `.idr` Unicode identifiers remain unchanged.

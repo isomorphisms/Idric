@@ -25,8 +25,9 @@ able to re-export; it is not a ceremonial prefix for every definition.
 - Use `snake_case` for names under our control and prefer complete domain words
   to conventional Haskell abbreviations.
 - Use `Number`, not `Nat` or the older migration spelling `ℕ`, in new `.idric`
-  source. Use `Text`, not `String`, for decoded character text. Both lower to
-  inherited representations inside the bootstrap compiler.
+  source. Use `Text`, not `String`, for decoded character text, and import
+  `Data.Text` for inherited text operations. These spellings lower to inherited
+  representations inside the bootstrap compiler.
 - Use a semantic type instead of `Number`, `Text`, a raw integer, `Bits8`, or a
   flag when the value has narrower operations or invariants.
 - Use `List` for an ordinary sequence, `SizedList` or `ListOfLength` when length
