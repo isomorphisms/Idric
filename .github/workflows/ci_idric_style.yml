@@ -11,30 +11,8 @@ jobs:
   style:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
       - name: Check newly added Idriç source
-        shell: sh
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          base="$PUSH_BEFORE_SHA"
-
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            base="$PR_BASE_SHA"
-          fi
-
-          case "$base" in
-            ""|0000000000000000000000000000000000000000)
-              base="$(git rev-parse HEAD^)"
-              ;;
-          esac
-
-          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
-            base="$(git rev-parse HEAD^)"
-          fi
-
-          sh _/style/check_added_source "$base" HEAD
+        uses: isomorphisms/ai-ci/idric-style@d76e865c3742c51308ddf211ee6f5b724f4104de
