@@ -11,18 +11,18 @@ example, not a general mathematics library.
 name is itself indexed by its rank, so `PlaneName` cannot be reused at rank
 128. The complete `FiniteSpace`, rather than its rank alone, indexes
 `ExactVectorSample`, `ExactCovectorSample`, `IndexedValue`,
-`EuclideanStructure`, and the orthogonal types. Consequently `planeSpace`
-and `imagePlaneSpace` remain different even though both have rank two.
+`EuclideanStructure`, and the orthogonal types. Consequently `plane_space`
+and `image_plane_space` remain different even though both have rank two.
 
 `ExactVectorSample space` and `ExactCovectorSample space` are separate
-datatypes. They are explicitly the executable integer-coordinate fragment of
-the named real coordinate space, not its complete carrier and not a claim that
-the field of real scalars is `Integer`. Every represented sample nevertheless
-denotes a genuine vector or covector. The metric-free operation is covector
-evaluation:
+datatypes. They are explicitly the executable signed-number-coordinate
+fragment of the named real coordinate space, not its complete carrier and not
+a claim that the field of real scalars is `±Number`. Every represented sample
+nevertheless denotes a genuine vector or covector. The metric-free operation
+is covector evaluation:
 
 ```idris
-contract : ExactCovectorSample space -> ExactVectorSample space -> Integer
+contract : ExactCovectorSample space → ExactVectorSample space → ±Number
 ```
 
 `RawExactCoordinates`, `UnsafeVectorCoordinates`, and the other
@@ -34,7 +34,7 @@ API never performs such a conversion silently.
 
 There is deliberately no checked vector-to-covector conversion in
 `MathematicalSpaces`. `EuclideanStructure space` supplies that additional
-identification through `lowerIndex` and `raiseIndex`; `dot`, `norm`,
+identification through `lower_index` and `raise_index`; `dot`, `norm`,
 `distance`, and index raising/lowering on exact samples all require the
 structure explicitly. The current witness is the standard coordinate
 Euclidean structure. `norm` and `distance` retain an exact symbolic square
@@ -45,7 +45,7 @@ real-scalar representation remains deliberately unchosen.
 Euclidean structure and by `Preserving` or `Reversing`. Its public
 constructors are restricted to the settled identity, first-axis reflection,
 first-plane quarter-turn, exact integral unit-quaternion rotation, and
-composition. `applyOrthogonalExact` interprets that same closed syntax on
+composition. `apply_orthogonal_exact` interprets that same closed syntax on
 exact samples; composition means `left (right sample)`. This removes the old
 disconnect between marker values and separate generator evaluators. The
 orientation indices record the reviewed standard maps; Idriç does not derive
@@ -57,15 +57,15 @@ arbitrary user-supplied matrix or represent every quaternionic rotation.
 
 The Einstein-style experiment is intentionally only a one-index kernel.
 `LowerIndex` contains a covector, `UpperIndex` contains a vector, and
-`contractIndex` accepts opposite variance over the same complete named-space
+`contract_index` accepts opposite variance over the same complete named-space
 index. Equal ranks neither erase a name mismatch nor permit same-variance
-contraction. A variance change goes through `lowerIndexed` or `raiseIndexed`
+contraction. A variance change goes through `lower_indexed` or `raise_indexed`
 and therefore requires a Euclidean structure.
 
 ## Quadratic and Hermitian forms
 
-`QuadraticForms.idric` adds forms as mathematical objects above their
-coordinate representations:
+`QuadraticForms.idric` adds forms as mathematical objects above coordinate
+representations:
 
 - `BilinearForm` and `SymmetricBilinearForm`;
 - a distinct primitive `QuadraticForm`, including cross terms that need not be
@@ -108,10 +108,10 @@ the Conway repository's *The Sensual (Quadratic) Form* reading note.
 
 The finite presheaf example remains in `PresheafRestriction.idric`. It shares
 the strategy of making inclusions and section domains indices, but it does not
-depend on Euclidean geometry. It models three opens, their stated
-inclusions, restriction identity and composition, and componentwise
-restriction of a formal elementary pair. It claims neither a general
-presheaf interface nor a tensor-product or sheaf construction.
+depend on Euclidean geometry. It models three opens, their stated inclusions,
+restriction identity and composition, and componentwise restriction of a
+formal elementary pair. It claims neither a general presheaf interface nor a
+tensor-product or sheaf construction.
 
 `TopologyFacts.idric` preserves the mathematically settled slice of #45:
 
@@ -144,7 +144,7 @@ The named-fact proof of concept contains one entry,
 S^2 and its typed conclusion is the corresponding two-component separation
 fact. Here the embedding value is an explicit assumption token; no map or
 injectivity property is inferred or checked. A `NamedFact H C` stores
-human-declared attribution plus an Idriç function `(h : H) -> C h`. Lookup
+human-declared attribution plus an Idriç function `(h : H) → C h`. Lookup
 explicitly applies that selected entry to `TypedContext H`; the type checker
 enforces the exact hypothesis type, and the answer says that it came through
 named lookup rather than unification. This is the boundary requested by #42
