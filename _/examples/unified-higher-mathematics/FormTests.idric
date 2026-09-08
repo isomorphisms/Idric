@@ -3,61 +3,63 @@ module FormTests
 import MathematicalSpaces
 import QuadraticForms
 
-%default total
 %unbound_implicits off
 
 -- --------------------------------------------------------------------------
--- Abstract forms and quadratic/polar distinction
+-- Abstract forms and the quadratic/polar distinction
 -- --------------------------------------------------------------------------
 
 bilinear_evaluation_test :
   evaluate_bilinear
     (BilinearTensor plane_x plane_y)
-    (planeVector 3 4)
-    (planeVector 5 7) = 21
+    (plane_vector 3 4)
+    (plane_vector 5 7) = the ±Number 21
 bilinear_evaluation_test = Refl
 
 bilinear_to_dual_test :
   contract
     (bilinear_covector_at
       (BilinearTensor plane_x plane_y)
-      (planeVector 3 4))
-    (planeVector 5 7) = 21
+      (plane_vector 3 4))
+    (plane_vector 5 7) = the ±Number 21
 bilinear_to_dual_test = Refl
 
 quadratic_evaluation_test :
-  evaluate_quadratic plane_positive_quadratic (planeVector 3 4) = 25
+  evaluate_quadratic plane_positive_quadratic (plane_vector 3 4)
+    = the ±Number 25
 quadratic_evaluation_test = Refl
 
 primitive_cross_term_test :
-  evaluate_quadratic plane_cross_quadratic (planeVector 3 4) = 12
+  evaluate_quadratic plane_cross_quadratic (plane_vector 3 4)
+    = the ±Number 12
 primitive_cross_term_test = Refl
 
 polar_cross_term_test :
   evaluate_symmetric
     (polar_form plane_cross_quadratic)
-    (planeVector 1 0)
-    (planeVector 0 1) = 1
+    (plane_vector 1 0)
+    (plane_vector 0 1) = the ±Number 1
 polar_cross_term_test = Refl
 
 polar_difference_test :
   polar_difference
     plane_cross_quadratic
-    (planeVector 1 0)
-    (planeVector 0 1) = 1
+    (plane_vector 1 0)
+    (plane_vector 0 1) = the ±Number 1
 polar_difference_test = Refl
 
 -- q(x,y)=xy is not identified with the diagonal of its unhalved polar form.
--- At (1,1), q=1 while polar(q)(v,v)=2 over the exact integral model.
+-- At (1,1), q=1 while polar(q)(v,v)=2 in the exact integral model.
 quadratic_diagonal_value_test :
-  evaluate_quadratic plane_cross_quadratic (planeVector 1 1) = 1
+  evaluate_quadratic plane_cross_quadratic (plane_vector 1 1)
+    = the ±Number 1
 quadratic_diagonal_value_test = Refl
 
 polar_diagonal_value_test :
   evaluate_symmetric
     (polar_form plane_cross_quadratic)
-    (planeVector 1 1)
-    (planeVector 1 1) = 2
+    (plane_vector 1 1)
+    (plane_vector 1 1) = the ±Number 2
 polar_diagonal_value_test = Refl
 
 positive_diagonal_presentation :
@@ -68,13 +70,13 @@ positive_diagonal_presentation =
     (SquareHasDiagonalPresentation plane_y)
 
 failing "Mismatch between"
-  odd_cross_term_has_no_square_presentation :
+  odd_cross_term_has_no_integral_symmetric_presentation :
     DiagonalPresentation plane_cross_quadratic
-  odd_cross_term_has_no_square_presentation =
+  odd_cross_term_has_no_integral_symmetric_presentation =
     SquareHasDiagonalPresentation plane_x
 
 -- --------------------------------------------------------------------------
--- Refinements are evidence, not Boolean metadata
+-- Refinements carry evidence rather than Boolean metadata
 -- --------------------------------------------------------------------------
 
 positive_definite_evidence : PositiveDefinite plane_positive_quadratic
@@ -128,35 +130,39 @@ isotropic_evidence : Isotropic plane_difference_of_squares
 isotropic_evidence = PlaneDifferenceOfSquaresIsotropic
 
 integral_evidence : IntegralQuadratic plane_positive_quadratic
-integral_evidence = ExactIntegerValued plane_positive_quadratic
+integral_evidence = ExactIntegralValued plane_positive_quadratic
 
 even_evidence : EvenQuadratic (QuadraticScale 2 plane_positive_quadratic)
 even_evidence = TwiceIntegralFormIsEven plane_positive_quadratic
 
 indefinite_positive_witness_test :
-  evaluate_quadratic plane_difference_of_squares (planeVector 2 1) = 3
+  evaluate_quadratic plane_difference_of_squares (plane_vector 2 1)
+    = the ±Number 3
 indefinite_positive_witness_test = Refl
 
 indefinite_negative_witness_test :
-  evaluate_quadratic plane_difference_of_squares (planeVector 1 2) = (-3)
+  evaluate_quadratic plane_difference_of_squares (plane_vector 1 2)
+    = the ±Number (-3)
 indefinite_negative_witness_test = Refl
 
 isotropic_witness_test :
-  evaluate_quadratic plane_difference_of_squares (planeVector 1 1) = 0
+  evaluate_quadratic plane_difference_of_squares (plane_vector 1 1)
+    = the ±Number 0
 isotropic_witness_test = Refl
 
 degenerate_direction_test :
-  evaluate_quadratic plane_first_square (planeVector 0 1) = 0
+  evaluate_quadratic plane_first_square (plane_vector 0 1)
+    = the ±Number 0
 degenerate_direction_test = Refl
 
 -- --------------------------------------------------------------------------
 -- Hermitian and sesquilinear semantics
 -- --------------------------------------------------------------------------
 
-complex_left : ExactComplexVectorSample planeSpace
+complex_left : ExactComplexVectorSample plane_space
 complex_left = complex_plane_vector (Complex 1 1) complex_zero
 
-complex_right : ExactComplexVectorSample planeSpace
+complex_right : ExactComplexVectorSample plane_space
 complex_right = complex_plane_vector complex_one complex_zero
 
 hermitian_conjugates_first_argument_test :
@@ -188,7 +194,7 @@ sesquilinear_view_test = Refl
 hermitian_quadratic_quantity_test :
   hermitian_quadratic_quantity
     plane_standard_hermitian
-    (complex_plane_vector (Complex 1 1) (Complex 2 (-1))) = 7
+    (complex_plane_vector (Complex 1 1) (Complex 2 (-1))) = the ±Number 7
 hermitian_quadratic_quantity_test = Refl
 
 hermitian_to_dual_test :
@@ -207,11 +213,11 @@ hermitian_nondegenerate_evidence =
   hermitian_positive_is_nondegenerate hermitian_positive_evidence
 
 failing "Mismatch between"
-  hermitian_form_is_not_ordinary_quadratic : QuadraticForm planeSpace
+  hermitian_form_is_not_ordinary_quadratic : QuadraticForm plane_space
   hermitian_form_is_not_ordinary_quadratic = plane_standard_hermitian
 
 failing "Mismatch between"
-  ordinary_quadratic_is_not_hermitian : HermitianForm planeSpace
+  ordinary_quadratic_is_not_hermitian : HermitianForm plane_space
   ordinary_quadratic_is_not_hermitian = plane_positive_quadratic
 
 failing "Mismatch between"
@@ -219,8 +225,8 @@ failing "Mismatch between"
   ordinary_vector_is_not_complex_vector =
     evaluate_hermitian
       plane_standard_hermitian
-      (planeVector 1 0)
-      (planeVector 0 1)
+      (plane_vector 1 0)
+      (plane_vector 0 1)
 
 -- --------------------------------------------------------------------------
 -- Basis-dependent Gram representations
@@ -248,17 +254,18 @@ ordinary_congruence_law_test = Refl
 basis_independent_value_from_standard_gram_test :
   evaluate_quadratic
     (represented_quadratic_form standard_weighted_gram)
-    (planeVector 2 1) = 11
+    (plane_vector 2 1) = the ±Number 11
 basis_independent_value_from_standard_gram_test = Refl
 
 basis_independent_value_from_sheared_gram_test :
   evaluate_quadratic
     (represented_quadratic_form sheared_weighted_gram)
-    (planeVector 2 1) = 11
+    (plane_vector 2 1) = the ±Number 11
 basis_independent_value_from_sheared_gram_test = Refl
 
 underlying_form_value_test :
-  evaluate_quadratic plane_weighted_quadratic (planeVector 2 1) = 11
+  evaluate_quadratic plane_weighted_quadratic (plane_vector 2 1)
+    = the ±Number 11
 underlying_form_value_test = Refl
 
 failing "Mismatch between"
@@ -310,17 +317,17 @@ ordinary_transpose_is_different_test = Refl
 hermitian_basis_independent_standard_value_test :
   hermitian_quadratic_quantity
     (represented_hermitian_form standard_hermitian_gram)
-    (complex_plane_vector (Complex 1 1) (Complex 2 (-1))) = 7
+    (complex_plane_vector (Complex 1 1) (Complex 2 (-1))) = the ±Number 7
 hermitian_basis_independent_standard_value_test = Refl
 
 hermitian_basis_independent_sheared_value_test :
   hermitian_quadratic_quantity
     (represented_hermitian_form sheared_hermitian_gram)
-    (complex_plane_vector (Complex 1 1) (Complex 2 (-1))) = 7
+    (complex_plane_vector (Complex 1 1) (Complex 2 (-1))) = the ±Number 7
 hermitian_basis_independent_sheared_value_test = Refl
 
 -- --------------------------------------------------------------------------
--- Characteristic 2: quadratic and symmetric-bilinear data are not equivalent
+-- Characteristic two: quadratic and symmetric-bilinear data are not equivalent
 -- --------------------------------------------------------------------------
 
 f2_nonzero_quadratic_test :
