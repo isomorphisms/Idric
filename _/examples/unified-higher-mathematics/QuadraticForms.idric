@@ -3,7 +3,6 @@ module QuadraticForms
 import MathematicalSpaces
 
 %default total
-%unbound_implicits off
 
 -- Forms in this module are mathematical objects.  Matrices appear only in the
 -- representation section, where a chosen basis is part of the type.  The
@@ -42,6 +41,14 @@ evaluate_bilinear (BilinearSum first second) left right =
 evaluate_bilinear (BilinearScale scalar form) left right =
   scalar * evaluate_bilinear form left right
 
+zero_covector :
+  {space : FiniteSpace} ->
+  ExactVectorSample space ->
+  ExactCovectorSample space
+zero_covector (UnsafeVectorCoordinates coordinates) =
+  UnsafeCovectorCoordinates
+    (unsafeZeroCoordinates (spaceRank space))
+
 -- Fixing the first argument gives an honest covector, rather than coercing a
 -- vector into one.  This is the currently expressible part of B : V -> V*.
 public export
@@ -59,16 +66,6 @@ bilinear_covector_at (BilinearSum first second) vector =
     (bilinear_covector_at second vector)
 bilinear_covector_at (BilinearScale scalar form) vector =
   scaleCovector scalar (bilinear_covector_at form vector)
-
--- The zero covector is constructed from the vector's named-space index without
--- identifying the vector with its dual.
-zero_covector :
-  {space : FiniteSpace} ->
-  ExactVectorSample space ->
-  ExactCovectorSample space
-zero_covector (UnsafeVectorCoordinates coordinates) =
-  UnsafeCovectorCoordinates
-    (unsafeZeroCoordinates (spaceRank space))
 
 public export
 data SymmetricBilinearForm : FiniteSpace -> Type where
