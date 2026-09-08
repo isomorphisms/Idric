@@ -97,8 +97,26 @@ positive_anisotropic_from_definite =
 negative_definite_evidence : NegativeDefinite plane_negative_quadratic
 negative_definite_evidence = NegativePlaneSumOfSquares
 
+negative_semidefinite_from_definite :
+  NegativeSemidefinite plane_negative_quadratic
+negative_semidefinite_from_definite =
+  NegativeDefiniteIsSemidefinite negative_definite_evidence
+
+negative_nondegenerate_from_definite :
+  QuadraticNondegenerate plane_negative_quadratic
+negative_nondegenerate_from_definite =
+  NegativeDefiniteIsNondegenerate negative_definite_evidence
+
+negative_anisotropic_from_definite : Anisotropic plane_negative_quadratic
+negative_anisotropic_from_definite =
+  NegativeDefiniteIsAnisotropic negative_definite_evidence
+
 semidefinite_evidence : PositiveSemidefinite plane_first_square
 semidefinite_evidence = PlaneFirstSquareSemidefinite
+
+negative_semidefinite_evidence :
+  NegativeSemidefinite plane_negative_first_square
+negative_semidefinite_evidence = NegativePlaneFirstSquareSemidefinite
 
 degenerate_evidence : QuadraticDegenerate plane_first_square
 degenerate_evidence = PlaneFirstSquareDegenerate
@@ -120,7 +138,7 @@ indefinite_positive_witness_test :
 indefinite_positive_witness_test = Refl
 
 indefinite_negative_witness_test :
-  evaluate_quadratic plane_difference_of_squares (planeVector 1 2) = -3
+  evaluate_quadratic plane_difference_of_squares (planeVector 1 2) = (-3)
 indefinite_negative_witness_test = Refl
 
 isotropic_witness_test :
@@ -187,6 +205,14 @@ hermitian_nondegenerate_evidence :
   HermitianNondegenerate plane_standard_hermitian
 hermitian_nondegenerate_evidence =
   hermitian_positive_is_nondegenerate hermitian_positive_evidence
+
+failing "Mismatch between"
+  hermitian_form_is_not_ordinary_quadratic : QuadraticForm planeSpace
+  hermitian_form_is_not_ordinary_quadratic = plane_standard_hermitian
+
+failing "Mismatch between"
+  ordinary_quadratic_is_not_hermitian : HermitianForm planeSpace
+  ordinary_quadratic_is_not_hermitian = plane_positive_quadratic
 
 failing "Mismatch between"
   ordinary_vector_is_not_complex_vector : ExactComplex
