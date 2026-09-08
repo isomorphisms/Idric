@@ -2,7 +2,7 @@ module Main
 
 -- Compile this file and read the types reported for these named holes.
 answer : Number
-answer = ?natural_number
+answer = ?number_value
 
 message : Text
 message = ?text_value

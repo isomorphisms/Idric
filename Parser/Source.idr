@@ -30,9 +30,12 @@ canonicalize_idric_namespace ns
 
 canonicalize_idric_token : Token -> Token
 canonicalize_idric_token (Ident "choice") = Keyword "choice"
-canonicalize_idric_token (Ident "Number") = Ident "Nat"
+canonicalize_idric_token (IntegerLit value) = IdricIntegerLit value
+canonicalize_idric_token (Symbol "+") = Symbol "+~+"
+canonicalize_idric_token (Symbol "*") = Symbol "*~*"
+canonicalize_idric_token (Symbol "-") = Symbol "-~-"
+canonicalize_idric_token (Symbol "−") = Symbol "-~-"
 canonicalize_idric_token (Ident "Text") = Ident "String"
-canonicalize_idric_token (Ident "ℕ") = Ident "Nat"
 canonicalize_idric_token (DotSepIdent ns "Text")
     = if unsafeUnfoldNamespace ns == ["Data"]
          then DotSepIdent ns "String"

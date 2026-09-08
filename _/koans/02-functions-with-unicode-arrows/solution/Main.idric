@@ -1,7 +1,7 @@
 module Main
 
 increment : Number → Number
-increment = \number ⇒ S number
+increment = \number ⇒ number + 1
 
 twice : (a → a) → a → a
 twice = \function ⇒ \value ⇒ function (function value)

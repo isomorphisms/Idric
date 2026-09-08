@@ -14,14 +14,14 @@ name is itself indexed by its rank, so `PlaneName` cannot be reused at rank
 and `image_plane_space` remain different even though both have rank two.
 
 `ExactVectorSample space` and `ExactCovectorSample space` are separate
-datatypes.  They are explicitly the executable integer-coordinate fragment of
+datatypes.  They are explicitly the executable signed-number-coordinate fragment of
 the named real coordinate space, not its complete carrier and not a claim that
-the field of real scalars is `Integer`.  Every represented sample nevertheless
+the field of real scalars is `±Number`.  Every represented sample nevertheless
 denotes a genuine vector or covector.  The metric-free operation is covector
 evaluation:
 
 ```idris
-contract : ExactCovectorSample space → ExactVectorSample space → Integer
+contract : ExactCovectorSample space → ExactVectorSample space → ±Number
 ```
 
 `RawExactCoordinates`, `UnsafeVectorCoordinates`, and the other

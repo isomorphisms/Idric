@@ -15,4 +15,4 @@ prepend value values = value :: values
 main : IO ()
 main = do
   printLn (List.length numbers)
-  printLn (prepend 0 exactly_three)
+  printLn (prepend 1 exactly_three)

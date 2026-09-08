@@ -8,7 +8,11 @@ module MathematicalSpaces
 -- Rank equality alone is still not space equality.
 
 public export
-data SpaceName : Number → Type where
+CoordinateRank : Type
+CoordinateRank = Cardinality
+
+public export
+data SpaceName : CoordinateRank → Type where
   PlaneName      : SpaceName 2
   ImagePlaneName : SpaceName 2
   RealThreeName  : SpaceName 3
@@ -16,10 +20,10 @@ data SpaceName : Number → Type where
 
 public export
 data FiniteSpace : Type where
-  NamedFiniteSpace : {rank : Number} → SpaceName rank → FiniteSpace
+  NamedFiniteSpace : {rank : CoordinateRank} → SpaceName rank → FiniteSpace
 
 public export
-space_rank : FiniteSpace → Number
+space_rank : FiniteSpace → CoordinateRank
 space_rank (NamedFiniteSpace {rank} _) = rank
 
 public export
@@ -42,11 +46,11 @@ public export
 real128_space : FiniteSpace
 real128_space = NamedFiniteSpace Real128Name
 
--- Integer coordinates are exact executable samples of the named real
+-- ±Number coordinates are exact executable samples of the named real
 -- coordinate spaces.  ExactVectorSample and ExactCovectorSample below
 -- represent only this sample language; they are not definitions of the
 -- complete real scalar field or of every vector in the ambient space.  This
--- preserves the R^128 oracle without pretending Integer is the field of reals.
+-- preserves the R^128 oracle without pretending ±Number is the field of reals.
 
 -- UNSAFE REPRESENTATION BOUNDARY.  The raw coordinates, their constructors,
 -- and every operation that exposes or rebuilds them are deliberately named
@@ -57,20 +61,20 @@ real128_space = NamedFiniteSpace Real128Name
 -- never performs such a conversion implicitly.
 
 public export
-data RawExactCoordinates : Number → Type where
+data RawExactCoordinates : CoordinateRank → Type where
   UnsafeCoordinateNil : RawExactCoordinates Z
   UnsafeCoordinateCons :
-    {n : Number} →
-    Integer → RawExactCoordinates n → RawExactCoordinates (S n)
+    {n : CoordinateRank} →
+    ±Number → RawExactCoordinates n → RawExactCoordinates (S n)
 
 public export
-unsafe_zero_coordinates : (n : Number) → RawExactCoordinates n
+unsafe_zero_coordinates : (n : CoordinateRank) → RawExactCoordinates n
 unsafe_zero_coordinates Z = UnsafeCoordinateNil
 unsafe_zero_coordinates (S n) = UnsafeCoordinateCons 0 (unsafe_zero_coordinates n)
 
 public export
 unsafe_add_coordinates :
-  {n : Number} →
+  {n : CoordinateRank} →
   RawExactCoordinates n → RawExactCoordinates n → RawExactCoordinates n
 unsafe_add_coordinates UnsafeCoordinateNil UnsafeCoordinateNil = UnsafeCoordinateNil
 unsafe_add_coordinates
@@ -81,14 +85,14 @@ unsafe_add_coordinates
       (unsafe_add_coordinates left_rest right_rest)
 
 public export
-unsafe_negate_coordinates : {n : Number} → RawExactCoordinates n → RawExactCoordinates n
+unsafe_negate_coordinates : {n : CoordinateRank} → RawExactCoordinates n → RawExactCoordinates n
 unsafe_negate_coordinates UnsafeCoordinateNil = UnsafeCoordinateNil
 unsafe_negate_coordinates (UnsafeCoordinateCons value rest) =
   UnsafeCoordinateCons (-value) (unsafe_negate_coordinates rest)
 
 public export
 unsafe_subtract_coordinates :
-  {n : Number} →
+  {n : CoordinateRank} →
   RawExactCoordinates n → RawExactCoordinates n → RawExactCoordinates n
 unsafe_subtract_coordinates UnsafeCoordinateNil UnsafeCoordinateNil = UnsafeCoordinateNil
 unsafe_subtract_coordinates
@@ -100,7 +104,7 @@ unsafe_subtract_coordinates
 
 public export
 unsafe_scale_coordinates :
-  {n : Number} → Integer → RawExactCoordinates n → RawExactCoordinates n
+  {n : CoordinateRank} → ±Number → RawExactCoordinates n → RawExactCoordinates n
 unsafe_scale_coordinates scalar UnsafeCoordinateNil = UnsafeCoordinateNil
 unsafe_scale_coordinates scalar (UnsafeCoordinateCons value rest) =
   UnsafeCoordinateCons
@@ -112,8 +116,8 @@ unsafe_scale_coordinates scalar (UnsafeCoordinateCons value rest) =
 -- the checked vector/covector API; `dot` is the metric-requiring operation.
 public export
 unsafe_pair_coordinates :
-  {n : Number} →
-  RawExactCoordinates n → RawExactCoordinates n → Integer
+  {n : CoordinateRank} →
+  RawExactCoordinates n → RawExactCoordinates n → ±Number
 unsafe_pair_coordinates UnsafeCoordinateNil UnsafeCoordinateNil = 0
 unsafe_pair_coordinates
   (UnsafeCoordinateCons left left_rest)
@@ -126,7 +130,7 @@ unsafe_pair_coordinates
 public export
 data ExactVectorSample : FiniteSpace → Type where
   UnsafeVectorCoordinates :
-    {rank : Number} →
+    {rank : CoordinateRank} →
     {name : SpaceName rank} →
     RawExactCoordinates rank →
     ExactVectorSample (NamedFiniteSpace name)
@@ -134,7 +138,7 @@ data ExactVectorSample : FiniteSpace → Type where
 public export
 data ExactCovectorSample : FiniteSpace → Type where
   UnsafeCovectorCoordinates :
-    {rank : Number} →
+    {rank : CoordinateRank} →
     {name : SpaceName rank} →
     RawExactCoordinates rank →
     ExactCovectorSample (NamedFiniteSpace name)
@@ -186,7 +190,7 @@ difference_vector
 public export
 scale_vector :
   {space : FiniteSpace} →
-  Integer → ExactVectorSample space → ExactVectorSample space
+  ±Number → ExactVectorSample space → ExactVectorSample space
 scale_vector scalar (UnsafeVectorCoordinates coordinates) =
   UnsafeVectorCoordinates (unsafe_scale_coordinates scalar coordinates)
 
@@ -211,7 +215,7 @@ negate_covector (UnsafeCovectorCoordinates coordinates) =
 public export
 scale_covector :
   {space : FiniteSpace} →
-  Integer → ExactCovectorSample space → ExactCovectorSample space
+  ±Number → ExactCovectorSample space → ExactCovectorSample space
 scale_covector scalar (UnsafeCovectorCoordinates coordinates) =
   UnsafeCovectorCoordinates (unsafe_scale_coordinates scalar coordinates)
 
@@ -223,7 +227,7 @@ scale_covector scalar (UnsafeCovectorCoordinates coordinates) =
 public export
 contract :
   {space : FiniteSpace} →
-  ExactCovectorSample space → ExactVectorSample space → Integer
+  ExactCovectorSample space → ExactVectorSample space → ±Number
 contract
   (UnsafeCovectorCoordinates covector_coordinates)
   (UnsafeVectorCoordinates vector_coordinates) =
@@ -232,31 +236,31 @@ contract
 -- Small named fixtures used by the focused compiler tests.
 
 public export
-plane_vector : Integer → Integer → ExactVectorSample plane_space
+plane_vector : ±Number → ±Number → ExactVectorSample plane_space
 plane_vector first second =
   UnsafeVectorCoordinates
     (UnsafeCoordinateCons first (UnsafeCoordinateCons second UnsafeCoordinateNil))
 
 public export
-plane_covector : Integer → Integer → ExactCovectorSample plane_space
+plane_covector : ±Number → ±Number → ExactCovectorSample plane_space
 plane_covector first second =
   UnsafeCovectorCoordinates
     (UnsafeCoordinateCons first (UnsafeCoordinateCons second UnsafeCoordinateNil))
 
 public export
-image_plane_vector : Integer → Integer → ExactVectorSample image_plane_space
+image_plane_vector : ±Number → ±Number → ExactVectorSample image_plane_space
 image_plane_vector first second =
   UnsafeVectorCoordinates
     (UnsafeCoordinateCons first (UnsafeCoordinateCons second UnsafeCoordinateNil))
 
 public export
-image_plane_covector : Integer → Integer → ExactCovectorSample image_plane_space
+image_plane_covector : ±Number → ±Number → ExactCovectorSample image_plane_space
 image_plane_covector first second =
   UnsafeCovectorCoordinates
     (UnsafeCoordinateCons first (UnsafeCoordinateCons second UnsafeCoordinateNil))
 
 public export
-three_vector : Integer → Integer → Integer → ExactVectorSample real_three_space
+three_vector : ±Number → ±Number → ±Number → ExactVectorSample real_three_space
 three_vector first second third =
   UnsafeVectorCoordinates
     (UnsafeCoordinateCons first
@@ -264,7 +268,7 @@ three_vector first second third =
         (UnsafeCoordinateCons third UnsafeCoordinateNil)))
 
 public export
-three_covector : Integer → Integer → Integer → ExactCovectorSample real_three_space
+three_covector : ±Number → ±Number → ±Number → ExactCovectorSample real_three_space
 three_covector first second third =
   UnsafeCovectorCoordinates
     (UnsafeCoordinateCons first
@@ -290,6 +294,6 @@ data IndexedValue : Variance → FiniteSpace → Type where
 public export
 contract_index :
   {space : FiniteSpace} →
-  IndexedValue Lower space → IndexedValue Upper space → Integer
+  IndexedValue Lower space → IndexedValue Upper space → ±Number
 contract_index (LowerIndex covector) (UpperIndex vector) =
   contract covector vector
