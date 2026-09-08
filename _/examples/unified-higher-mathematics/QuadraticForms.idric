@@ -1,0 +1,1112 @@
+module QuadraticForms
+
+import MathematicalSpaces
+
+%default total
+%unbound_implicits off
+
+-- Forms in this module are mathematical objects.  Matrices appear only in the
+-- representation section, where a chosen basis is part of the type.  The
+-- current higher-mathematics slice has exact Integer vector samples rather than
+-- a general scalar-field/module hierarchy, so the ordinary forms below are an
+-- exact integral model.  QuadraticForm remains a distinct type from
+-- SymmetricBilinearForm even here: that distinction is required before a
+-- future scalar abstraction can honestly include characteristic 2.
+
+-- --------------------------------------------------------------------------
+-- Bilinear, symmetric bilinear, and quadratic forms
+-- --------------------------------------------------------------------------
+
+public export
+data BilinearForm : FiniteSpace -> Type where
+  BilinearZero : BilinearForm space
+  BilinearTensor :
+    ExactCovectorSample space ->
+    ExactCovectorSample space ->
+    BilinearForm space
+  BilinearSum : BilinearForm space -> BilinearForm space -> BilinearForm space
+  BilinearScale : Integer -> BilinearForm space -> BilinearForm space
+
+public export
+evaluate_bilinear :
+  {space : FiniteSpace} ->
+  BilinearForm space ->
+  ExactVectorSample space ->
+  ExactVectorSample space ->
+  Integer
+evaluate_bilinear BilinearZero left right = 0
+evaluate_bilinear (BilinearTensor first second) left right =
+  contract first left * contract second right
+evaluate_bilinear (BilinearSum first second) left right =
+  evaluate_bilinear first left right + evaluate_bilinear second left right
+evaluate_bilinear (BilinearScale scalar form) left right =
+  scalar * evaluate_bilinear form left right
+
+-- Fixing the first argument gives an honest covector, rather than coercing a
+-- vector into one.  This is the currently expressible part of B : V -> V*.
+public export
+bilinear_covector_at :
+  {space : FiniteSpace} ->
+  BilinearForm space ->
+  ExactVectorSample space ->
+  ExactCovectorSample space
+bilinear_covector_at BilinearZero vector = scaleCovector 0 (zero_covector vector)
+bilinear_covector_at (BilinearTensor first second) vector =
+  scaleCovector (contract first vector) second
+bilinear_covector_at (BilinearSum first second) vector =
+  addCovector
+    (bilinear_covector_at first vector)
+    (bilinear_covector_at second vector)
+bilinear_covector_at (BilinearScale scalar form) vector =
+  scaleCovector scalar (bilinear_covector_at form vector)
+
+-- The zero covector is constructed from the vector's named-space index without
+-- identifying the vector with its dual.
+zero_covector :
+  {space : FiniteSpace} ->
+  ExactVectorSample space ->
+  ExactCovectorSample space
+zero_covector (UnsafeVectorCoordinates coordinates) =
+  UnsafeCovectorCoordinates
+    (unsafeZeroCoordinates (spaceRank space))
+
+public export
+data SymmetricBilinearForm : FiniteSpace -> Type where
+  SymmetricZero : SymmetricBilinearForm space
+  SymmetricSquare : ExactCovectorSample space -> SymmetricBilinearForm space
+  SymmetricPair :
+    ExactCovectorSample space ->
+    ExactCovectorSample space ->
+    SymmetricBilinearForm space
+  SymmetricSum :
+    SymmetricBilinearForm space ->
+    SymmetricBilinearForm space ->
+    SymmetricBilinearForm space
+  SymmetricScale : Integer -> SymmetricBilinearForm space -> SymmetricBilinearForm space
+
+public export
+evaluate_symmetric :
+  {space : FiniteSpace} ->
+  SymmetricBilinearForm space ->
+  ExactVectorSample space ->
+  ExactVectorSample space ->
+  Integer
+evaluate_symmetric SymmetricZero left right = 0
+evaluate_symmetric (SymmetricSquare covector) left right =
+  contract covector left * contract covector right
+evaluate_symmetric (SymmetricPair first second) left right =
+  contract first left * contract second right
+    + contract second left * contract first right
+evaluate_symmetric (SymmetricSum first second) left right =
+  evaluate_symmetric first left right + evaluate_symmetric second left right
+evaluate_symmetric (SymmetricScale scalar form) left right =
+  scalar * evaluate_symmetric form left right
+
+public export
+symmetric_as_bilinear :
+  {space : FiniteSpace} ->
+  SymmetricBilinearForm space ->
+  BilinearForm space
+symmetric_as_bilinear SymmetricZero = BilinearZero
+symmetric_as_bilinear (SymmetricSquare covector) =
+  BilinearTensor covector covector
+symmetric_as_bilinear (SymmetricPair first second) =
+  BilinearSum
+    (BilinearTensor first second)
+    (BilinearTensor second first)
+symmetric_as_bilinear (SymmetricSum first second) =
+  BilinearSum (symmetric_as_bilinear first) (symmetric_as_bilinear second)
+symmetric_as_bilinear (SymmetricScale scalar form) =
+  BilinearScale scalar (symmetric_as_bilinear form)
+
+public export
+symmetric_covector_at :
+  {space : FiniteSpace} ->
+  SymmetricBilinearForm space ->
+  ExactVectorSample space ->
+  ExactCovectorSample space
+symmetric_covector_at form vector =
+  bilinear_covector_at (symmetric_as_bilinear form) vector
+
+-- QuadraticForm is primitive.  In particular QuadraticProduct permits an
+-- integral cross term q(v)=alpha(v) beta(v) without pretending that it arose
+-- as the diagonal of an integral symmetric bilinear form.  Over scalars where
+-- 2 is invertible, stronger conversion machinery can be layered on later.
+public export
+data QuadraticForm : FiniteSpace -> Type where
+  QuadraticZero : QuadraticForm space
+  QuadraticSquare : ExactCovectorSample space -> QuadraticForm space
+  QuadraticProduct :
+    ExactCovectorSample space ->
+    ExactCovectorSample space ->
+    QuadraticForm space
+  QuadraticSum : QuadraticForm space -> QuadraticForm space -> QuadraticForm space
+  QuadraticScale : Integer -> QuadraticForm space -> QuadraticForm space
+  QuadraticFromSymmetric : SymmetricBilinearForm space -> QuadraticForm space
+
+public export
+evaluate_quadratic :
+  {space : FiniteSpace} ->
+  QuadraticForm space ->
+  ExactVectorSample space ->
+  Integer
+evaluate_quadratic QuadraticZero vector = 0
+evaluate_quadratic (QuadraticSquare covector) vector =
+  contract covector vector * contract covector vector
+evaluate_quadratic (QuadraticProduct first second) vector =
+  contract first vector * contract second vector
+evaluate_quadratic (QuadraticSum first second) vector =
+  evaluate_quadratic first vector + evaluate_quadratic second vector
+evaluate_quadratic (QuadraticScale scalar form) vector =
+  scalar * evaluate_quadratic form vector
+evaluate_quadratic (QuadraticFromSymmetric form) vector =
+  evaluate_symmetric form vector vector
+
+public export
+quadratic_from_symmetric :
+  {space : FiniteSpace} ->
+  SymmetricBilinearForm space ->
+  QuadraticForm space
+quadratic_from_symmetric = QuadraticFromSymmetric
+
+-- The unhalved polar form exists integrally.  It is deliberately not exposed
+-- as an inverse to quadratic_from_symmetric:
+--   polar(q)(x,y) = q(x+y)-q(x)-q(y)
+-- and polar(B(v,v)) = 2 B over this exact integral scalar model.
+public export
+polar_form :
+  {space : FiniteSpace} ->
+  QuadraticForm space ->
+  SymmetricBilinearForm space
+polar_form QuadraticZero = SymmetricZero
+polar_form (QuadraticSquare covector) =
+  SymmetricScale 2 (SymmetricSquare covector)
+polar_form (QuadraticProduct first second) =
+  SymmetricPair first second
+polar_form (QuadraticSum first second) =
+  SymmetricSum (polar_form first) (polar_form second)
+polar_form (QuadraticScale scalar form) =
+  SymmetricScale scalar (polar_form form)
+polar_form (QuadraticFromSymmetric form) =
+  SymmetricScale 2 form
+
+public export
+polar_difference :
+  {space : FiniteSpace} ->
+  QuadraticForm space ->
+  ExactVectorSample space ->
+  ExactVectorSample space ->
+  Integer
+polar_difference form left right =
+  evaluate_quadratic form (addVector left right)
+    - evaluate_quadratic form left
+    - evaluate_quadratic form right
+
+-- Evidence that a particular integral quadratic form is known to be the
+-- diagonal of an integral symmetric bilinear form.  There is intentionally no
+-- constructor for a general QuadraticProduct: an odd cross term would require
+-- division by 2 in the symmetric matrix.
+public export
+data DiagonalPresentation :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  SquareHasDiagonalPresentation :
+    (covector : ExactCovectorSample space) ->
+    DiagonalPresentation (QuadraticSquare covector)
+  SymmetricHasDiagonalPresentation :
+    (form : SymmetricBilinearForm space) ->
+    DiagonalPresentation (QuadraticFromSymmetric form)
+  SumHasDiagonalPresentation :
+    {first : QuadraticForm space} ->
+    {second : QuadraticForm space} ->
+    DiagonalPresentation first ->
+    DiagonalPresentation second ->
+    DiagonalPresentation (QuadraticSum first second)
+  ScaleHasDiagonalPresentation :
+    (scalar : Integer) ->
+    {form : QuadraticForm space} ->
+    DiagonalPresentation form ->
+    DiagonalPresentation (QuadraticScale scalar form)
+
+public export
+presented_symmetric_form :
+  {space : FiniteSpace} ->
+  {form : QuadraticForm space} ->
+  DiagonalPresentation form ->
+  SymmetricBilinearForm space
+presented_symmetric_form (SquareHasDiagonalPresentation covector) =
+  SymmetricSquare covector
+presented_symmetric_form (SymmetricHasDiagonalPresentation form) = form
+presented_symmetric_form (SumHasDiagonalPresentation first second) =
+  SymmetricSum
+    (presented_symmetric_form first)
+    (presented_symmetric_form second)
+presented_symmetric_form (ScaleHasDiagonalPresentation scalar form) =
+  SymmetricScale scalar (presented_symmetric_form form)
+
+-- --------------------------------------------------------------------------
+-- Exact complex samples, sesquilinear forms, and Hermitian forms
+-- --------------------------------------------------------------------------
+
+public export
+data ExactComplex = Complex Integer Integer
+
+public export
+complex_zero : ExactComplex
+complex_zero = Complex 0 0
+
+public export
+complex_one : ExactComplex
+complex_one = Complex 1 0
+
+public export
+complex_i : ExactComplex
+complex_i = Complex 0 1
+
+public export
+complex_add : ExactComplex -> ExactComplex -> ExactComplex
+complex_add (Complex a b) (Complex c d) = Complex (a + c) (b + d)
+
+public export
+complex_negate : ExactComplex -> ExactComplex
+complex_negate (Complex a b) = Complex (-a) (-b)
+
+public export
+complex_subtract : ExactComplex -> ExactComplex -> ExactComplex
+complex_subtract left right = complex_add left (complex_negate right)
+
+public export
+complex_multiply : ExactComplex -> ExactComplex -> ExactComplex
+complex_multiply (Complex a b) (Complex c d) =
+  Complex (a * c - b * d) (a * d + b * c)
+
+public export
+complex_scale_integer : Integer -> ExactComplex -> ExactComplex
+complex_scale_integer scalar (Complex real imaginary) =
+  Complex (scalar * real) (scalar * imaginary)
+
+public export
+conjugate : ExactComplex -> ExactComplex
+conjugate (Complex real imaginary) = Complex real (-imaginary)
+
+public export
+real_part : ExactComplex -> Integer
+real_part (Complex real imaginary) = real
+
+public export
+imaginary_part : ExactComplex -> Integer
+imaginary_part (Complex real imaginary) = imaginary
+
+public export
+data RawExactComplexCoordinates : ℕ -> Type where
+  UnsafeComplexCoordinateNil : RawExactComplexCoordinates Z
+  UnsafeComplexCoordinateCons :
+    {n : ℕ} ->
+    ExactComplex ->
+    RawExactComplexCoordinates n ->
+    RawExactComplexCoordinates (S n)
+
+public export
+data ExactComplexVectorSample : FiniteSpace -> Type where
+  UnsafeComplexVectorCoordinates :
+    {rank : ℕ} ->
+    {name : SpaceName rank} ->
+    RawExactComplexCoordinates rank ->
+    ExactComplexVectorSample (NamedFiniteSpace name)
+
+public export
+data ExactComplexCovectorSample : FiniteSpace -> Type where
+  UnsafeComplexCovectorCoordinates :
+    {rank : ℕ} ->
+    {name : SpaceName rank} ->
+    RawExactComplexCoordinates rank ->
+    ExactComplexCovectorSample (NamedFiniteSpace name)
+
+unsafe_zero_complex_coordinates : (n : ℕ) -> RawExactComplexCoordinates n
+unsafe_zero_complex_coordinates Z = UnsafeComplexCoordinateNil
+unsafe_zero_complex_coordinates (S n) =
+  UnsafeComplexCoordinateCons complex_zero (unsafe_zero_complex_coordinates n)
+
+unsafe_add_complex_coordinates :
+  {n : ℕ} ->
+  RawExactComplexCoordinates n ->
+  RawExactComplexCoordinates n ->
+  RawExactComplexCoordinates n
+unsafe_add_complex_coordinates UnsafeComplexCoordinateNil UnsafeComplexCoordinateNil =
+  UnsafeComplexCoordinateNil
+unsafe_add_complex_coordinates
+  (UnsafeComplexCoordinateCons left left_rest)
+  (UnsafeComplexCoordinateCons right right_rest) =
+    UnsafeComplexCoordinateCons
+      (complex_add left right)
+      (unsafe_add_complex_coordinates left_rest right_rest)
+
+unsafe_scale_complex_coordinates :
+  {n : ℕ} ->
+  ExactComplex ->
+  RawExactComplexCoordinates n ->
+  RawExactComplexCoordinates n
+unsafe_scale_complex_coordinates scalar UnsafeComplexCoordinateNil =
+  UnsafeComplexCoordinateNil
+unsafe_scale_complex_coordinates scalar (UnsafeComplexCoordinateCons value rest) =
+  UnsafeComplexCoordinateCons
+    (complex_multiply scalar value)
+    (unsafe_scale_complex_coordinates scalar rest)
+
+unsafe_pair_complex_coordinates :
+  {n : ℕ} ->
+  RawExactComplexCoordinates n ->
+  RawExactComplexCoordinates n ->
+  ExactComplex
+unsafe_pair_complex_coordinates UnsafeComplexCoordinateNil UnsafeComplexCoordinateNil =
+  complex_zero
+unsafe_pair_complex_coordinates
+  (UnsafeComplexCoordinateCons left left_rest)
+  (UnsafeComplexCoordinateCons right right_rest) =
+    complex_add
+      (complex_multiply left right)
+      (unsafe_pair_complex_coordinates left_rest right_rest)
+
+public export
+add_complex_vector :
+  {space : FiniteSpace} ->
+  ExactComplexVectorSample space ->
+  ExactComplexVectorSample space ->
+  ExactComplexVectorSample space
+add_complex_vector
+  (UnsafeComplexVectorCoordinates left)
+  (UnsafeComplexVectorCoordinates right) =
+    UnsafeComplexVectorCoordinates (unsafe_add_complex_coordinates left right)
+
+public export
+scale_complex_vector :
+  {space : FiniteSpace} ->
+  ExactComplex ->
+  ExactComplexVectorSample space ->
+  ExactComplexVectorSample space
+scale_complex_vector scalar (UnsafeComplexVectorCoordinates coordinates) =
+  UnsafeComplexVectorCoordinates (unsafe_scale_complex_coordinates scalar coordinates)
+
+public export
+add_complex_covector :
+  {space : FiniteSpace} ->
+  ExactComplexCovectorSample space ->
+  ExactComplexCovectorSample space ->
+  ExactComplexCovectorSample space
+add_complex_covector
+  (UnsafeComplexCovectorCoordinates left)
+  (UnsafeComplexCovectorCoordinates right) =
+    UnsafeComplexCovectorCoordinates (unsafe_add_complex_coordinates left right)
+
+public export
+scale_complex_covector :
+  {space : FiniteSpace} ->
+  ExactComplex ->
+  ExactComplexCovectorSample space ->
+  ExactComplexCovectorSample space
+scale_complex_covector scalar (UnsafeComplexCovectorCoordinates coordinates) =
+  UnsafeComplexCovectorCoordinates
+    (unsafe_scale_complex_coordinates scalar coordinates)
+
+public export
+complex_contract :
+  {space : FiniteSpace} ->
+  ExactComplexCovectorSample space ->
+  ExactComplexVectorSample space ->
+  ExactComplex
+complex_contract
+  (UnsafeComplexCovectorCoordinates covector_coordinates)
+  (UnsafeComplexVectorCoordinates vector_coordinates) =
+    unsafe_pair_complex_coordinates covector_coordinates vector_coordinates
+
+public export
+complex_plane_vector :
+  ExactComplex -> ExactComplex -> ExactComplexVectorSample planeSpace
+complex_plane_vector first second =
+  UnsafeComplexVectorCoordinates
+    (UnsafeComplexCoordinateCons first
+      (UnsafeComplexCoordinateCons second UnsafeComplexCoordinateNil))
+
+public export
+complex_plane_covector :
+  ExactComplex -> ExactComplex -> ExactComplexCovectorSample planeSpace
+complex_plane_covector first second =
+  UnsafeComplexCovectorCoordinates
+    (UnsafeComplexCoordinateCons first
+      (UnsafeComplexCoordinateCons second UnsafeComplexCoordinateNil))
+
+complex_zero_covector :
+  {space : FiniteSpace} ->
+  ExactComplexVectorSample space ->
+  ExactComplexCovectorSample space
+complex_zero_covector (UnsafeComplexVectorCoordinates coordinates) =
+  UnsafeComplexCovectorCoordinates
+    (unsafe_zero_complex_coordinates (spaceRank space))
+
+-- Convention: sesquilinear and Hermitian forms are conjugate-linear in the
+-- first argument and linear in the second.
+public export
+data SesquilinearForm : FiniteSpace -> Type where
+  SesquilinearZero : SesquilinearForm space
+  SesquilinearTensor :
+    ExactComplexCovectorSample space ->
+    ExactComplexCovectorSample space ->
+    SesquilinearForm space
+  SesquilinearSum :
+    SesquilinearForm space ->
+    SesquilinearForm space ->
+    SesquilinearForm space
+  SesquilinearScale : ExactComplex -> SesquilinearForm space -> SesquilinearForm space
+
+public export
+evaluate_sesquilinear :
+  {space : FiniteSpace} ->
+  SesquilinearForm space ->
+  ExactComplexVectorSample space ->
+  ExactComplexVectorSample space ->
+  ExactComplex
+evaluate_sesquilinear SesquilinearZero left right = complex_zero
+evaluate_sesquilinear (SesquilinearTensor first second) left right =
+  complex_multiply
+    (conjugate (complex_contract first left))
+    (complex_contract second right)
+evaluate_sesquilinear (SesquilinearSum first second) left right =
+  complex_add
+    (evaluate_sesquilinear first left right)
+    (evaluate_sesquilinear second left right)
+evaluate_sesquilinear (SesquilinearScale scalar form) left right =
+  complex_multiply scalar (evaluate_sesquilinear form left right)
+
+public export
+data HermitianForm : FiniteSpace -> Type where
+  HermitianZero : HermitianForm space
+  HermitianSquare : ExactComplexCovectorSample space -> HermitianForm space
+  HermitianCross :
+    ExactComplex ->
+    ExactComplexCovectorSample space ->
+    ExactComplexCovectorSample space ->
+    HermitianForm space
+  HermitianSum : HermitianForm space -> HermitianForm space -> HermitianForm space
+  HermitianScale : Integer -> HermitianForm space -> HermitianForm space
+
+public export
+evaluate_hermitian :
+  {space : FiniteSpace} ->
+  HermitianForm space ->
+  ExactComplexVectorSample space ->
+  ExactComplexVectorSample space ->
+  ExactComplex
+evaluate_hermitian HermitianZero left right = complex_zero
+evaluate_hermitian (HermitianSquare covector) left right =
+  complex_multiply
+    (conjugate (complex_contract covector left))
+    (complex_contract covector right)
+evaluate_hermitian (HermitianCross coefficient first second) left right =
+  complex_add
+    (complex_multiply
+      (complex_multiply
+        (conjugate (complex_contract first left))
+        coefficient)
+      (complex_contract second right))
+    (complex_multiply
+      (complex_multiply
+        (conjugate (complex_contract second left))
+        (conjugate coefficient))
+      (complex_contract first right))
+evaluate_hermitian (HermitianSum first second) left right =
+  complex_add
+    (evaluate_hermitian first left right)
+    (evaluate_hermitian second left right)
+evaluate_hermitian (HermitianScale scalar form) left right =
+  complex_scale_integer scalar (evaluate_hermitian form left right)
+
+public export
+hermitian_as_sesquilinear :
+  {space : FiniteSpace} ->
+  HermitianForm space ->
+  SesquilinearForm space
+hermitian_as_sesquilinear HermitianZero = SesquilinearZero
+hermitian_as_sesquilinear (HermitianSquare covector) =
+  SesquilinearTensor covector covector
+hermitian_as_sesquilinear (HermitianCross coefficient first second) =
+  SesquilinearSum
+    (SesquilinearScale coefficient (SesquilinearTensor first second))
+    (SesquilinearScale
+      (conjugate coefficient)
+      (SesquilinearTensor second first))
+hermitian_as_sesquilinear (HermitianSum first second) =
+  SesquilinearSum
+    (hermitian_as_sesquilinear first)
+    (hermitian_as_sesquilinear second)
+hermitian_as_sesquilinear (HermitianScale scalar form) =
+  SesquilinearScale
+    (Complex scalar 0)
+    (hermitian_as_sesquilinear form)
+
+-- H(v,v) is real for values built by the closed Hermitian constructors.  The
+-- exact Gaussian-integer model therefore exposes its real Hermitian quadratic
+-- quantity as Integer rather than pretending it is an ordinary complex
+-- QuadraticForm.
+public export
+hermitian_quadratic_quantity :
+  {space : FiniteSpace} ->
+  HermitianForm space ->
+  ExactComplexVectorSample space ->
+  Integer
+hermitian_quadratic_quantity form vector =
+  real_part (evaluate_hermitian form vector vector)
+
+-- Fixing the first argument produces a linear complex covector.  As a map from
+-- the first vector into the dual this operation is conjugate-linear, exactly as
+-- the chosen Hermitian convention requires.
+public export
+hermitian_covector_at :
+  {space : FiniteSpace} ->
+  HermitianForm space ->
+  ExactComplexVectorSample space ->
+  ExactComplexCovectorSample space
+hermitian_covector_at HermitianZero vector = complex_zero_covector vector
+hermitian_covector_at (HermitianSquare covector) vector =
+  scale_complex_covector
+    (conjugate (complex_contract covector vector))
+    covector
+hermitian_covector_at (HermitianCross coefficient first second) vector =
+  add_complex_covector
+    (scale_complex_covector
+      (complex_multiply (conjugate (complex_contract first vector)) coefficient)
+      second)
+    (scale_complex_covector
+      (complex_multiply
+        (conjugate (complex_contract second vector))
+        (conjugate coefficient))
+      first)
+hermitian_covector_at (HermitianSum first second) vector =
+  add_complex_covector
+    (hermitian_covector_at first vector)
+    (hermitian_covector_at second vector)
+hermitian_covector_at (HermitianScale scalar form) vector =
+  scale_complex_covector
+    (Complex scalar 0)
+    (hermitian_covector_at form vector)
+
+-- --------------------------------------------------------------------------
+-- Property certificates on the exact sample family
+-- --------------------------------------------------------------------------
+
+public export
+plane_x : ExactCovectorSample planeSpace
+plane_x = planeCovector 1 0
+
+public export
+plane_y : ExactCovectorSample planeSpace
+plane_y = planeCovector 0 1
+
+public export
+plane_positive_quadratic : QuadraticForm planeSpace
+plane_positive_quadratic =
+  QuadraticSum (QuadraticSquare plane_x) (QuadraticSquare plane_y)
+
+public export
+plane_negative_quadratic : QuadraticForm planeSpace
+plane_negative_quadratic = QuadraticScale (-1) plane_positive_quadratic
+
+public export
+plane_first_square : QuadraticForm planeSpace
+plane_first_square = QuadraticSquare plane_x
+
+public export
+plane_negative_first_square : QuadraticForm planeSpace
+plane_negative_first_square = QuadraticScale (-1) plane_first_square
+
+public export
+plane_difference_of_squares : QuadraticForm planeSpace
+plane_difference_of_squares =
+  QuadraticSum
+    (QuadraticSquare plane_x)
+    (QuadraticScale (-1) (QuadraticSquare plane_y))
+
+public export
+plane_cross_quadratic : QuadraticForm planeSpace
+plane_cross_quadratic = QuadraticProduct plane_x plane_y
+
+public export
+data PositiveDefinite :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  PlaneSumOfSquaresPositive : PositiveDefinite plane_positive_quadratic
+
+public export
+data NegativeDefinite :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  NegativePlaneSumOfSquares : NegativeDefinite plane_negative_quadratic
+
+public export
+data PositiveSemidefinite :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  PositiveDefiniteIsSemidefinite :
+    {form : QuadraticForm space} ->
+    PositiveDefinite form ->
+    PositiveSemidefinite form
+  PlaneFirstSquareSemidefinite : PositiveSemidefinite plane_first_square
+
+public export
+data NegativeSemidefinite :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  NegativeDefiniteIsSemidefinite :
+    {form : QuadraticForm space} ->
+    NegativeDefinite form ->
+    NegativeSemidefinite form
+  NegativePlaneFirstSquareSemidefinite :
+    NegativeSemidefinite plane_negative_first_square
+
+public export
+data QuadraticNondegenerate :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  PositiveDefiniteIsNondegenerate :
+    {form : QuadraticForm space} ->
+    PositiveDefinite form ->
+    QuadraticNondegenerate form
+  NegativeDefiniteIsNondegenerate :
+    {form : QuadraticForm space} ->
+    NegativeDefinite form ->
+    QuadraticNondegenerate form
+  PlaneDifferenceOfSquaresNondegenerate :
+    QuadraticNondegenerate plane_difference_of_squares
+
+public export
+data QuadraticDegenerate :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  PlaneFirstSquareDegenerate : QuadraticDegenerate plane_first_square
+
+public export
+data Indefinite :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  PlaneDifferenceOfSquaresIndefinite : Indefinite plane_difference_of_squares
+
+public export
+data Isotropic :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  PlaneDifferenceOfSquaresIsotropic : Isotropic plane_difference_of_squares
+
+public export
+data Anisotropic :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  PositiveDefiniteIsAnisotropic :
+    {form : QuadraticForm space} ->
+    PositiveDefinite form ->
+    Anisotropic form
+  NegativeDefiniteIsAnisotropic :
+    {form : QuadraticForm space} ->
+    NegativeDefinite form ->
+    Anisotropic form
+
+-- Every ordinary QuadraticForm in this module is Integer-valued on the exact
+-- lattice sample by construction.  This certificate should not be generalized
+-- to future real/complex vector families without an explicit lattice.
+public export
+data IntegralQuadratic :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  ExactIntegerValued :
+    (form : QuadraticForm space) ->
+    IntegralQuadratic form
+
+-- A doubled integral quadratic form is even.  This is a structural certificate
+-- rather than a stored Boolean flag.
+public export
+data EvenQuadratic :
+    {space : FiniteSpace} -> QuadraticForm space -> Type where
+  TwiceIntegralFormIsEven :
+    (form : QuadraticForm space) ->
+    EvenQuadratic (QuadraticScale 2 form)
+
+public export
+positive_definite_is_nondegenerate :
+  {space : FiniteSpace} ->
+  {form : QuadraticForm space} ->
+  PositiveDefinite form ->
+  QuadraticNondegenerate form
+positive_definite_is_nondegenerate evidence =
+  PositiveDefiniteIsNondegenerate evidence
+
+public export
+positive_definite_is_anisotropic :
+  {space : FiniteSpace} ->
+  {form : QuadraticForm space} ->
+  PositiveDefinite form ->
+  Anisotropic form
+positive_definite_is_anisotropic evidence =
+  PositiveDefiniteIsAnisotropic evidence
+
+public export
+positive_definite_is_semidefinite :
+  {space : FiniteSpace} ->
+  {form : QuadraticForm space} ->
+  PositiveDefinite form ->
+  PositiveSemidefinite form
+positive_definite_is_semidefinite evidence =
+  PositiveDefiniteIsSemidefinite evidence
+
+public export
+complex_x : ExactComplexCovectorSample planeSpace
+complex_x = complex_plane_covector complex_one complex_zero
+
+public export
+complex_y : ExactComplexCovectorSample planeSpace
+complex_y = complex_plane_covector complex_zero complex_one
+
+public export
+plane_standard_hermitian : HermitianForm planeSpace
+plane_standard_hermitian =
+  HermitianSum (HermitianSquare complex_x) (HermitianSquare complex_y)
+
+public export
+data HermitianPositiveDefinite :
+    {space : FiniteSpace} -> HermitianForm space -> Type where
+  StandardComplexPlanePositive :
+    HermitianPositiveDefinite plane_standard_hermitian
+
+public export
+data HermitianNondegenerate :
+    {space : FiniteSpace} -> HermitianForm space -> Type where
+  HermitianPositiveIsNondegenerate :
+    {form : HermitianForm space} ->
+    HermitianPositiveDefinite form ->
+    HermitianNondegenerate form
+
+public export
+hermitian_positive_is_nondegenerate :
+  {space : FiniteSpace} ->
+  {form : HermitianForm space} ->
+  HermitianPositiveDefinite form ->
+  HermitianNondegenerate form
+hermitian_positive_is_nondegenerate evidence =
+  HermitianPositiveIsNondegenerate evidence
+
+-- --------------------------------------------------------------------------
+-- Basis-dependent 2D matrix representations
+-- --------------------------------------------------------------------------
+
+-- The repository does not yet have a general basis or mathematical Matrix
+-- ontology.  This contained plane slice establishes the correct abstraction
+-- boundary without presenting a rectangular array as the definition of a form.
+
+public export
+data IntegerMatrix2 = Matrix2 Integer Integer Integer Integer
+
+public export
+data SymmetricIntegerMatrix2 = SymmetricMatrix2 Integer Integer Integer
+
+public export
+full_symmetric_matrix : SymmetricIntegerMatrix2 -> IntegerMatrix2
+full_symmetric_matrix (SymmetricMatrix2 first off_diagonal second) =
+  Matrix2 first off_diagonal off_diagonal second
+
+public export
+transpose_integer_matrix : IntegerMatrix2 -> IntegerMatrix2
+transpose_integer_matrix (Matrix2 a b c d) = Matrix2 a c b d
+
+public export
+multiply_integer_matrix : IntegerMatrix2 -> IntegerMatrix2 -> IntegerMatrix2
+multiply_integer_matrix
+  (Matrix2 a b c d)
+  (Matrix2 e f g h) =
+    Matrix2
+      (a * e + b * g)
+      (a * f + b * h)
+      (c * e + d * g)
+      (c * f + d * h)
+
+public export
+data PlaneBasis = StandardPlaneBasis | ShearedPlaneBasis
+
+public export
+basis_first : PlaneBasis -> ExactVectorSample planeSpace
+basis_first StandardPlaneBasis = planeVector 1 0
+basis_first ShearedPlaneBasis = planeVector 1 0
+
+public export
+basis_second : PlaneBasis -> ExactVectorSample planeSpace
+basis_second StandardPlaneBasis = planeVector 0 1
+basis_second ShearedPlaneBasis = planeVector 1 1
+
+basis_dual_first : PlaneBasis -> ExactCovectorSample planeSpace
+basis_dual_first StandardPlaneBasis = planeCovector 1 0
+basis_dual_first ShearedPlaneBasis = planeCovector 1 (-1)
+
+basis_dual_second : PlaneBasis -> ExactCovectorSample planeSpace
+basis_dual_second StandardPlaneBasis = planeCovector 0 1
+basis_dual_second ShearedPlaneBasis = planeCovector 0 1
+
+public export
+data GramMatrix : PlaneBasis -> Type where
+  Gram : (basis : PlaneBasis) -> SymmetricIntegerMatrix2 -> GramMatrix basis
+
+public export
+gram_entries : {basis : PlaneBasis} -> GramMatrix basis -> SymmetricIntegerMatrix2
+gram_entries (Gram basis matrix) = matrix
+
+public export
+gram_matrix :
+  SymmetricBilinearForm planeSpace ->
+  (basis : PlaneBasis) ->
+  GramMatrix basis
+gram_matrix form basis =
+  Gram basis
+    (SymmetricMatrix2
+      (evaluate_symmetric form (basis_first basis) (basis_first basis))
+      (evaluate_symmetric form (basis_first basis) (basis_second basis))
+      (evaluate_symmetric form (basis_second basis) (basis_second basis)))
+
+public export
+represented_symmetric_form :
+  {basis : PlaneBasis} ->
+  GramMatrix basis ->
+  SymmetricBilinearForm planeSpace
+represented_symmetric_form (Gram basis (SymmetricMatrix2 first off_diagonal second)) =
+  SymmetricSum
+    (SymmetricScale first (SymmetricSquare (basis_dual_first basis)))
+    (SymmetricSum
+      (SymmetricScale off_diagonal
+        (SymmetricPair (basis_dual_first basis) (basis_dual_second basis)))
+      (SymmetricScale second (SymmetricSquare (basis_dual_second basis))))
+
+public export
+represented_quadratic_form :
+  {basis : PlaneBasis} ->
+  GramMatrix basis ->
+  QuadraticForm planeSpace
+represented_quadratic_form gram =
+  quadratic_from_symmetric (represented_symmetric_form gram)
+
+public export
+basis_change_matrix : PlaneBasis -> PlaneBasis -> IntegerMatrix2
+basis_change_matrix StandardPlaneBasis StandardPlaneBasis = Matrix2 1 0 0 1
+basis_change_matrix StandardPlaneBasis ShearedPlaneBasis = Matrix2 1 1 0 1
+basis_change_matrix ShearedPlaneBasis StandardPlaneBasis = Matrix2 1 (-1) 0 1
+basis_change_matrix ShearedPlaneBasis ShearedPlaneBasis = Matrix2 1 0 0 1
+
+public export
+congruence_from :
+  {old_basis : PlaneBasis} ->
+  GramMatrix old_basis ->
+  (new_basis : PlaneBasis) ->
+  IntegerMatrix2
+congruence_from (Gram old_basis matrix) new_basis =
+  let change = basis_change_matrix old_basis new_basis
+      left = multiply_integer_matrix
+        (transpose_integer_matrix change)
+        (full_symmetric_matrix matrix)
+  in multiply_integer_matrix left change
+
+public export
+plane_weighted_symmetric : SymmetricBilinearForm planeSpace
+plane_weighted_symmetric =
+  SymmetricSum
+    (SymmetricScale 2 (SymmetricSquare plane_x))
+    (SymmetricScale 3 (SymmetricSquare plane_y))
+
+public export
+plane_weighted_quadratic : QuadraticForm planeSpace
+plane_weighted_quadratic = quadratic_from_symmetric plane_weighted_symmetric
+
+-- --------------------------------------------------------------------------
+-- Basis-dependent Hermitian matrices
+-- --------------------------------------------------------------------------
+
+public export
+data ExactComplexMatrix2 =
+  ComplexMatrix2 ExactComplex ExactComplex ExactComplex ExactComplex
+
+public export
+data HermitianMatrix2 = HermitianMatrix2 Integer ExactComplex Integer
+
+public export
+full_hermitian_matrix : HermitianMatrix2 -> ExactComplexMatrix2
+full_hermitian_matrix (HermitianMatrix2 first off_diagonal second) =
+  ComplexMatrix2
+    (Complex first 0)
+    off_diagonal
+    (conjugate off_diagonal)
+    (Complex second 0)
+
+public export
+transpose_complex_matrix : ExactComplexMatrix2 -> ExactComplexMatrix2
+transpose_complex_matrix (ComplexMatrix2 a b c d) = ComplexMatrix2 a c b d
+
+public export
+conjugate_transpose_complex_matrix : ExactComplexMatrix2 -> ExactComplexMatrix2
+conjugate_transpose_complex_matrix (ComplexMatrix2 a b c d) =
+  ComplexMatrix2 (conjugate a) (conjugate c) (conjugate b) (conjugate d)
+
+public export
+multiply_complex_matrix :
+  ExactComplexMatrix2 -> ExactComplexMatrix2 -> ExactComplexMatrix2
+multiply_complex_matrix
+  (ComplexMatrix2 a b c d)
+  (ComplexMatrix2 e f g h) =
+    ComplexMatrix2
+      (complex_add (complex_multiply a e) (complex_multiply b g))
+      (complex_add (complex_multiply a f) (complex_multiply b h))
+      (complex_add (complex_multiply c e) (complex_multiply d g))
+      (complex_add (complex_multiply c f) (complex_multiply d h))
+
+public export
+data ComplexPlaneBasis = StandardComplexBasis | ComplexShearedBasis
+
+public export
+complex_basis_first : ComplexPlaneBasis -> ExactComplexVectorSample planeSpace
+complex_basis_first StandardComplexBasis =
+  complex_plane_vector complex_one complex_zero
+complex_basis_first ComplexShearedBasis =
+  complex_plane_vector complex_one complex_zero
+
+public export
+complex_basis_second : ComplexPlaneBasis -> ExactComplexVectorSample planeSpace
+complex_basis_second StandardComplexBasis =
+  complex_plane_vector complex_zero complex_one
+complex_basis_second ComplexShearedBasis =
+  complex_plane_vector complex_i complex_one
+
+complex_basis_dual_first :
+  ComplexPlaneBasis -> ExactComplexCovectorSample planeSpace
+complex_basis_dual_first StandardComplexBasis =
+  complex_plane_covector complex_one complex_zero
+complex_basis_dual_first ComplexShearedBasis =
+  complex_plane_covector complex_one (Complex 0 (-1))
+
+complex_basis_dual_second :
+  ComplexPlaneBasis -> ExactComplexCovectorSample planeSpace
+complex_basis_dual_second StandardComplexBasis =
+  complex_plane_covector complex_zero complex_one
+complex_basis_dual_second ComplexShearedBasis =
+  complex_plane_covector complex_zero complex_one
+
+public export
+data HermitianGramMatrix : ComplexPlaneBasis -> Type where
+  HermitianGram :
+    (basis : ComplexPlaneBasis) ->
+    HermitianMatrix2 ->
+    HermitianGramMatrix basis
+
+public export
+hermitian_gram_entries :
+  {basis : ComplexPlaneBasis} ->
+  HermitianGramMatrix basis ->
+  HermitianMatrix2
+hermitian_gram_entries (HermitianGram basis matrix) = matrix
+
+public export
+hermitian_gram_matrix :
+  HermitianForm planeSpace ->
+  (basis : ComplexPlaneBasis) ->
+  HermitianGramMatrix basis
+hermitian_gram_matrix form basis =
+  HermitianGram basis
+    (HermitianMatrix2
+      (real_part
+        (evaluate_hermitian form
+          (complex_basis_first basis)
+          (complex_basis_first basis)))
+      (evaluate_hermitian form
+        (complex_basis_first basis)
+        (complex_basis_second basis))
+      (real_part
+        (evaluate_hermitian form
+          (complex_basis_second basis)
+          (complex_basis_second basis))))
+
+public export
+represented_hermitian_form :
+  {basis : ComplexPlaneBasis} ->
+  HermitianGramMatrix basis ->
+  HermitianForm planeSpace
+represented_hermitian_form
+  (HermitianGram basis (HermitianMatrix2 first off_diagonal second)) =
+    HermitianSum
+      (HermitianScale first (HermitianSquare (complex_basis_dual_first basis)))
+      (HermitianSum
+        (HermitianCross
+          off_diagonal
+          (complex_basis_dual_first basis)
+          (complex_basis_dual_second basis))
+        (HermitianScale second
+          (HermitianSquare (complex_basis_dual_second basis))))
+
+public export
+complex_basis_change_matrix :
+  ComplexPlaneBasis -> ComplexPlaneBasis -> ExactComplexMatrix2
+complex_basis_change_matrix StandardComplexBasis StandardComplexBasis =
+  ComplexMatrix2 complex_one complex_zero complex_zero complex_one
+complex_basis_change_matrix StandardComplexBasis ComplexShearedBasis =
+  ComplexMatrix2 complex_one complex_i complex_zero complex_one
+complex_basis_change_matrix ComplexShearedBasis StandardComplexBasis =
+  ComplexMatrix2 complex_one (Complex 0 (-1)) complex_zero complex_one
+complex_basis_change_matrix ComplexShearedBasis ComplexShearedBasis =
+  ComplexMatrix2 complex_one complex_zero complex_zero complex_one
+
+public export
+hermitian_congruence_from :
+  {old_basis : ComplexPlaneBasis} ->
+  HermitianGramMatrix old_basis ->
+  (new_basis : ComplexPlaneBasis) ->
+  ExactComplexMatrix2
+hermitian_congruence_from (HermitianGram old_basis matrix) new_basis =
+  let change = complex_basis_change_matrix old_basis new_basis
+      left = multiply_complex_matrix
+        (conjugate_transpose_complex_matrix change)
+        (full_hermitian_matrix matrix)
+  in multiply_complex_matrix left change
+
+-- This operation is intentionally present only as an acceptance oracle showing
+-- why ordinary transpose is wrong for complex Hermitian change of basis.
+public export
+ordinary_transpose_congruence_oracle :
+  {old_basis : ComplexPlaneBasis} ->
+  HermitianGramMatrix old_basis ->
+  (new_basis : ComplexPlaneBasis) ->
+  ExactComplexMatrix2
+ordinary_transpose_congruence_oracle
+  (HermitianGram old_basis matrix)
+  new_basis =
+    let change = complex_basis_change_matrix old_basis new_basis
+        left = multiply_complex_matrix
+          (transpose_complex_matrix change)
+          (full_hermitian_matrix matrix)
+    in multiply_complex_matrix left change
+
+-- --------------------------------------------------------------------------
+-- Characteristic-2 acceptance model
+-- --------------------------------------------------------------------------
+
+-- The current vector sample uses Integer scalars, but this tiny F2 model keeps
+-- a real characteristic-2 counterexample in the compiler acceptance suite.
+-- q(x,y)=xy is nonzero while the diagonal of its polar form is always zero.
+
+public export
+data F2 = F2Zero | F2One
+
+f2_add : F2 -> F2 -> F2
+f2_add F2Zero value = value
+f2_add value F2Zero = value
+f2_add F2One F2One = F2Zero
+
+f2_multiply : F2 -> F2 -> F2
+f2_multiply F2Zero value = F2Zero
+f2_multiply value F2Zero = F2Zero
+f2_multiply F2One F2One = F2One
+
+public export
+data F2Plane = F2Vector F2 F2
+
+f2_vector_add : F2Plane -> F2Plane -> F2Plane
+f2_vector_add (F2Vector a b) (F2Vector c d) =
+  F2Vector (f2_add a c) (f2_add b d)
+
+public export
+f2_cross_quadratic : F2Plane -> F2
+f2_cross_quadratic (F2Vector x y) = f2_multiply x y
+
+public export
+f2_polar : F2Plane -> F2Plane -> F2
+f2_polar left right =
+  f2_add
+    (f2_cross_quadratic (f2_vector_add left right))
+    (f2_add (f2_cross_quadratic left) (f2_cross_quadratic right))
