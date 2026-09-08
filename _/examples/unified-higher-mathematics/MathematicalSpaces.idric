@@ -1,6 +1,5 @@
 module MathematicalSpaces
 
-%default total
 %unbound_implicits off
 
 -- This module is the small common semantic core shared by the Euclidean,
@@ -9,7 +8,7 @@ module MathematicalSpaces
 -- Rank equality alone is still not space equality.
 
 public export
-data SpaceName : ℕ -> Type where
+data SpaceName : Number -> Type where
   PlaneName      : SpaceName 2
   ImagePlaneName : SpaceName 2
   RealThreeName  : SpaceName 3
@@ -17,10 +16,10 @@ data SpaceName : ℕ -> Type where
 
 public export
 data FiniteSpace : Type where
-  NamedFiniteSpace : {rank : ℕ} -> SpaceName rank -> FiniteSpace
+  NamedFiniteSpace : {rank : Number} -> SpaceName rank -> FiniteSpace
 
 public export
-spaceRank : FiniteSpace -> ℕ
+spaceRank : FiniteSpace -> Number
 spaceRank (NamedFiniteSpace {rank} _) = rank
 
 public export
@@ -58,20 +57,20 @@ real128Space = NamedFiniteSpace Real128Name
 -- never performs such a conversion implicitly.
 
 public export
-data RawExactCoordinates : ℕ -> Type where
+data RawExactCoordinates : Number -> Type where
   UnsafeCoordinateNil : RawExactCoordinates Z
   UnsafeCoordinateCons :
-    {n : ℕ} ->
+    {n : Number} ->
     Integer -> RawExactCoordinates n -> RawExactCoordinates (S n)
 
 public export
-unsafeZeroCoordinates : (n : ℕ) -> RawExactCoordinates n
+unsafeZeroCoordinates : (n : Number) -> RawExactCoordinates n
 unsafeZeroCoordinates Z = UnsafeCoordinateNil
 unsafeZeroCoordinates (S n) = UnsafeCoordinateCons 0 (unsafeZeroCoordinates n)
 
 public export
 unsafeAddCoordinates :
-  {n : ℕ} ->
+  {n : Number} ->
   RawExactCoordinates n -> RawExactCoordinates n -> RawExactCoordinates n
 unsafeAddCoordinates UnsafeCoordinateNil UnsafeCoordinateNil = UnsafeCoordinateNil
 unsafeAddCoordinates
@@ -82,14 +81,14 @@ unsafeAddCoordinates
       (unsafeAddCoordinates leftRest rightRest)
 
 public export
-unsafeNegateCoordinates : {n : ℕ} -> RawExactCoordinates n -> RawExactCoordinates n
+unsafeNegateCoordinates : {n : Number} -> RawExactCoordinates n -> RawExactCoordinates n
 unsafeNegateCoordinates UnsafeCoordinateNil = UnsafeCoordinateNil
 unsafeNegateCoordinates (UnsafeCoordinateCons value rest) =
   UnsafeCoordinateCons (-value) (unsafeNegateCoordinates rest)
 
 public export
 unsafeSubtractCoordinates :
-  {n : ℕ} ->
+  {n : Number} ->
   RawExactCoordinates n -> RawExactCoordinates n -> RawExactCoordinates n
 unsafeSubtractCoordinates UnsafeCoordinateNil UnsafeCoordinateNil = UnsafeCoordinateNil
 unsafeSubtractCoordinates
@@ -101,7 +100,7 @@ unsafeSubtractCoordinates
 
 public export
 unsafeScaleCoordinates :
-  {n : ℕ} -> Integer -> RawExactCoordinates n -> RawExactCoordinates n
+  {n : Number} -> Integer -> RawExactCoordinates n -> RawExactCoordinates n
 unsafeScaleCoordinates scalar UnsafeCoordinateNil = UnsafeCoordinateNil
 unsafeScaleCoordinates scalar (UnsafeCoordinateCons value rest) =
   UnsafeCoordinateCons
@@ -113,7 +112,7 @@ unsafeScaleCoordinates scalar (UnsafeCoordinateCons value rest) =
 -- the checked vector/covector API; `dot` is the metric-requiring operation.
 public export
 unsafePairCoordinates :
-  {n : ℕ} ->
+  {n : Number} ->
   RawExactCoordinates n -> RawExactCoordinates n -> Integer
 unsafePairCoordinates UnsafeCoordinateNil UnsafeCoordinateNil = 0
 unsafePairCoordinates
@@ -127,7 +126,7 @@ unsafePairCoordinates
 public export
 data ExactVectorSample : FiniteSpace -> Type where
   UnsafeVectorCoordinates :
-    {rank : ℕ} ->
+    {rank : Number} ->
     {name : SpaceName rank} ->
     RawExactCoordinates rank ->
     ExactVectorSample (NamedFiniteSpace name)
@@ -135,7 +134,7 @@ data ExactVectorSample : FiniteSpace -> Type where
 public export
 data ExactCovectorSample : FiniteSpace -> Type where
   UnsafeCovectorCoordinates :
-    {rank : ℕ} ->
+    {rank : Number} ->
     {name : SpaceName rank} ->
     RawExactCoordinates rank ->
     ExactCovectorSample (NamedFiniteSpace name)

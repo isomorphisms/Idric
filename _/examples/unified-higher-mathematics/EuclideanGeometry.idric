@@ -2,7 +2,6 @@ module EuclideanGeometry
 
 import MathematicalSpaces
 
-%default total
 %unbound_implicits off
 
 -- A finite coordinate space does not acquire a dot product merely from its
@@ -11,7 +10,7 @@ import MathematicalSpaces
 public export
 data EuclideanStructure : FiniteSpace -> Type where
   StandardCoordinate :
-    {rank : ℕ} ->
+    {rank : Number} ->
     {name : SpaceName rank} ->
     EuclideanStructure (NamedFiniteSpace name)
 
@@ -201,14 +200,14 @@ data OrthogonalTransform :
     {structure : EuclideanStructure space} ->
     OrthogonalTransform structure Preserving
   FirstAxisReflectionTransform :
-    {n : ℕ} ->
+    {n : Number} ->
     {name : SpaceName (S n)} ->
     OrthogonalTransform
       {space = NamedFiniteSpace name}
       StandardCoordinate
       Reversing
   FirstPlaneQuarterTurnTransform :
-    {n : ℕ} ->
+    {n : Number} ->
     {name : SpaceName (S (S n))} ->
     OrthogonalTransform
       {space = NamedFiniteSpace name}
@@ -237,7 +236,7 @@ data SpecialOrthogonal :
 
 public export
 firstAxisReflection :
-  {n : ℕ} ->
+  {n : Number} ->
   {name : SpaceName (S n)} ->
   (structure : EuclideanStructure (NamedFiniteSpace name)) ->
   OrthogonalTransform structure Reversing
@@ -245,7 +244,7 @@ firstAxisReflection StandardCoordinate = FirstAxisReflectionTransform
 
 public export
 firstPlaneQuarterTurn :
-  {n : ℕ} ->
+  {n : Number} ->
   {name : SpaceName (S (S n))} ->
   (structure : EuclideanStructure (NamedFiniteSpace name)) ->
   SpecialOrthogonal structure
@@ -355,7 +354,7 @@ applySpecialOrthogonalExact (InSO transform) vector =
 -- the connected OrthogonalTransform evaluator.
 public export
 applyFirstAxisReflection :
-  {n : ℕ} ->
+  {n : Number} ->
   {name : SpaceName (S n)} ->
   (structure : EuclideanStructure (NamedFiniteSpace name)) ->
   ExactVectorSample (NamedFiniteSpace name) ->
@@ -365,7 +364,7 @@ applyFirstAxisReflection structure =
 
 public export
 applyFirstPlaneQuarterTurn :
-  {n : ℕ} ->
+  {n : Number} ->
   {name : SpaceName (S (S n))} ->
   (structure : EuclideanStructure (NamedFiniteSpace name)) ->
   ExactVectorSample (NamedFiniteSpace name) ->

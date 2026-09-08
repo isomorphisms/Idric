@@ -1,6 +1,5 @@
 module PresheafRestriction
 
-%default total
 %unbound_implicits off
 
 -- A finite restriction experiment, separate from the Euclidean geometry

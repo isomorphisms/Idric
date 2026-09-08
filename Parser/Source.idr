@@ -16,6 +16,8 @@ import System.File
 
 canonicalizeIdricToken : Token -> Token
 canonicalizeIdricToken (Ident "choice") = Keyword "choice"
+canonicalizeIdricToken (Ident "Number") = Ident "Nat"
+canonicalizeIdricToken (Ident "Text") = Ident "String"
 canonicalizeIdricToken (Ident "ℕ") = Ident "Nat"
 canonicalizeIdricToken tok = tok
 

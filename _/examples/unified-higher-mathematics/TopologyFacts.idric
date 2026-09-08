@@ -3,7 +3,6 @@ module TopologyFacts
 import MathematicalSpaces
 import EuclideanGeometry
 
-%default total
 %unbound_implicits off
 
 -- This module preserves the settled elementary topology facts from #45 while
@@ -44,7 +43,7 @@ northPoleS2 =
 -- only nonzero ranks are in degrees 0 and n.  This is a closed standard fact,
 -- not a general cohomology calculation.
 public export
-sphereIntegralCohomologyRank : ℕ -> ℕ -> ℕ
+sphereIntegralCohomologyRank : Number -> Number -> Number
 sphereIntegralCohomologyRank Z Z = 2
 sphereIntegralCohomologyRank Z (S degree) = 0
 sphereIntegralCohomologyRank (S dimension) Z = 1
@@ -60,13 +59,13 @@ flipParity Even = Odd
 flipParity Odd = Even
 
 public export
-natParity : ℕ -> Parity
+natParity : Number -> Parity
 natParity Z = Even
 natParity (S n) = flipParity (natParity n)
 
 -- chi(S^n) = 1 + (-1)^n.
 public export
-sphereEulerCharacteristic : ℕ -> Integer
+sphereEulerCharacteristic : Number -> Integer
 sphereEulerCharacteristic dimension =
   case natParity dimension of
     Even => 2
@@ -78,21 +77,21 @@ sphereEulerCharacteristic dimension =
 
 -- CP^n has complex dimension n and real dimension 2n.
 public export
-cpRealDimension : ℕ -> ℕ
+cpRealDimension : Number -> Number
 cpRealDimension n = n + n
 
 -- CP^n has the standard Hopf presentation S^(2n+1) / S^1.  This returns the
 -- dimension of the sphere in that presentation; it does not implement quotient
 -- equality or construct projective space.
 public export
-cpHopfSphereDimension : ℕ -> ℕ
+cpHopfSphereDimension : Number -> Number
 cpHopfSphereDimension n = S (n + n)
 
 -- Additive integral cohomology ranks of CP^n are one in even degrees
 -- 0,2,...,2n and zero otherwise.  The ring structure is deliberately outside
 -- this small fact table.
 public export
-cpIntegralCohomologyRank : ℕ -> ℕ -> ℕ
+cpIntegralCohomologyRank : Number -> Number -> Number
 cpIntegralCohomologyRank n Z = 1
 cpIntegralCohomologyRank Z (S degree) = 0
 cpIntegralCohomologyRank (S n) (S Z) = 0
@@ -100,11 +99,11 @@ cpIntegralCohomologyRank (S n) (S (S degree)) =
   cpIntegralCohomologyRank n degree
 
 public export
-data HopfQuotientFact : ℕ -> Type where
-  CPnAsSphereByCircle : (n : ℕ) -> HopfQuotientFact n
+data HopfQuotientFact : Number -> Type where
+  CPnAsSphereByCircle : (n : Number) -> HopfQuotientFact n
 
 public export
-cpHopfQuotient : (n : ℕ) -> HopfQuotientFact n
+cpHopfQuotient : (n : Number) -> HopfQuotientFact n
 cpHopfQuotient n = CPnAsSphereByCircle n
 
 -- --------------------------------------------------------------------------
@@ -135,24 +134,24 @@ jordanSeparation curve = ExactlyTwoComplementComponents curve
 
 public export
 complementComponentCount :
-  {curve : EmbeddedCircleInS2} -> JordanSeparation curve -> ℕ
+  {curve : EmbeddedCircleInS2} -> JordanSeparation curve -> Number
 complementComponentCount (ExactlyTwoComplementComponents curve) = 2
 
 -- The one-point compactification of Euclidean R^n is S^n.  The family is
 -- indexed explicitly so this fact cannot be mistaken for a generic
 -- compactification operation on arbitrary spaces.
 public export
-data EuclideanCompactificationFact : ℕ -> Type where
+data EuclideanCompactificationFact : Number -> Type where
   EuclideanPlusIsSphere :
-    (dimension : ℕ) -> EuclideanCompactificationFact dimension
+    (dimension : Number) -> EuclideanCompactificationFact dimension
 
 public export
 euclideanOnePointCompactification :
-  (dimension : ℕ) -> EuclideanCompactificationFact dimension
+  (dimension : Number) -> EuclideanCompactificationFact dimension
 euclideanOnePointCompactification dimension =
   EuclideanPlusIsSphere dimension
 
 public export
 compactifiedSphereDimension :
-  {n : ℕ} -> EuclideanCompactificationFact n -> ℕ
+  {n : Number} -> EuclideanCompactificationFact n -> Number
 compactifiedSphereDimension (EuclideanPlusIsSphere dimension) = dimension

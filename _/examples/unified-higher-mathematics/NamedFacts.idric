@@ -2,7 +2,6 @@ module NamedFacts
 
 import TopologyFacts
 
-%default total
 %unbound_implicits off
 
 -- A deliberately tiny boundary between ordinary type checking and named
@@ -13,11 +12,11 @@ import TopologyFacts
 public export
 record FactProvenance where
   constructor MkFactProvenance
-  factNamespace : String
-  factName : String
-  factVersion : String
+  factNamespace : Text
+  factName : Text
+  factVersion : Text
   -- A declared code-source locator, not a checked citation.
-  factSource : String
+  factSource : Text
 
 public export
 data NamedFact :
@@ -67,7 +66,7 @@ answerOrigin : {result : Type} -> FactAnswer result -> FactOrigin
 answerOrigin (FromNamedFact provenance _) = NamedFactLookup provenance
 
 public export
-factExplanation : {result : Type} -> FactAnswer result -> String
+factExplanation : {result : Type} -> FactAnswer result -> Text
 factExplanation (FromNamedFact provenance _) =
   "named fact "
     ++ factNamespace provenance

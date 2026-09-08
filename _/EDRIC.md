@@ -22,9 +22,20 @@ Use ordinary, current Idris 2 to implement Edric until an Edric change is itself
 
 The first Edric-specific syntax is the storage-neutral `choice` declaration described below. The compiler remains implemented in ordinary Idris 2.
 
-## Natural-number vocabulary
+## Number and text vocabulary
 
-Idriç source spells the natural-number type `ℕ`. In a `.idric` file the frontend lowers `ℕ` to the inherited Idris 2 `Nat` internally; ordinary `.idr` source remains unchanged. `Nat` therefore remains an implementation and compatibility spelling, not the spelling for new Idriç APIs, examples, or teaching material.
+Idriç source spells the unrestricted nonnegative whole-number type `Number` and
+decoded character text `Text`. In a `.idric` file the frontend lowers those
+names to the inherited Idris 2 bootstrap representations. Ordinary `.idr`
+source remains unchanged. The inherited names are implementation and
+compatibility spellings, not names for new Idriç APIs, examples, or teaching
+material.
+
+`Number` and `Text` describe general language values. Code should still use a
+more specific semantic type—source location, byte count, path, protocol field,
+and so on—when operations or invariants differ. The older `ℕ` input spelling is
+accepted temporarily so existing Idriç source can migrate without a flag day;
+it is not the current spelling for new source.
 
 ## Data-structure vocabulary
 
@@ -52,9 +63,9 @@ snake_case names:
 
 ```idris
 choice existing_touch_target one_of
-  fixed_value ℕ
-  zero ℕ
-  pole ℕ
+  fixed_value Number
+  zero Number
+  pole Number
 
 choice touch_beginning one_of
   near_existing existing_touch_target
@@ -205,7 +216,9 @@ A new thread working on Edric should:
 - Idriç source extension: `.idric`; `.idr` remains accepted for Idris compatibility.
 - Storage-neutral, lower snake_case `choice ... one_of` syntax: implemented for `.idric` only.
 - Ordinary `.idr` use of `choice` and `one_of` as identifiers: preserved and regression-tested.
-- Idriç source spells natural numbers `ℕ`; the frontend lowers that spelling to inherited Idris 2 `Nat` internally.
+- Idriç source spells nonnegative whole numbers `Number` and decoded character
+  text `Text`; the frontend lowers both to inherited bootstrap representations.
+- The older `ℕ` spelling remains a migration alias, not the current spelling.
 - Idriç source accepts `→`, `⇒`, `←`, and `≤` as compact aliases for `->`, `=>`, `<-`, and `<=`; the ASCII spellings remain accepted.
 - The aliases are filename-scoped to `.idric`; ordinary `.idr` Unicode identifiers remain unchanged.
 - Canonical Unicode pretty-printing is not yet claimed by this input-syntax slice.

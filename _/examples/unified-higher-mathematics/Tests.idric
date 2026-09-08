@@ -6,7 +6,6 @@ import TopologyFacts
 import PresheafRestriction
 import NamedFacts
 
-%default total
 %unbound_implicits off
 
 -- These tests specify the reconciliation before its implementation. Rank
@@ -161,7 +160,7 @@ metric_driven_index_raising_test = Refl
 -- state all 128 coordinates; semantic clients use the named constructors and
 -- checked contraction/metric operations above.
 
-lastCoordinate : (n : ℕ) -> Integer -> RawExactCoordinates (S n)
+lastCoordinate : (n : Number) -> Integer -> RawExactCoordinates (S n)
 lastCoordinate Z value = UnsafeCoordinateCons value UnsafeCoordinateNil
 lastCoordinate (S n) value =
   UnsafeCoordinateCons 0 (lastCoordinate n value)
@@ -271,7 +270,7 @@ r128_four_quarter_turns_are_identity_test :
     = r128_sample
 r128_four_quarter_turns_are_identity_test = Refl
 
-lastCoordinateValue : {n : ℕ} -> RawExactCoordinates (S n) -> Integer
+lastCoordinateValue : {n : Number} -> RawExactCoordinates (S n) -> Integer
 lastCoordinateValue (UnsafeCoordinateCons value UnsafeCoordinateNil) = value
 lastCoordinateValue
   (UnsafeCoordinateCons _ rest@(UnsafeCoordinateCons _ _)) = lastCoordinateValue rest

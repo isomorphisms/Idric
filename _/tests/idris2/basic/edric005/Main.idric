@@ -17,7 +17,7 @@ unicode_order = 1≤2
 ascii_order : Bool
 ascii_order = 1 <= 2
 
-syntax_literal : String
+syntax_literal : Text
 syntax_literal = "-> => → ⇒ ← ≤"
 
 main : IO ()
