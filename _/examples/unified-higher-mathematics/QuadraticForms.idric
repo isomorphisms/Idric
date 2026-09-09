@@ -47,8 +47,8 @@ zero_covector :
   {space : FiniteSpace} →
   ExactVectorSample space →
   ExactCovectorSample space
-zero_covector {space} (UnsafeVectorCoordinates coordinates) =
-  UnsafeCovectorCoordinates $ unsafe_zero_coordinates (space_rank space)
+zero_covector (UnsafeVectorCoordinates coordinates) =
+  UnsafeCovectorCoordinates $ unsafe_scale_coordinates 0 coordinates
 
 -- Fixing the first argument gives B(x,-) as an actual covector. No vector is
 -- silently identified with its dual.
@@ -434,9 +434,9 @@ complex_zero_covector :
   {space : FiniteSpace} →
   ExactComplexVectorSample space →
   ExactComplexCovectorSample space
-complex_zero_covector {space} (UnsafeComplexVectorCoordinates coordinates) =
+complex_zero_covector (UnsafeComplexVectorCoordinates coordinates) =
   UnsafeComplexCovectorCoordinates $
-    unsafe_zero_complex_coordinates (space_rank space)
+    unsafe_scale_complex_coordinates complex_zero coordinates
 
 -- --------------------------------------------------------------------------
 -- Sesquilinear and Hermitian forms
@@ -918,10 +918,10 @@ data ExactComplexMatrix2 =
   ComplexMatrix2 ExactComplex ExactComplex ExactComplex ExactComplex
 
 export
-data HermitianMatrix2 = HermitianMatrix2 ±Number ExactComplex ±Number
+data HermitianMatrix2 = HermitianEntries2 ±Number ExactComplex ±Number
 
 full_hermitian_matrix : HermitianMatrix2 → ExactComplexMatrix2
-full_hermitian_matrix (HermitianMatrix2 first off_diagonal second) =
+full_hermitian_matrix (HermitianEntries2 first off_diagonal second) =
   ComplexMatrix2
     (Complex first 0)
     off_diagonal
@@ -998,7 +998,7 @@ hermitian_gram_matrix :
   HermitianGramMatrix basis
 hermitian_gram_matrix form basis =
   HermitianGram basis $
-    HermitianMatrix2
+    HermitianEntries2
       (real_part $
         evaluate_hermitian form
           (complex_basis_first basis)
@@ -1017,7 +1017,7 @@ represented_hermitian_form :
   HermitianGramMatrix basis →
   HermitianForm plane_space
 represented_hermitian_form
-  (HermitianGram basis (HermitianMatrix2 first off_diagonal second)) =
+  (HermitianGram basis (HermitianEntries2 first off_diagonal second)) =
     HermitianSum
       (HermitianScale first $ HermitianSquare $ complex_basis_dual_first basis)
       (HermitianSum
