@@ -286,12 +286,12 @@ sheared_hermitian_gram =
 
 standard_hermitian_gram_test :
   hermitian_gram_entries standard_hermitian_gram =
-    HermitianMatrix2 1 complex_zero 1
+    HermitianEntries2 1 complex_zero 1
 standard_hermitian_gram_test = Refl
 
 sheared_hermitian_gram_test :
   hermitian_gram_entries sheared_hermitian_gram =
-    HermitianMatrix2 1 complex_i 2
+    HermitianEntries2 1 complex_i 2
 sheared_hermitian_gram_test = Refl
 
 conjugate_transpose_change_of_basis_test :
