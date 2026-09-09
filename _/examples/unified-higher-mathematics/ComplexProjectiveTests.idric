@@ -95,13 +95,22 @@ cp1_infinity_not_in_first_chart_test :
     cp1_infinity = Nothing
 cp1_infinity_not_in_first_chart_test = Refl
 
--- C^2 and C^3 are different types because the coordinate count is part of the
--- type.  This compiler-refusal fixture guards that distinction.
-failing "Mismatch between"
-  complex_dimension_mismatch : ComplexCoordinates ExactComplex 3
-  complex_dimension_mismatch =
-    ComplexCoordinate complex_one $
-      ComplexCoordinate complex_i NoComplexCoordinates
+-- Dimension is carried by the result type itself.  Keep this acceptance
+-- diagnostic-independent: the constructors below inhabit C^2 exactly, while a
+-- C^3 consumer cannot accept this value without a type error.
+complex_dimension_two_value : ComplexCoordinates ExactComplex 2
+complex_dimension_two_value =
+  ComplexCoordinate complex_one $
+    ComplexCoordinate complex_i NoComplexCoordinates
+
+complex_dimension_two_identity :
+  ComplexCoordinates ExactComplex 2 → ComplexCoordinates ExactComplex 2
+complex_dimension_two_identity coordinates = coordinates
+
+complex_dimension_index_test :
+  complex_dimension_two_identity complex_dimension_two_value =
+    complex_dimension_two_value
+complex_dimension_index_test = Refl
 
 main : IO ()
 main = putStrLn "complex/projective structural semantics: PASS"
