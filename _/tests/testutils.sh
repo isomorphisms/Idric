@@ -134,7 +134,7 @@ else
 fi
 
 # Set variables for hygiene testing
-if [ -z "$PREFIX_CHANGED" ] && [ -n "$IDRIS2_PREFIX" ]; then
+if [ -z "${PREFIX_CHANGED:-}" ] && [ -n "$IDRIS2_PREFIX" ]; then
     OLD_PREFIX="$IDRIS2_PREFIX"
     NEW_PREFIX="$test_dir/prefix"
 
