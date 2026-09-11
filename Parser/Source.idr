@@ -28,18 +28,18 @@ canonicalize_idric_namespace ns
     = unsafeFoldNamespace $
         replace_data_text_namespace_components $ unsafeUnfoldNamespace ns
 
-canonicalize_idric_token : Token -> Token
-canonicalize_idric_token (Ident "choice") = Keyword "choice"
-canonicalize_idric_token (Ident "Number") = Ident "Nat"
-canonicalize_idric_token (Ident "Text") = Ident "String"
-canonicalize_idric_token (Ident "ℕ") = Ident "Nat"
-canonicalize_idric_token (DotSepIdent ns "Text")
+canonicalizeIdricToken : Token -> Token
+canonicalizeIdricToken (Ident "choice") = Keyword "choice"
+canonicalizeIdricToken (Ident "Number") = canonicalizeIdricToken (Ident "ℕ")
+canonicalizeIdricToken (Ident "Text") = Ident "String"
+canonicalizeIdricToken (Ident "ℕ") = Ident "Nat"
+canonicalizeIdricToken (DotSepIdent ns "Text")
     = if unsafeUnfoldNamespace ns == ["Data"]
          then DotSepIdent ns "String"
          else DotSepIdent (canonicalize_idric_namespace ns) "Text"
-canonicalize_idric_token (DotSepIdent ns name)
+canonicalizeIdricToken (DotSepIdent ns name)
     = DotSepIdent (canonicalize_idric_namespace ns) name
-canonicalize_idric_token tok = tok
+canonicalizeIdricToken tok = tok
 
 sourceSyntax : Maybe String -> SourceSyntax
 sourceSyntax (Just fname) = if isSuffixOf ".idric" fname
@@ -50,7 +50,7 @@ sourceSyntax Nothing = IdrisSyntax
 sourceTokens : Maybe String -> List (WithBounds Token) -> List (WithBounds Token)
 sourceTokens (Just fname) toks
     = if isSuffixOf ".idric" fname
-         then map (map canonicalize_idric_token) toks
+         then map (map canonicalizeIdricToken) toks
          else toks
 sourceTokens Nothing toks = toks
 
@@ -61,7 +61,7 @@ runParserToSource : {e : _} ->
                     String -> Grammar ParsingState Token e ty ->
                     Either Error (List Warning, State, ty)
 runParserToSource sourceFile origin lit reject str p
-    = do str        <- mapFst (fromLitError origin) $ unlit lit str
+    = do str        <- mapFst (fromLitError origin) $ unlit lit reject str
          (cs, toks) <- mapFst (fromLexError origin) $
                          lexToWith (sourceSyntax sourceFile) reject str
          (decs, ws, (parsed, _)) <- mapFst (fromParsingErrors origin) $
