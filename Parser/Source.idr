@@ -61,7 +61,7 @@ runParserToSource : {e : _} ->
                     String -> Grammar ParsingState Token e ty ->
                     Either Error (List Warning, State, ty)
 runParserToSource sourceFile origin lit reject str p
-    = do str        <- mapFst (fromLitError origin) $ unlit lit reject str
+    = do str        <- mapFst (fromLitError origin) $ unlit lit str
          (cs, toks) <- mapFst (fromLexError origin) $
                          lexToWith (sourceSyntax sourceFile) reject str
          (decs, ws, (parsed, _)) <- mapFst (fromParsingErrors origin) $
