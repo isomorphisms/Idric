@@ -27,7 +27,7 @@ describe_point : placed_point → Text
 describe_point (zero_at coordinate) = "zero at " ++ show coordinate
 describe_point (pole_at coordinate) = "pole at " ++ show coordinate
 
-first_description : placement_kind → Number → Vect n placed_point → Text
+first_description : placement_kind → ℕ → Vect n placed_point → String
 first_description kind coordinate points =
   let (updated ** first_is_new) = place kind coordinate points
   in describe_point (Vect.head updated)
