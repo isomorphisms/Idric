@@ -1,0 +1,19 @@
+case	positive_case	negative_case	required_evidence	status
+session_lifetime	open draw close restores terminal	use window after session closure is rejected	compiled ownership check and native execution	pending
+child_lifetime	close child before parent	close parent with live derived child is rejected	compiled ownership check and native execution	pending
+partial_acquisition	initialization failure releases acquired resources	fail after mode change and detect un-restored terminal	fault injection on actual adapter	pending
+cleanup_failure	failed restoration retains truthful recovery state	claim closed after failed restoration is rejected	fault injection on actual adapter	pending
+input_modes	raw and cbreak selected explicitly	confuse their control-key behavior and detect difference	native terminal exercise	pending
+unicode_input	Unicode NUL and non-ASCII input remain events	treat NUL as no event and reject	actual input decode tests	pending
+input_status	character and special key statuses decoded separately	unclassified ERR is falsely labeled timeout and rejected	adapter error-path tests	pending
+geometry_revision	resize produces newly bounded positions	stale pre-resize position is rejected	compiled or checked revision validation	pending
+coordinate_space	convert child position to screen explicitly	use data-row index as screen position and reject	compiled domain-type check	pending
+empty_viewport	no drawing for empty viewport	zero-size C window is accidentally expanded and detected	actual adapter geometry test	pending
+text_width	clip combining and double-width text by declared policy	split encoding or leave half a wide cell and reject	native render plus terminal observation	pending
+partial_draw	draw failure reports possible mutation	assume failed write made no changes and reject	actual adapter fault-path test	pending
+palette	negotiated capacities and explicit monochrome result	reuse stale color-pair certificate and reject	adapter plus target-terminal test	pending
+mouse_capability	return accepted event subset	claim unsupported requested mouse event is enabled	adapter capability test	pending
+owner_thread	worker sends typed message to drawing owner	worker receives and uses curses window handle and reject	compiled ownership check plus native exercise	pending
+suspend_resume	external editor returns and screen is rebuilt	resume after geometry change using stale bounds and reject	native external-process exercise	pending
+native_identity	named native backend calls actual adapter	C-only probe or RefC executable mislabeled native and rejected	executable identity and call-path receipt	pending
+separate_targets	phone tablet and host each have own receipt	host pass reused as phone acceptance is rejected	per-target source-bound receipts	pending
