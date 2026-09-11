@@ -24,12 +24,10 @@ able to re-export; it is not a ceremonial prefix for every definition.
 
 - Use `snake_case` for names under our control and prefer complete domain words
   to conventional Haskell abbreviations.
-- Use `Number` for ordinary positive whole numbers beginning at one, and
-  `±Number` for ordinary signed whole numbers, including zero. Do not use
-  `Nat`, `Natural`, `Int`, `Integer`, or the retired migration spelling `ℕ` as
-  programmer-facing synonyms for these Idriç types. Use `Text`, not `String`,
-  for decoded character text, and import `Data.Text` for inherited text
-  operations. Bootstrap and representation code may retain its native names.
+- Use `Number`, not `Nat` or the older migration spelling `ℕ`, in new `.idric`
+  source. Use `Text`, not `String`, for decoded character text, and import
+  `Data.Text` for inherited text operations. These spellings lower to inherited
+  representations inside the bootstrap compiler.
 - Use a semantic type instead of `Number`, `Text`, a raw integer, `Bits8`, or a
   flag when the value has narrower operations or invariants.
 - Use `List` for an ordinary sequence, `SizedList` or `ListOfLength` when length
@@ -42,14 +40,9 @@ able to re-export; it is not a ceremonial prefix for every definition.
 - Avoid gratuitous currying, bare-application chains, constructor-led program
   descriptions, and implementation types in domain vocabulary.
 
-`Number` excludes zero. `±Number` admits negative values, zero, and positive
-values, and positive `Number` values widen to it when an operation requires
-the broader type. Subtracting one `Number` from another therefore produces a
-`±Number`; addition and multiplication preserve `Number`. Use `Cardinality`
-for a zero-capable count, length, rank, or size when that is the value's actual
-meaning. Prefer a still more specific domain type when its operations or
-invariants differ. Do not add `Positive Number` as a verbose synonym or a
-fundamental `Negative Number` merely for symmetry.
+The general name for a number that may be positive or negative is still
+unresolved. Prefer a domain name where there is one and do not introduce a new
+unrestricted wrapper merely to avoid inherited spelling.
 
 ## Semantic boundaries
 
