@@ -17,6 +17,7 @@ import System.File
 canonicalizeIdricToken : Token -> Token
 canonicalizeIdricToken (Ident "choice") = Keyword "choice"
 canonicalizeIdricToken (Ident "ℕ") = Ident "Nat"
+canonicalizeIdricToken (Keyword "prefix") = Ident "prefix"
 canonicalizeIdricToken tok = tok
 
 sourceSyntax : Maybe String -> SourceSyntax

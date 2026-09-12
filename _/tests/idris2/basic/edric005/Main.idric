@@ -20,6 +20,17 @@ ascii_order = 1 <= 2
 syntax_literal : String
 syntax_literal = "-> => → ⇒ ← ≤"
 
+contextual_prefix : IO Integer
+contextual_prefix = do
+  value←pure 4
+  let prefix = value + 1
+  pure prefix
+
+prefix 5 !!
+
+(!!) : Integer→Integer
+(!!) value = value + 1
+
 main : IO ()
 main = do
   unicode_text←pure "unicode bind"
@@ -33,3 +44,6 @@ main = do
   printLn ascii_order
   printLn idris_compat_value
   putStrLn syntax_literal
+  contextual_prefix_value←contextual_prefix
+  printLn contextual_prefix_value
+  printLn (!! 4)

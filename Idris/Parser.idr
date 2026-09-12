@@ -1629,7 +1629,7 @@ fix
     = (keyword "infixl" $> InfixL)
   <|> (keyword "infixr" $> InfixR)
   <|> (keyword "infix"  $> Infix)
-  <|> (keyword "prefix" $> Prefix)
+  <|> ((keyword "prefix" <|> exactIdent "prefix") $> Prefix)
 
 namespaceHead : OriginDesc -> Rule Namespace
 namespaceHead fname
