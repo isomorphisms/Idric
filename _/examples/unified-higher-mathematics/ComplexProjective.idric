@@ -14,10 +14,13 @@ import MathematicalSpaces
 
 -- An element of C^n has n complex coordinates.  Dimension is part of the type,
 -- so a C^2 value cannot be consumed where C^3 is required.
-export
+public export
 data ComplexCoordinates : Type → CoordinateRank → Type where
-  NoComplexCoordinates : ComplexCoordinates complex Z
+  NoComplexCoordinates :
+    {complex : Type} →
+    ComplexCoordinates complex Z
   ComplexCoordinate :
+    {complex : Type} →
     {remaining : CoordinateRank} →
     complex →
     ComplexCoordinates complex remaining →
@@ -25,6 +28,9 @@ data ComplexCoordinates : Type → CoordinateRank → Type where
 
 export
 map_complex_coordinates :
+  {source : Type} →
+  {target : Type} →
+  {dimension : CoordinateRank} →
   (map_coordinate : source → target) →
   ComplexCoordinates source dimension →
   ComplexCoordinates target dimension
@@ -37,8 +43,10 @@ map_complex_coordinates
       (map_coordinate coordinate)
       (map_complex_coordinates map_coordinate remaining)
 
-export
+public export
 scale_complex_coordinates :
+  {complex : Type} →
+  {dimension : CoordinateRank} →
   (multiply_complex : complex → complex → complex) →
   complex →
   ComplexCoordinates complex dimension →
@@ -59,7 +67,7 @@ scale_complex_coordinates
 -- fake generic proof that an arbitrary complex carrier can decide nonzeroness.
 -- Concrete complex arithmetic should expose checked constructors appropriate
 -- to its scalar semantics.
-export
+public export
 record NonzeroComplexScalar (complex : Type) where
   constructor UnsafeKnownNonzeroComplexScalar
   nonzero_complex_value : complex
@@ -68,7 +76,7 @@ record NonzeroComplexScalar (complex : Type) where
 -- excluded.  The witness constructor is unsafe for the same reason as above:
 -- nonzeroness belongs to the concrete complex carrier, not to this structural
 -- module.
-export
+public export
 record NonzeroHomogeneousCoordinates
     (complex : Type)
     (projective_dimension : CoordinateRank) where
@@ -80,14 +88,18 @@ record NonzeroHomogeneousCoordinates
 -- semantics.  There is deliberately no Eq instance and no vector addition or
 -- multiplication on this type.  Common nonzero complex rescaling is expressed
 -- by the witness type below.
-export
+public export
 data ComplexProjectivePoint : Type → CoordinateRank → Type where
   UnsafeProjectiveClass :
+    {complex : Type} →
+    {projective_dimension : CoordinateRank} →
     NonzeroHomogeneousCoordinates complex projective_dimension →
     ComplexProjectivePoint complex projective_dimension
 
 export
 homogeneous_representative :
+  {complex : Type} →
+  {projective_dimension : CoordinateRank} →
   ComplexProjectivePoint complex projective_dimension →
   NonzeroHomogeneousCoordinates complex projective_dimension
 homogeneous_representative (UnsafeProjectiveClass representative) =
@@ -100,8 +112,10 @@ homogeneous_representative (UnsafeProjectiveClass representative) =
 -- coordinate by coordinate.  Projective equivalence is the existence of such
 -- a nonzero lambda.  Keeping the scale as explicit evidence prevents raw
 -- component equality from being mistaken for equality in CP^n.
-export
+public export
 projective_rescaling_witness :
+  {complex : Type} →
+  {projective_dimension : CoordinateRank} →
   (multiply_complex : complex → complex → complex) →
   (scale : NonzeroComplexScalar complex) →
   (left : NonzeroHomogeneousCoordinates complex projective_dimension) →
@@ -117,8 +131,10 @@ projective_rescaling_witness
 -- (z1,...,zn) maps to [1:z1:...:zn].  The first homogeneous coordinate is
 -- supplied as a known-nonzero complex scalar rather than inferred from a
 -- machine representation.
-export
+public export
 affine_to_projective :
+  {complex : Type} →
+  {projective_dimension : CoordinateRank} →
   NonzeroComplexScalar complex →
   ComplexCoordinates complex projective_dimension →
   ComplexProjectivePoint complex projective_dimension
@@ -131,8 +147,10 @@ affine_to_projective
           (nonzero_complex_value one)
           affine_coordinates
 
-private
+public export
 divide_coordinates_by :
+  {complex : Type} →
+  {dimension : CoordinateRank} →
   (divide_complex : complex → complex → complex) →
   complex →
   ComplexCoordinates complex dimension →
@@ -150,8 +168,10 @@ divide_coordinates_by
 -- Extract the affine chart with first homogeneous coordinate nonzero.  The
 -- operation is partial: [0:z1:...:zn] is outside this chart.  In particular,
 -- [0:1] in CP^1 is the point at infinity and returns Nothing here.
-export
+public export
 projective_first_chart :
+  {complex : Type} →
+  {projective_dimension : CoordinateRank} →
   (is_zero_complex : complex → Bool) →
   (divide_complex : complex → complex → complex) →
   ComplexProjectivePoint complex projective_dimension →
