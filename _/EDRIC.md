@@ -22,6 +22,14 @@ Use ordinary, current Idris 2 to implement Edric until an Edric change is itself
 
 The first Edric-specific syntax is the storage-neutral `choice` declaration described below. The compiler remains implemented in ordinary Idris 2.
 
+## Downstream complex-mathematics boundary
+
+Idriç must be able to preserve first-class complex arithmetic, dimensioned complex mathematical objects, and the distinction between holomorphic operations and non-holomorphic observations through target-neutral compiler interfaces. Backends may lower those interfaces differently, but they must not change their mathematical or exceptional-value semantics.
+
+The live downstream reference for whole-plane holomorphic evolution is [`isomorphismes/analytic-continuation`](https://github.com/isomorphismes/analytic-continuation/blob/main/docs/holomorphic-mathematical-contract.md). Its application contract chooses the entire perturbation space and uses `f = R exp(q)`; [`isomorphismes/wegert`](https://github.com/isomorphismes/wegert) owns the resulting phase-portrait behavior. These repositories are important acceptance consumers, not reasons to place Bergman kernels, Bargmann-Fock spaces, random-walk policy, or Android rendering in the everyday Idriç core.
+
+General complex/projective semantics belong in Idriç only at the smallest reusable language/compiler seam. The x86-64, ARM, and shader repositories remain implementation followers or leaders as recorded by their own versioned corpora and receipts; no backend defines which holomorphic perturbations the application admits.
+
 ## Natural-number vocabulary
 
 Idriç source spells the natural-number type `ℕ`. In a `.idric` file the frontend lowers `ℕ` to the inherited Idris 2 `Nat` internally; ordinary `.idr` source remains unchanged. `Nat` therefore remains an implementation and compatibility spelling, not the spelling for new Idriç APIs, examples, or teaching material.
