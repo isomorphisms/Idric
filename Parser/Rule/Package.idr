@@ -26,7 +26,11 @@ equals = terminal "Expected equals" $
 ||| Only dependency declarations accept the descriptive `on` separator.
 export
 dependencySeparator : Rule ()
-dependencySeparator = equals <|> (ignore $ exactProperty "on")
+dependencySeparator = terminal "Expected equals or on after depends" $
+                        \case
+                          Equals => Just ()
+                          DotSepIdent Nothing "on" => Just ()
+                          _ => Nothing
 
 export
 lte : Rule ()
