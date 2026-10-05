@@ -23,6 +23,15 @@ equals = terminal "Expected equals" $
                     Equals => Just ()
                     _ => Nothing
 
+||| Only dependency declarations accept the descriptive `on` separator.
+export
+dependencySeparator : Rule ()
+dependencySeparator = terminal "Expected equals or on after depends" $
+                        \case
+                          Equals => Just ()
+                          DotSepIdent Nothing "on" => Just ()
+                          _ => Nothing
+
 export
 lte : Rule ()
 lte = terminal "Expected <=" $

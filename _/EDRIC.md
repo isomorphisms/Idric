@@ -261,3 +261,7 @@ A new thread working on Idriç should:
   provenance-labelled named fact.  It is a bounded semantic example, not a
   complete real-scalar model or general mathematics engine.
 - The same higher-mathematics acceptance now carries the exact three-byte Q0.11 octahedral storage contract for an `S²` direction / unit pure quaternion. It fixes packing and principal-axis bytes without claiming that this is a general `S³` orientation-quaternion codec or importing accelerometer-specific magnitude and gravity semantics.
+
+## Contextual package and prefix syntax
+
+Dependency declarations accept `depends on network`; inherited `depends = network` remains valid. Other package fields still require `=`. In `.idric` source, `prefix` is an ordinary name except at a prefix-fixity declaration. The inherited `.idr` keyword behavior is unchanged.

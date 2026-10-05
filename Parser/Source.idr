@@ -33,6 +33,7 @@ canonicalize_idric_namespace ns
 canonicalizeIdricToken : Token -> Token
 canonicalizeIdricToken (Ident "choice") = Keyword "choice"
 canonicalizeIdricToken (Ident "ℕ") = Ident "Nat"
+canonicalizeIdricToken (Keyword "prefix") = Ident "prefix"
 canonicalizeIdricToken tok = tok
 
 canonicalize_idric_surface_token : Token -> Token

@@ -24,6 +24,17 @@ syntax_literal = "-> => → ⇒ ← ≤"
 text_words : Text → List Text
 text_words text = Data.Text.words text
 
+contextual_prefix : IO Integer
+contextual_prefix = do
+  value←pure 4
+  let prefix = value + 1
+  pure prefix
+
+prefix 5 !!
+
+(!!) : Integer→Integer
+(!!) value = value + 1
+
 main : IO ()
 main = do
   unicode_text←pure "unicode bind"
@@ -39,3 +50,6 @@ main = do
   printLn idris_string_module_words
   printLn $ text_words "Data.Text is source vocabulary"
   putStrLn syntax_literal
+  contextual_prefix_value←contextual_prefix
+  printLn contextual_prefix_value
+  printLn (!! 4)

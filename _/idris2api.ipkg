@@ -325,6 +325,6 @@ modules =
     Yaffle.Main,
     Yaffle.REPL
 
-depends = network
+depends on network
 
 sourcedir = "src"

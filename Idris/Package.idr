@@ -122,7 +122,7 @@ field fname
              pure (PVersionDep (MkFC (PhysicalPkgSrc fname) start end) v)
     <|> do ignore $ exactProperty "depends"
            mustWork $ do
-             equals
+             dependencySeparator
              ds <- sep depends
              pure (PDepends ds)
     <|> do ignore $ exactProperty "modules"

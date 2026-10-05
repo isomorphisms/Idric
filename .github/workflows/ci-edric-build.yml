@@ -57,6 +57,12 @@ jobs:
       - name: Verify follower-visible environment export contract
         run: ./edric test --only base/system_environment_value
 
+      - name: Package dependency separator compatibility
+        run: ./edric test --only idris2/pkg/pkg006
+
+      - name: Inherited Idris prefix fixity compatibility
+        run: ./edric test --only idris2/misc/import009
+
       - name: Offline XBRL compiler acceptance
         run: sudo --preserve-env=IDRIC_EXPECTED_HEAD unshare --net -- python3 xbrl_acceptance.py run
 
