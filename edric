@@ -2,68 +2,39 @@
 set -eu
 
 repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-toolchain_dir=${EDRIC_TOOLCHAIN_DIR:-"$repo_root/.tools"}
-scheme="$toolchain_dir/bin/scheme"
-make_command=${MAKE:-make}
+hidden_root=$repo_root/_
 
-# Bootstrap stage 2 runs the compiler produced by stage 1. That compiler
-# invokes its Chez backend as `scheme`, so the private pinned toolchain must be
-# visible on PATH as well as passed to the stage-1 make invocation.
-PATH="$toolchain_dir/bin:$PATH"
-export PATH
-
-usage() {
-	cat <<'USAGE'
-usage: ./edric [scheme|bootstrap|test|all]
-
-  scheme     install the pinned threaded Chez Scheme under .tools
-  bootstrap  install Chez Scheme, then bootstrap Idris 2
-  test       run the focused Edric handoff test with an existing build
-  all        install Chez Scheme, bootstrap Idris 2, and run the handoff test
-
-With no command, all is used.
-USAGE
+[ -x "$hidden_root/edric" ] || {
+    printf '%s\n' 'edric: _/edric is missing or not executable' >&2
+    exit 127
 }
 
-install_scheme() {
-	EDRIC_TOOLCHAIN_DIR="$toolchain_dir" "$repo_root/scripts/ensure-chez.sh" >/dev/null
+sh "$hidden_root/edric" "$@"
+
+# Keep build-system state under _/, while preserving stable top-level paths
+# for Catfood and for people invoking the compiler directly.
+link_hidden_output() {
+    name=$1
+    target=_/$name
+    source=$repo_root/$target
+    destination=$repo_root/$name
+
+    [ -e "$source" ] || return 0
+    if [ -L "$destination" ]; then
+        ln -sfn "$target" "$destination"
+    elif [ ! -e "$destination" ]; then
+        ln -s "$target" "$destination"
+    fi
 }
 
-bootstrap() {
-	install_scheme
-	"$make_command" -C "$repo_root" bootstrap SCHEME="$scheme"
-}
+link_hidden_output .tools
+link_hidden_output bootstrap-build
+link_hidden_output build
 
-smoke_test() {
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric001
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric002
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric003
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric004
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric005
-	"$make_command" -C "$repo_root" test only=idris2/basic/edric006
-}
-
-command=${1:-all}
-case "$command" in
-scheme)
-	install_scheme
-	printf '%s\n' "$scheme"
-	;;
-bootstrap)
-	bootstrap
-	;;
-test)
-	smoke_test
-	;;
-all)
-	bootstrap
-	smoke_test
-	;;
--h | --help | help)
-	usage
-	;;
-*)
-	usage >&2
-	exit 2
-	;;
-esac
+if [ -x "$hidden_root/build/exec/idris2" ]; then
+    if [ -L "$repo_root/idris2" ]; then
+        ln -sfn _/build/exec/idris2 "$repo_root/idris2"
+    elif [ ! -e "$repo_root/idris2" ]; then
+        ln -s _/build/exec/idris2 "$repo_root/idris2"
+    fi
+fi

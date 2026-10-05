@@ -1,0 +1,31 @@
+name: Idriç source-layout check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  layout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify flattened source layout
+        run: |
+          test -s README.md
+          test -d Core
+          test -d TTImp
+          test -L _/src
+          test "$(readlink _/src)" = ".."
+      - name: Verify top-level edric compatibility entrypoint
+        shell: sh
+        run: |
+          test -x edric
+          dash -n edric
+          sh -n edric
+          ./edric --help | grep -F 'usage: ./_/edric'

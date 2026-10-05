@@ -1,0 +1,63 @@
+*.ibc
+*.ttc
+*.ttm
+*.o
+*.d
+*.a
+*.dll
+*.dylib
+
+/build
+
+/lib
+
+idris2docs_venv
+/docs/build
+
+/libs/**/build
+/ipkg/build
+
+/tests/**/build
+/tests/**/prefix
+/tests/**/output*
+/tests/**/*.so
+/tests/**/*.dylib
+/tests/**/*.dll
+/tests/failures
+
+/koans/**/build
+
+/benchmark/**/build
+/benchmark/*.csv
+
+/bootstrap-build
+
+/src/IdrisPaths.idr
+
+/custom.mk
+
+# Repo-local Edric toolchain
+/.tools
+
+# NixOS
+/result
+
+# Editor/IDE Related
+# WARNING:
+#   do not put comments on the same line as a regex
+#   git seems to ignore the pattern in this case
+
+# Vim swap file
+*~
+*.*.swp
+# Emacs swap file
+.\#*
+# VS Code
+.vscode/*
+# JetBrains IDEs
+.idea/
+# Zed editor
+.zed/
+
+# macOS
+.DS_Store

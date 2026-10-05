@@ -1,0 +1,7 @@
+module Main
+
+keep_runtime_value : (0 compile_time_number : Number) → Number → Number
+keep_runtime_value compile_time_number runtime_number = runtime_number
+
+main : IO ()
+main = printLn (keep_runtime_value 100 7)

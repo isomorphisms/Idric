@@ -7,40 +7,39 @@
 *.dll
 *.dylib
 
-/build
+/_/build
+/_/lib
 
-/lib
+/_/idris2docs_venv
+/_/docs/build
 
-idris2docs_venv
-/docs/build
+/_/libs/**/build
+/_/ipkg/build
 
-/libs/**/build
-/ipkg/build
+/_/tests/**/build
+/_/tests/**/prefix
+/_/tests/**/output*
+/_/tests/**/*.so
+/_/tests/**/*.dylib
+/_/tests/**/*.dll
+/_/tests/failures
 
-/tests/**/build
-/tests/**/prefix
-/tests/**/output*
-/tests/**/*.so
-/tests/**/*.dylib
-/tests/**/*.dll
-/tests/failures
+/_/koans/**/build
 
-/koans/**/build
+/_/benchmark/**/build
+/_/benchmark/*.csv
 
-/benchmark/**/build
-/benchmark/*.csv
+/_/bootstrap-build
 
-/bootstrap-build
+/IdrisPaths.idr
 
-/src/IdrisPaths.idr
-
-/custom.mk
+/_/custom.mk
 
 # Repo-local Edric toolchain
-/.tools
+/_/.tools
 
 # NixOS
-/result
+/_/result
 
 # Editor/IDE Related
 # WARNING:

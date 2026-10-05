@@ -1,0 +1,10 @@
+module Main
+
+increment : Number → Number
+increment = \number ⇒ ?incremented
+
+twice : (a → a) → a → a
+twice = \function ⇒ \value ⇒ ?twice_result
+
+main : IO ()
+main = printLn (twice increment 5)

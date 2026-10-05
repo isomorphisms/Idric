@@ -1,0 +1,13 @@
+module Main
+
+-- Compile this file and read the types reported for these named holes.
+answer : Number
+answer = ?natural_number
+
+message : Text
+message = ?text_value
+
+main : IO ()
+main = do
+  printLn answer
+  putStrLn message

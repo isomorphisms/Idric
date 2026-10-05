@@ -1,0 +1,447 @@
+module Tests
+
+import MathematicalSpaces
+import EuclideanGeometry
+import TopologyFacts
+import PresheafRestriction
+import NamedFacts
+
+%unbound_implicits off
+
+-- These tests specify the reconciliation before its implementation. Rank
+-- equality is necessary but not sufficient for space equality, and a vector
+-- is not a covector unless a Euclidean structure is supplied explicitly.
+
+-- --------------------------------------------------------------------------
+-- Named, ranked spaces and typed contraction
+-- --------------------------------------------------------------------------
+
+plane_pairing_test :
+  contract (plane_covector 5 7) (plane_vector 3 4) = the ±Number 43
+plane_pairing_test = Refl
+
+contraction_linear_in_vector_test :
+  contract
+    (plane_covector 5 7)
+    (add_vector (plane_vector 3 4) (plane_vector 2 (-1)))
+  = contract (plane_covector 5 7) (plane_vector 3 4)
+      + contract (plane_covector 5 7) (plane_vector 2 (-1))
+contraction_linear_in_vector_test = Refl
+
+contraction_linear_in_covector_test :
+  contract
+    (add_covector (plane_covector 5 7) (plane_covector (-2) 1))
+    (plane_vector 3 4)
+  = contract (plane_covector 5 7) (plane_vector 3 4)
+      + contract (plane_covector (-2) 1) (plane_vector 3 4)
+contraction_linear_in_covector_test = Refl
+
+contraction_respects_vector_scaling_test :
+  contract
+    (plane_covector 5 7)
+    (scale_vector 3 (plane_vector 3 4))
+  = the ±Number 3 * contract (plane_covector 5 7) (plane_vector 3 4)
+contraction_respects_vector_scaling_test = Refl
+
+contraction_respects_covector_scaling_test :
+  contract
+    (scale_covector 3 (plane_covector 5 7))
+    (plane_vector 3 4)
+  = the ±Number 3 * contract (plane_covector 5 7) (plane_vector 3 4)
+contraction_respects_covector_scaling_test = Refl
+
+failing "Mismatch between: PlaneName and ImagePlaneName."
+  equal_rank_named_spaces_do_not_unify : ExactVectorSample image_plane_space
+  equal_rank_named_spaces_do_not_unify = plane_vector 1 2
+
+failing "Mismatch between: 0 and 1."
+  one_name_cannot_claim_a_different_rank : FiniteSpace
+  one_name_cannot_claim_a_different_rank =
+    NamedFiniteSpace {rank = 3} PlaneName
+
+failing "Mismatch between: RealThreeName and PlaneName."
+  mismatched_dimension_contraction : ±Number
+  mismatched_dimension_contraction =
+    contract (plane_covector 1 2) (three_vector 3 4 5)
+
+failing "Mismatch between: ImagePlaneName and PlaneName."
+  equal_rank_mismatched_space_contraction : ±Number
+  equal_rank_mismatched_space_contraction =
+    contract (plane_covector 1 2) (image_plane_vector 3 4)
+
+failing "Mismatch between: ExactVectorSample plane_space and ExactCovectorSample"
+  vector_vector_contraction_without_euclidean_structure : ±Number
+  vector_vector_contraction_without_euclidean_structure =
+    contract (plane_vector 1 2) (plane_vector 3 4)
+
+-- --------------------------------------------------------------------------
+-- Explicit Euclidean structure
+-- --------------------------------------------------------------------------
+
+metric_lowers_vector_test :
+  lower_index plane_euclidean (plane_vector 3 4) = plane_covector 3 4
+metric_lowers_vector_test = Refl
+
+metric_raises_covector_test :
+  raise_index plane_euclidean (plane_covector 3 4) = plane_vector 3 4
+metric_raises_covector_test = Refl
+
+metric_dot_test :
+  dot plane_euclidean (plane_vector 3 4) (plane_vector 5 7) = the ±Number 43
+metric_dot_test = Refl
+
+metric_squared_norm_test :
+  squared_norm plane_euclidean (plane_vector 3 4) = the ±Number 25
+metric_squared_norm_test = Refl
+
+metric_norm_test :
+  norm plane_euclidean (plane_vector 3 4) = SquareRoot 25
+metric_norm_test = Refl
+
+metric_squared_distance_test :
+  squared_distance
+    plane_euclidean
+    (plane_vector 5 7)
+    (plane_vector 2 3) = the ±Number 25
+metric_squared_distance_test = Refl
+
+metric_distance_test :
+  distance
+    plane_euclidean
+    (plane_vector 5 7)
+    (plane_vector 2 3) = SquareRoot 25
+metric_distance_test = Refl
+
+-- --------------------------------------------------------------------------
+-- Variance- and space-aware Einstein contraction kernel
+-- --------------------------------------------------------------------------
+
+named_index_contraction_test :
+  contract_index
+    (LowerIndex (plane_covector 5 7))
+    (UpperIndex (plane_vector 3 4)) = the ±Number 43
+named_index_contraction_test = Refl
+
+failing "Mismatch between: Lower and Upper."
+  same_variance_index_contraction : ±Number
+  same_variance_index_contraction =
+    contract_index
+      (LowerIndex (plane_covector 5 7))
+      (LowerIndex (plane_covector 3 4))
+
+failing "Mismatch between: ImagePlaneName and PlaneName."
+  equal_rank_named_index_space_mismatch : ±Number
+  equal_rank_named_index_space_mismatch =
+    contract_index
+      (LowerIndex (plane_covector 5 7))
+      (UpperIndex (image_plane_vector 3 4))
+
+metric_driven_index_lowering_test :
+  contract_index
+    (lower_indexed plane_euclidean (UpperIndex (plane_vector 5 7)))
+    (UpperIndex (plane_vector 3 4)) = the ±Number 43
+metric_driven_index_lowering_test = Refl
+
+metric_driven_index_raising_test :
+  raise_indexed plane_euclidean (LowerIndex (plane_covector 3 4))
+    = UpperIndex (plane_vector 3 4)
+metric_driven_index_raising_test = Refl
+
+-- --------------------------------------------------------------------------
+-- Exact R^128 oracle from #47
+-- --------------------------------------------------------------------------
+
+-- The strengthened fixture remains exactly
+--   x = (3, 4, 12, 0, ..., 0, 9)
+--   y = (5, -2, 7, 0, ..., 0, 11).
+-- The nonzero final coordinates force the implementation to preserve the
+-- distant end of the coordinate object, not merely its type-level rank.
+-- This fixture deliberately crosses the Unsafe... representation boundary to
+-- state all 128 coordinates; semantic clients use the named constructors and
+-- checked contraction/metric operations above.
+
+last_coordinate : (n : CoordinateRank) → ±Number → RawExactCoordinates (S n)
+last_coordinate Z value = UnsafeCoordinateCons value UnsafeCoordinateNil
+last_coordinate (S n) value =
+  UnsafeCoordinateCons 0 (last_coordinate n value)
+
+r128_sample_tail : RawExactCoordinates 126
+r128_sample_tail =
+  unsafe_add_coordinates
+    (UnsafeCoordinateCons 12 (unsafe_zero_coordinates 125))
+    (last_coordinate 125 9)
+
+r128_companion_tail : RawExactCoordinates 126
+r128_companion_tail =
+  unsafe_add_coordinates
+    (UnsafeCoordinateCons 7 (unsafe_zero_coordinates 125))
+    (last_coordinate 125 11)
+
+r128_sample : ExactVectorSample real128_space
+r128_sample =
+  UnsafeVectorCoordinates
+    (UnsafeCoordinateCons 3 (UnsafeCoordinateCons 4 r128_sample_tail))
+
+r128_companion : ExactVectorSample real128_space
+r128_companion =
+  UnsafeVectorCoordinates
+    (UnsafeCoordinateCons 5 (UnsafeCoordinateCons (-2) r128_companion_tail))
+
+reflection_in_r128_type_test :
+  OrthogonalTransform real128_euclidean Reversing
+reflection_in_r128_type_test = first_axis_reflection real128_euclidean
+
+quarter_turn_in_r128_type_test : SpecialOrthogonal real128_euclidean
+quarter_turn_in_r128_type_test = first_plane_quarter_turn real128_euclidean
+
+two_reflections_land_in_so128_test : SpecialOrthogonal real128_euclidean
+two_reflections_land_in_so128_test =
+  two_reflections
+    (first_axis_reflection real128_euclidean)
+    (first_axis_reflection real128_euclidean)
+
+r128_orthogonal_identity_action_test :
+  apply_orthogonal_exact OrthogonalIdentity r128_sample = r128_sample
+r128_orthogonal_identity_action_test = Refl
+
+r128_two_reflections_action_test :
+  apply_special_orthogonal_exact
+    two_reflections_land_in_so128_test
+    r128_sample = r128_sample
+r128_two_reflections_action_test = Refl
+
+orthogonal_composition_order_test :
+  apply_orthogonal_exact
+    (compose_orthogonal
+      (first_axis_reflection plane_euclidean)
+      (special_orthogonal_transform (first_plane_quarter_turn plane_euclidean)))
+    (plane_vector 2 3) = plane_vector 3 2
+orthogonal_composition_order_test = Refl
+
+r128_reflection_exact_image_test :
+  apply_first_axis_reflection real128_euclidean r128_sample
+    = UnsafeVectorCoordinates
+        (UnsafeCoordinateCons (-3) (UnsafeCoordinateCons 4 r128_sample_tail))
+r128_reflection_exact_image_test = Refl
+
+r128_quarter_turn_exact_image_test :
+  apply_first_plane_quarter_turn real128_euclidean r128_sample
+    = UnsafeVectorCoordinates
+        (UnsafeCoordinateCons (-4) (UnsafeCoordinateCons 3 r128_sample_tail))
+r128_quarter_turn_exact_image_test = Refl
+
+r128_reflection_preserves_squared_norm_test :
+  squared_norm
+    real128_euclidean
+    (apply_first_axis_reflection real128_euclidean r128_sample) = the ±Number 250
+r128_reflection_preserves_squared_norm_test = Refl
+
+r128_quarter_turn_preserves_squared_norm_test :
+  squared_norm
+    real128_euclidean
+    (apply_first_plane_quarter_turn real128_euclidean r128_sample) = the ±Number 250
+r128_quarter_turn_preserves_squared_norm_test = Refl
+
+r128_reflection_preserves_dot_test :
+  dot
+    real128_euclidean
+    (apply_first_axis_reflection real128_euclidean r128_sample)
+    (apply_first_axis_reflection real128_euclidean r128_companion) = the ±Number 190
+r128_reflection_preserves_dot_test = Refl
+
+r128_quarter_turn_preserves_dot_test :
+  dot
+    real128_euclidean
+    (apply_first_plane_quarter_turn real128_euclidean r128_sample)
+    (apply_first_plane_quarter_turn real128_euclidean r128_companion) = the ±Number 190
+r128_quarter_turn_preserves_dot_test = Refl
+
+r128_reflection_is_involution_test :
+  apply_first_axis_reflection
+    real128_euclidean
+    (apply_first_axis_reflection real128_euclidean r128_sample) = r128_sample
+r128_reflection_is_involution_test = Refl
+
+r128_four_quarter_turns_are_identity_test :
+  apply_first_plane_quarter_turn real128_euclidean
+    (apply_first_plane_quarter_turn real128_euclidean
+      (apply_first_plane_quarter_turn real128_euclidean
+        (apply_first_plane_quarter_turn real128_euclidean r128_sample)))
+    = r128_sample
+r128_four_quarter_turns_are_identity_test = Refl
+
+last_coordinate_value : {n : CoordinateRank} → RawExactCoordinates (S n) → ±Number
+last_coordinate_value (UnsafeCoordinateCons value UnsafeCoordinateNil) = value
+last_coordinate_value
+  (UnsafeCoordinateCons _ rest@(UnsafeCoordinateCons _ _)) = last_coordinate_value rest
+
+r128_reflection_preserves_coordinate_128_test :
+  last_coordinate_value
+    (unsafe_coordinates_of_vector
+      (apply_first_axis_reflection real128_euclidean r128_sample)) = the ±Number 9
+r128_reflection_preserves_coordinate_128_test = Refl
+
+r128_quarter_turn_preserves_coordinate_128_test :
+  last_coordinate_value
+    (unsafe_coordinates_of_vector
+      (apply_first_plane_quarter_turn real128_euclidean r128_sample)) = the ±Number 9
+r128_quarter_turn_preserves_coordinate_128_test = Refl
+
+-- --------------------------------------------------------------------------
+-- Surviving geometry and topology facts from #45
+-- --------------------------------------------------------------------------
+
+north_pole_is_s2_test : UnitSpherePoint real_three_euclidean
+north_pole_is_s2_test = north_pole_s2
+
+sphere_s0_h0_rank_test : sphere_integral_cohomology_rank 0 0 = the Number 2
+sphere_s0_h0_rank_test = Refl
+
+sphere_s2_h0_rank_test : sphere_integral_cohomology_rank 2 0 = the Number 1
+sphere_s2_h0_rank_test = Refl
+
+sphere_s2_h1_rank_test : sphere_integral_cohomology_rank 2 1 = the Number 0
+sphere_s2_h1_rank_test = Refl
+
+sphere_s2_h2_rank_test : sphere_integral_cohomology_rank 2 2 = the Number 1
+sphere_s2_h2_rank_test = Refl
+
+odd_sphere_euler_test : sphere_euler_characteristic 3 = the ±Number 0
+odd_sphere_euler_test = Refl
+
+even_sphere_euler_test : sphere_euler_characteristic 4 = the ±Number 2
+even_sphere_euler_test = Refl
+
+quaternion_i_j_test : quaternion_multiply quaternion_i quaternion_j = quaternion_k
+quaternion_i_j_test = Refl
+
+quaternion_j_i_test :
+  quaternion_multiply quaternion_j quaternion_i = quaternion_negate quaternion_k
+quaternion_j_i_test = Refl
+
+quaternion_i_norm_test : quaternion_norm_squared quaternion_i = the ±Number 1
+quaternion_i_norm_test = Refl
+
+unit_quaternion_rotation_is_so3_test : SpecialOrthogonal real_three_euclidean
+unit_quaternion_rotation_is_so3_test = quaternion_rotation unit_quaternion_i
+
+unit_quaternion_rotation_action_test :
+  apply_special_orthogonal_exact
+    (quaternion_rotation unit_quaternion_i)
+    (three_vector 0 1 0) = three_vector 0 (-1) 0
+unit_quaternion_rotation_action_test = Refl
+
+cp3_real_dimension_test : cp_real_dimension 3 = the Number 6
+cp3_real_dimension_test = Refl
+
+cp3_hopf_sphere_dimension_test : cp_hopf_sphere_dimension 3 = the Number 7
+cp3_hopf_sphere_dimension_test = Refl
+
+cp2_h0_rank_test : cp_integral_cohomology_rank 2 0 = the Number 1
+cp2_h0_rank_test = Refl
+
+cp2_h2_rank_test : cp_integral_cohomology_rank 2 2 = the Number 1
+cp2_h2_rank_test = Refl
+
+cp2_h4_rank_test : cp_integral_cohomology_rank 2 4 = the Number 1
+cp2_h4_rank_test = Refl
+
+cp2_h3_rank_test : cp_integral_cohomology_rank 2 3 = the Number 0
+cp2_h3_rank_test = Refl
+
+cp2_h6_rank_test : cp_integral_cohomology_rank 2 6 = the Number 0
+cp2_h6_rank_test = Refl
+
+r3_one_point_compactifies_to_s3_test :
+  compactified_sphere_dimension (euclidean_one_point_compactification 3) =
+    the Number 3
+r3_one_point_compactifies_to_s3_test = Refl
+
+-- --------------------------------------------------------------------------
+-- Finite presheaf restriction remains a separate typed experiment
+-- --------------------------------------------------------------------------
+
+whole_tensor : ElementaryTensorSection Whole
+whole_tensor = TensorSection (WholeSection 2) (WholeSection 3)
+
+tensor_restriction_infers_open_test : ElementaryTensorSection Patch
+tensor_restriction_infers_open_test = restrict_tensor PatchWhole whole_tensor
+
+tensor_restriction_identity_test :
+  restrict_tensor Same tensor_restriction_infers_open_test
+    = tensor_restriction_infers_open_test
+tensor_restriction_identity_test = Refl
+
+tensor_restriction_composition_test :
+  restrict_tensor PointPatch (restrict_tensor PatchWhole whole_tensor)
+    = restrict_tensor PointWhole whole_tensor
+tensor_restriction_composition_test = Refl
+
+tensor_restriction_componentwise_test :
+  restrict_tensor PatchWhole whole_tensor
+    = TensorSection (PatchSection 2) (PatchSection 3)
+tensor_restriction_componentwise_test =
+  tensor_restriction_pointwise PatchWhole (WholeSection 2) (WholeSection 3)
+
+-- --------------------------------------------------------------------------
+-- Tiny provenance-aware named-fact boundary
+-- --------------------------------------------------------------------------
+
+jordan_context : TypedContext EmbeddedCircleInS2
+jordan_context = ContextContains jordan_curve_example
+
+jordan_lookup_test : FactAnswer (JordanSeparation jordan_curve_example)
+jordan_lookup_test = lookup_named_fact jordan_separation_fact jordan_context
+
+unrelated_context : TypedContext (ExactVectorSample plane_space)
+unrelated_context = ContextContains (plane_vector 1 2)
+
+failing "Mismatch between: ExactVectorSample plane_space and EmbeddedCircleInS2."
+  named_fact_rejects_unrelated_context :
+    FactAnswer (JordanSeparation jordan_curve_example)
+  named_fact_rejects_unrelated_context =
+    lookup_named_fact jordan_separation_fact unrelated_context
+
+jordan_lookup_conclusion_test :
+  complement_component_count (fact_conclusion jordan_lookup_test) = the Number 2
+jordan_lookup_conclusion_test = Refl
+
+jordan_lookup_explanation_test :
+  fact_explanation jordan_lookup_test
+    = "named fact topology.jordan-separation@1"
+jordan_lookup_explanation_test = Refl
+
+jordan_lookup_origin_test :
+  answer_origin jordan_lookup_test
+    = NamedFactLookup
+        (MkFactProvenance
+          "topology"
+          "jordan-separation"
+          "1"
+          "TopologyFacts.jordan_separation")
+jordan_lookup_origin_test = Refl
+
+jordan_lookup_namespace_test :
+  fact_namespace (answer_provenance jordan_lookup_test) = "topology"
+jordan_lookup_namespace_test = Refl
+
+jordan_lookup_name_test :
+  fact_name (answer_provenance jordan_lookup_test) = "jordan-separation"
+jordan_lookup_name_test = Refl
+
+jordan_lookup_version_test :
+  fact_version (answer_provenance jordan_lookup_test) = "1"
+jordan_lookup_version_test = Refl
+
+jordan_lookup_source_test :
+  fact_source (answer_provenance jordan_lookup_test)
+    = "TopologyFacts.jordan_separation"
+jordan_lookup_source_test = Refl
+
+main : IO ()
+main = do
+  putStrLn "named space and Euclidean semantics: PASS"
+  putStrLn "R^128 exact orthogonal oracle: PASS"
+  putStrLn "invalid contractions rejected by the compiler: PASS"
+  putStrLn "finite presheaf restriction laws: PASS"
+  putStrLn "provenance-aware named fact lookup: PASS"

@@ -1,1 +1,3 @@
-bootstrap/idris2_app/* linguist-generated
+_/bootstrap/idris2_app/* linguist-generated
+*.idric linguist-language=Idris
+fixtures/xbrl/*.xml -text

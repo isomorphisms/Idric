@@ -1,0 +1,8 @@
+module Main
+
+-- A multiplicity-0 value may affect checking but cannot supply runtime data.
+keep_runtime_value : (0 compile_time_number : Number) → Number → Number
+keep_runtime_value compile_time_number runtime_number = ?runtime_number_only
+
+main : IO ()
+main = printLn (keep_runtime_value 100 7)
