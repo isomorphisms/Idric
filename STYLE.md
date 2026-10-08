@@ -112,6 +112,8 @@ language accepts it.
 - `∘` for composition where it actually clarifies the expression
 - Unicode `−` for mathematical minus rather than an ASCII hyphen when writing
   mathematical notation
+- `×` and `÷` for multiplication and division in mathematical `.idric`
+  expressions; they retain the inherited `*` and `/` operator semantics
 
 Do not use ASCII `->` or `<-` as substitutes for Idriç-facing arrows.
 
