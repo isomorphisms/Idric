@@ -1,0 +1,28 @@
+module Main
+
+quotient : Double
+quotient = 84.0 ÷ 2.0
+
+ordinary_quotient : Double
+ordinary_quotient = 84.0 / 2.0
+
+mixed_product : Double
+mixed_product = 12.0 ÷ 3.0 × 2.0
+
+precedence : Bool
+precedence = (2.0 + 12.0 ÷ 3.0) == 6.0
+
+left_associative : Bool
+left_associative = (24.0 ÷ 3.0 ÷ 2.0) == 4.0
+
+literal : String
+literal = "84 ÷ 2 and 3 × 4"
+
+main : IO ()
+main = do
+  printLn (quotient == 42.0)
+  printLn (ordinary_quotient == quotient)
+  printLn (mixed_product == 8.0)
+  printLn precedence
+  printLn left_associative
+  putStrLn literal
