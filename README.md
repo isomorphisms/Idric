@@ -20,16 +20,16 @@ The root [`edric`](edric) entrypoint dispatches to that build machinery.
 
 | Project | Responsibility |
 | --- | --- |
-| [DEX / ARM backend repository](https://github.com/dilapidated-shed/idric-arm-thumb) | `main` is the direct DEX/ART line; [`native-arm`](https://github.com/dilapidated-shed/idric-arm-thumb/tree/native-arm) is a separate ARM/Thumb line. They are not interchangeable evidence. |
-| [x86-64 backend](https://github.com/dilapidated-shed/idric-x86-aggressive-backend) | Checked compiler handoff, direct x86-64/ELF emission, and bounded native Linux fixtures. |
-| [Shader backend](https://github.com/dilapidated-shed/idris-shader-backend) | GPU lowering and target-specific shader experiments. |
+| [DEX / ARM backend repository](https://github.com/fuego-ironworks/idric-arm-thumb) | `main` is the direct DEX/ART line; [`native-arm`](https://github.com/fuego-ironworks/idric-arm-thumb/tree/native-arm) is a separate ARM/Thumb line. They are not interchangeable evidence. |
+| [x86-64 backend](https://github.com/fuego-ironworks/idric-x86-aggressive-backend) | Checked compiler handoff, direct x86-64/ELF emission, and bounded native Linux fixtures. |
+| [Shader backend](https://github.com/fuego-ironworks/idris-shader-backend) | GPU lowering and target-specific shader experiments. |
 | [Idric-Net](https://github.com/dilapidated-shed/Idric-Net) | Networking library consumed by clients such as ICU. |
-| [IB](https://github.com/dilapidated-shed/ib) | Experimental durable browser/task state; a language consumer. |
+| [IB](https://github.com/isomorphisms/ib) | Experimental durable browser/task state; a language consumer. |
 | [Grease](https://github.com/dilapidated-shed/grease) | Oils-derived shell; its `ish` branch is the separate successor co-designed with `Odriç`. |
 | [Cat Food](https://github.com/isomorphisms/catfood) / [ai-ci](https://github.com/isomorphisms/ai-ci) | Workbench/runtime delivery and shared evidence verification. |
 
 These are ownership boundaries, not claims that every planned integration is
 implemented. Consult each implementation's current contract and exact receipts.
-The [live pull requests](https://github.com/dilapidated-shed/Idric/pulls) are
-the current work queue; merged work on an experimental branch is not necessarily
+The [live pull requests](https://github.com/isomorphisms/Idric/pulls) are the
+current work queue; merged work on an experimental branch is not necessarily
 integrated into `Idriç`.
