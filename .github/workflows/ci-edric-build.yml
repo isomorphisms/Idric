@@ -54,6 +54,9 @@ jobs:
           test -x build/exec/idris2
           build/exec/idris2 --version
 
+      - name: Execute Idriç multiplication and division glyph regression
+        run: ./edric test --only idris2/basic/edric011
+
       - name: Verify follower-visible environment export contract
         run: ./edric test --only base/system_environment_value
 
