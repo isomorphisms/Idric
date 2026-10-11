@@ -60,8 +60,8 @@ Definition is_rocq_equality (source_inductive : inductive) : bool :=
    == "Corelib.Init.Logic.eq").
 
 Definition equality_obligations : list string :=
-  ["Rocq Corelib.Init.Logic.eq / eq_refl to Idriç (=) / Refl: \
-prove the constructor, elimination and reduction correspondence"].
+  ["Rocq Corelib.Init.Logic.eq / eq_refl to Idriç (=) / Refl: " ^
+   "prove the constructor, elimination and reduction correspondence"].
 
 Definition emission_for_equality
     (left right : idric_emission) : idric_emission :=
