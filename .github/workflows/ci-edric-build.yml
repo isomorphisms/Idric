@@ -60,6 +60,9 @@ jobs:
       - name: Check expected Rocq-to-Idriç candidate (not proof transport)
         run: ./edric test --only idris2/basic/rocq001
 
+      - name: Check expected Rocq reflexivity candidate (not preservation)
+        run: ./edric test --only idris2/basic/rocq002
+
       - name: Verify follower-visible environment export contract
         run: ./edric test --only base/system_environment_value
 
