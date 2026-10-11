@@ -1,0 +1,40 @@
+module Main
+
+-- This suite exercises actual checked Idriç source against canonical Prelude.
+-- It does NOT claim binary32 arithmetic or target backend execution.
+
+exactly : Maybe (Integer, Integer) -> Integer -> Integer -> Bool
+exactly Nothing expected_numerator expected_denominator = False
+exactly (Just (numerator, denominator)) expected_numerator expected_denominator =
+  numerator * expected_denominator == denominator * expected_numerator
+
+all_code_roundtrips : Number -> Bool
+all_code_roundtrips Z = True
+all_code_roundtrips (S remaining) =
+  let raw : Bits8 = cast (natToInteger remaining)
+  in e4m3_code (e4m3_from_code raw) == raw
+     && e5m2_code (e5m2_from_code raw) == raw
+     && all_code_roundtrips remaining
+
+main : IO ()
+main = do
+  printLn (all_code_roundtrips 256)
+  printLn (exactly (e4m3_finite_fraction (e4m3_from_code 0x38)) 1 1)
+  printLn (exactly (e4m3_finite_fraction (e4m3_from_code 0xb8)) (-1) 1)
+  printLn (exactly (e5m2_finite_fraction (e5m2_from_code 0x3c)) 1 1)
+  printLn (exactly (e5m2_finite_fraction (e5m2_from_code 0xbc)) (-1) 1)
+  printLn (exactly (e4m3_finite_fraction (e4m3_from_code 0x01)) 1 512)
+  printLn (exactly (e5m2_finite_fraction (e5m2_from_code 0x01)) 1 65536)
+  printLn (exactly (e4m3_finite_fraction (e4m3_from_code 0x7e)) 448 1)
+  printLn (exactly (e5m2_finite_fraction (e5m2_from_code 0x7b)) 57344 1)
+  printLn (e4m3_negative (e4m3_from_code 0x80)
+           && e4m3_is_zero (e4m3_from_code 0x80))
+  printLn (e5m2_negative (e5m2_from_code 0x80)
+           && e5m2_is_zero (e5m2_from_code 0x80))
+  printLn (e4m3_is_nan (e4m3_from_code 0x7f)
+           && e4m3_is_nan (e4m3_from_code 0xff))
+  printLn (e5m2_is_nan (e5m2_from_code 0x7d)
+           && e5m2_is_nan (e5m2_from_code 0xfd))
+  printLn (e5m2_is_infinite (e5m2_from_code 0x7c)
+           && e5m2_is_infinite (e5m2_from_code 0xfc))
+  printLn (not (e5m2_is_infinite (e5m2_from_code 0x7b)))
