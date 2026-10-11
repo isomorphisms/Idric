@@ -113,7 +113,7 @@ Fixpoint render_quoted_term
           add_obligations (binder_relevance_obligations binder)
             (join_candidates
               (fun domain_text body_text =>
-                "(\\" ^ name ^ " ⇒ " ^ body_text ^ ")")
+                "(\" ^ name ^ " ⇒ " ^ body_text ^ ")")
               (render_quoted_term remaining context domain)
               (render_quoted_term remaining (name :: context) body))
 
