@@ -14,6 +14,8 @@
 | `IdricEmitterTests.v` | Rocq `Example` statements exercising candidate rendering, de Bruijn scope, and fail-closed treatment of holes, loose references, `Prop` and `SProp` |
 | `expected/RocqBridge.idric` | **Handwritten expectation** for the first quotation—not an actually emitted output or checked Idriç compiler result |
 | `QuoteProofTerms.v` | Earlier standalone MetaRocq quotation probe (still proposed/unrun), independent of the candidate emitter |
+| `QuoteReflexivity.v` | Recursive quotation of an actual Rocq reflexivity proof; expected candidate mapping to Idriç `Refl` with unresolved logical-correspondence obligations |
+| `expected/reflexivity/RocqBridge.idric` | Handwritten expected candidate for the reflexivity proof, not actually emitted or checked yet |
 
 The candidate emission includes explicit obligations for Rocq universe sorts, binder irrelevance, and the equality constructor correspondence. It does **not** silently turn those into proved equivalences.
 
@@ -32,6 +34,7 @@ rocq compile ProofTerms.v
 rocq compile IdricEmitter.v
 rocq compile IdricEmitterTests.v
 rocq compile QuoteIdric.v
+rocq compile QuoteReflexivity.v
 ```
 
 The commands must be run with a consistent `-Q`/`-R` logical load path or project file appropriate to the pinned installation. The `Require Import`s in the local files assume that this directory is mapped into Rocq's load path. If the first commands fail, record the exact failure rather than assuming compatibility.
@@ -51,9 +54,11 @@ IDRIC_UNRESOLVED_OBLIGATIONS_END
 
 ## Checking the Idriç target
 
+The `rocq001` and `rocq002` test harness cases and the existing Idriç CI build workflow also typecheck the **handwritten expected candidate** files separately. These tests may pass even while Rocq quotation and source/target preservation are blocked.
+
 Only after quotation has actually succeeded:
 
-1. Compare the marked Idriç source text with `expected/RocqBridge.idric`. The checked expectation should be deterministic for the pinned input; if the generated source differs, investigate rather than rewrite the golden to make it pass.
+1. Compare the marked Idriç source text with `expected/RocqBridge.idric` for identity or `expected/reflexivity/RocqBridge.idric` for reflexivity. If generated source differs, investigate rather than rewrite the handwritten golden just to make it pass.
 2. Check the actual generated `.idric` file using the pinned **Idriç compiler** on branch `Idriç` or an explicit integration revision, not a substitute upstream Idris 2 checker.
 3. Audit the quoted global context, required dependency closure, source axioms, opacity, universe polymorphism, and binder relevance. The existing emitter records obligations but **does not discharge** them.
 4. Separately establish whichever semantic correspondence theorem is claimed. An Idriç typecheck of proposed output is not equivalent to preserving Rocq's kernel proof.
