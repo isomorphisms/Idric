@@ -1,0 +1,6 @@
+module InvalidFP8Swap
+
+-- This MUST be rejected: the same eight-bit storage width does not mean
+-- the E4M3 and E5M2 numerical types can be interchanged implicitly.
+broken : E5M2 -> E4M3
+broken value = value
