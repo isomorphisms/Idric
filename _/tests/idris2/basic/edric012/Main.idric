@@ -8,7 +8,7 @@ exactly Nothing expected_numerator expected_denominator = False
 exactly (Just (numerator, denominator)) expected_numerator expected_denominator =
   numerator * expected_denominator == denominator * expected_numerator
 
-all_code_roundtrips : Nat -> Bool
+all_code_roundtrips : Number -> Bool
 all_code_roundtrips Z = True
 all_code_roundtrips (S remaining) =
   let raw : Bits8 = cast (natToInteger remaining)

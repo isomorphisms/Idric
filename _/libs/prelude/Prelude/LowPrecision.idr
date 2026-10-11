@@ -101,9 +101,8 @@ e5m2_is_zero : E5M2 -> Bool
 e5m2_is_zero (MkE5M2 code) = magnitude_code code == 0
 
 private
-power_of_two : Nat -> Integer
-power_of_two Z = 1
-power_of_two (S exponent) = 2 * power_of_two exponent
+power_of_two : Integer -> Integer
+power_of_two exponent = prim__shl_Integer 1 exponent
 
 -- Exact dyadic value of a finite payload.  Both fields are integers.
 -- The pair (numerator, denominator) is not necessarily reduced.
@@ -115,7 +114,7 @@ finite_fraction :
   (raw_code : Bits8) ->
   (Integer, Integer)
 finite_fraction mantissa_bits bias raw_code =
-  let mantissa_scale = power_of_two (cast mantissa_bits)
+  let mantissa_scale = power_of_two mantissa_bits
       positive = magnitude_code raw_code
       mantissa = remainder positive mantissa_scale
       exponent = quotient positive mantissa_scale
@@ -127,9 +126,9 @@ finite_fraction mantissa_bits bias raw_code =
       numerator_sign = if has_negative_sign raw_code then -1 else 1
   in if bin_exponent >= 0
         then (numerator_sign * significand
-              * power_of_two (cast bin_exponent), 1)
+              * power_of_two bin_exponent, 1)
         else (numerator_sign * significand,
-              power_of_two (cast (-bin_exponent)))
+              power_of_two (-bin_exponent))
 
 ||| Exact signed dyadic finite value, or Nothing for NaN.
 ||| Inspect e4m3_negative separately to distinguish -0 from +0.
