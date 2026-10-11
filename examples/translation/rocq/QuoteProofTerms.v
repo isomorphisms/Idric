@@ -13,6 +13,9 @@ MetaRocq Quote Recursively Definition quoted_identity :=
 MetaRocq Quote Recursively Definition quoted_indexed_family :=
   (indexed_list).
 
+MetaRocq Quote Recursively Definition quoted_reflexive_for_every_type :=
+  (reflexive_for_every_type).
+
 MetaRocq Quote Recursively Definition quoted_successor_injective :=
   (successor_injective).
 
