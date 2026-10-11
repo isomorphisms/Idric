@@ -20,6 +20,10 @@ Arguments indexed_cons {A length} _ _.
 Definition indexed_one (A : Type) (value : A) : indexed_list A (S O) :=
   indexed_cons value indexed_empty.
 
+Polymorphic Definition reflexive_for_every_type
+  (A : Type) (value : A) : value = value :=
+  eq_refl.
+
 Definition successor_injective
   (left right : nat)
   (equal_successors : S left = S right) : left = right :=
