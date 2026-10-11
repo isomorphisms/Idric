@@ -65,3 +65,30 @@ Example unresolved_global_does_not_become_axiom :
   | _ => False
   end.
 Proof. exact I. Qed.
+
+(* The specific Rocq equality kernel name is part of the explicit boundary.
+   These examples test candidate output, not equality-elimination semantics. *)
+Definition quoted_rocq_equality : inductive :=
+  mkInd (MPfile ["Logic"; "Init"; "Corelib"], "eq") 0.
+
+Example known_rocq_equality_is_selected :
+  is_rocq_equality quoted_rocq_equality = true.
+Proof. reflexivity. Qed.
+
+Example reflexivity_emits_a_candidate_with_obligations :
+  match render_quoted_term 20 ["value"; "value_type"]
+    (tApp (tConstruct quoted_rocq_equality 0 [])
+          [tRel 1; tRel 0]) with
+  | IdricCandidate source (_ :: _) => source = "Refl"
+  | _ => False
+  end.
+Proof. reflexivity. Qed.
+
+Example equality_type_emits_a_candidate_with_obligations :
+  match render_quoted_term 20 ["value"; "value_type"]
+    (tApp (tInd quoted_rocq_equality [])
+          [tRel 1; tRel 0; tRel 0]) with
+  | IdricCandidate source (_ :: _) => source = "(value = value)"
+  | _ => False
+  end.
+Proof. reflexivity. Qed.
