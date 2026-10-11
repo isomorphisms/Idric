@@ -1,6 +1,7 @@
 module Prelude.LowPrecision
 
 import Builtin
+import Prelude.Basics
 import Prelude.Cast
 import Prelude.EqOrd
 import Prelude.Num
