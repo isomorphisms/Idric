@@ -1,6 +1,6 @@
 # Rocq → Idriç: proof-preserving emitter
 
-Status: **DESIGN / ACCEPTANCE CONTRACT**, updated 2026-10-10. No Rocq emitter, MetaRocq quotation acceptance, Idriç output, or proof-preservation theorem has yet been implemented and qualified by this change.
+Status: **UNQUALIFIED CANDIDATE EMITTER / DESIGN CONTRACT**, updated 2026-10-10. The Rocq-side Gallina candidate emitter in `examples/translation/rocq/IdricEmitter.v` has been written, with a recursive quotation driver and negative cases. It has **not been compiled or run**. No actual generated Idriç output, target typecheck, or proof-preservation theorem has been qualified.
 
 ## Governing destination
 
@@ -135,7 +135,7 @@ The checked input corpus should develop into a meaningful mathematical testbed, 
 - checked Idriç output demonstrating import, module/dependency mapping, semantic conventions, and (when appropriate) runtime behavior;
 - larger theorems, leading eventually to Dirichlet characters, arithmetic identities and Euler-product formalization.
 
-The initial proposed Rocq quotation corpus lives under `examples/translation/rocq`; its source and driver are currently **UNRUN**. No `.idric` artifact or real quotation package has yet been produced. Expand the tests as implementation establishes real capabilities; do not redefine success to mean source generation alone.
+The experimental Rocq quotation and Gallina candidate emitter live under `examples/translation/rocq`. The candidate handles Π, λ, let, de Bruijn variables, application, and a conditional equality/`Refl` mapping, while rejecting unsupported terms with explicit diagnostics and universe/equality obligations. `QuoteIdric.v` and `QuoteReflexivity.v` attempt named recursive quotations. Both have **UNRUN** status; the `.idric` fixtures are handwritten expected texts, not proof of actual quotation, accepted target code, or mathematical correspondence. The bootstrapped Idriç source-acceptance tests `rocq001` and `rocq002` are wired to CI, and remain unverified until their exact checks finish. Expand the tests as implementation establishes real capabilities; do not redefine success to mean source generation alone.
 
 ## Implementation and ownership
 
