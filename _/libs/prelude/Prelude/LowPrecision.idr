@@ -147,3 +147,106 @@ e5m2_finite_fraction value =
   if e5m2_is_nan value || e5m2_is_infinite value
     then Nothing
     else Just (finite_fraction 2 15 (e5m2_code value))
+
+-- Mathematical reference conversion, not an FP32 backend arithmetic route.
+-- The candidates are exactly the finite positive payloads defined above.
+-- Compare rational distances by integer cross multiplication: no Double,
+-- Float16, or host floating-point operation participates in rounding.
+private
+absolute_difference : Integer -> Integer
+absolute_difference difference =
+  if difference < 0 then -difference else difference
+
+private
+candidate_is_closer :
+  (numerator : Integer) ->
+  (denominator : Integer) ->
+  (candidate_code : Integer) ->
+  (best_code : Integer) ->
+  (mantissa_bits : Integer) ->
+  (bias : Integer) ->
+  Bool
+candidate_is_closer numerator denominator candidate_code best_code
+                    mantissa_bits bias =
+  let (candidate_numerator, candidate_denominator) =
+        finite_fraction mantissa_bits bias (cast candidate_code)
+      (best_numerator, best_denominator) =
+        finite_fraction mantissa_bits bias (cast best_code)
+      candidate_error =
+        absolute_difference
+          (numerator * candidate_denominator
+           - candidate_numerator * denominator)
+      best_error =
+        absolute_difference
+          (numerator * best_denominator
+           - best_numerator * denominator)
+      left = candidate_error * best_denominator
+      right = best_error * candidate_denominator
+  in left < right
+     || (left == right
+         && remainder candidate_code 2 == 0
+         && remainder best_code 2 == 1)
+
+private
+nearest_finite_code :
+  (remaining : Nat) ->
+  (candidate_code : Integer) ->
+  (best_code : Integer) ->
+  (mantissa_bits : Integer) ->
+  (bias : Integer) ->
+  (numerator : Integer) ->
+  (denominator : Integer) ->
+  Integer
+nearest_finite_code Z candidate best bits bias numerator denominator = best
+nearest_finite_code (S remaining) candidate best bits bias numerator denominator =
+  let next_best = if candidate_is_closer numerator denominator
+                                        candidate best bits bias
+                     then candidate else best
+  in nearest_finite_code remaining (candidate + 1) next_best
+                         bits bias numerator denominator
+
+private
+saturating_signed_code :
+  (number_of_positive_codes : Nat) ->
+  (mantissa_bits : Integer) ->
+  (bias : Integer) ->
+  (negative_zero : Bool) ->
+  (numerator : Integer) ->
+  (denominator : Integer) ->
+  Maybe Bits8
+saturating_signed_code count bits bias negative_zero numerator denominator =
+  if denominator <= 0
+    then Nothing
+    else
+      let magnitude = absolute_difference numerator
+          rounded = nearest_finite_code count 1 0 bits bias
+                                        magnitude denominator
+          sign = if numerator < 0 || (numerator == 0 && negative_zero)
+                   then 128 else 0
+      in Just (cast (sign + rounded))
+
+||| Saturating, round-to-nearest/ties-to-even conversion from an exact rational.
+||| The final argument of the sign decision preserves negative zero.
+||| Denominator zero or negative is invalid. This is an independent reference
+||| conversion, not the compiler's as-yet-unimplemented binary32 arithmetic.
+public export
+e4m3_from_exact_fraction :
+  (negative_zero : Bool) ->
+  (numerator : Integer) ->
+  (denominator : Integer) ->
+  Maybe E4M3
+e4m3_from_exact_fraction negative_zero numerator denominator =
+  map MkE4M3
+    (saturating_signed_code 126 3 7 negative_zero numerator denominator)
+
+||| Exact rational conversion for signed E5M2. Finite overflow saturates
+||| to 57344; NaN/infinity cannot be represented by a rational input.
+public export
+e5m2_from_exact_fraction :
+  (negative_zero : Bool) ->
+  (numerator : Integer) ->
+  (denominator : Integer) ->
+  Maybe E5M2
+e5m2_from_exact_fraction negative_zero numerator denominator =
+  map MkE5M2
+    (saturating_signed_code 123 2 15 negative_zero numerator denominator)

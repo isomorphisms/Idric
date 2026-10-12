@@ -29,3 +29,21 @@ the initial historical
 The checked numerical acceptance is \`_/tests/idris2/basic/edric012\`; the
 independent ICK C interface is tracked in
 [ICK FP8 PR #91](https://github.com/dilapidated-shed/ick/pull/91).
+
+## Exact rational reference conversion
+
+Canonical source also provides \`e4m3_from_exact_fraction\` and
+\`e5m2_from_exact_fraction\`. These enumerate only the 127 (E4M3) or
+124 (E5M2) positive finite code points including zero; distances are
+compared by exact integer multiplication. Equidistant candidates select
+the code with even least-significant bit. The result saturates at the
+respective maximum finite magnitude, preserves an explicitly supplied
+negative-zero sign, and rejects denominators that are zero or negative.
+
+The \`edric012\` test checks every representable signed finite byte for
+exact fraction → same-byte reconstruction, plus exact halfway ties,
+underflow-to-zero and minimum-subnormal rounding, signed values,
+saturation, and invalid denominators. This is a reference conversion:
+it does *not* implement \`Float32\` arithmetic, floating NaN construction,
+infinity operations, native target lowering, or GPU code generation.
+
