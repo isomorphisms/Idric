@@ -189,7 +189,7 @@ candidate_is_closer numerator denominator candidate_code best_code
 
 private
 nearest_finite_code :
-  (remaining : Nat) ->
+  (remaining : Integer) ->
   (candidate_code : Integer) ->
   (best_code : Integer) ->
   (mantissa_bits : Integer) ->
@@ -197,17 +197,21 @@ nearest_finite_code :
   (numerator : Integer) ->
   (denominator : Integer) ->
   Integer
-nearest_finite_code Z candidate best bits bias numerator denominator = best
-nearest_finite_code (S remaining) candidate best bits bias numerator denominator =
-  let next_best = if candidate_is_closer numerator denominator
-                                        candidate best bits bias
-                     then candidate else best
-  in nearest_finite_code remaining (candidate + 1) next_best
-                         bits bias numerator denominator
+nearest_finite_code remaining candidate best bits bias numerator denominator =
+  if remaining <= 0
+    then best
+    else let next_best = if candidate_is_closer numerator denominator
+                                               candidate best bits bias
+                           then candidate else best
+         -- The only callers supply 126 or 123 candidates; each recursive
+         -- call strictly reduces this nonnegative count by one.
+         in assert_total (nearest_finite_code (remaining - 1)
+                           (candidate + 1) next_best bits bias
+                           numerator denominator)
 
 private
 saturating_signed_code :
-  (number_of_positive_codes : Nat) ->
+  (number_of_positive_codes : Integer) ->
   (mantissa_bits : Integer) ->
   (bias : Integer) ->
   (negative_zero : Bool) ->
