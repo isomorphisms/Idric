@@ -236,8 +236,9 @@ e4m3_from_exact_fraction :
   (denominator : Integer) ->
   Maybe E4M3
 e4m3_from_exact_fraction negative_zero numerator denominator =
-  map MkE4M3
-    (saturating_signed_code 126 3 7 negative_zero numerator denominator)
+  case saturating_signed_code 126 3 7 negative_zero numerator denominator of
+    Nothing => Nothing
+    Just raw_code => Just (MkE4M3 raw_code)
 
 ||| Exact rational conversion for signed E5M2. Finite overflow saturates
 ||| to 57344; NaN/infinity cannot be represented by a rational input.
@@ -248,5 +249,6 @@ e5m2_from_exact_fraction :
   (denominator : Integer) ->
   Maybe E5M2
 e5m2_from_exact_fraction negative_zero numerator denominator =
-  map MkE5M2
-    (saturating_signed_code 123 2 15 negative_zero numerator denominator)
+  case saturating_signed_code 123 2 15 negative_zero numerator denominator of
+    Nothing => Nothing
+    Just raw_code => Just (MkE5M2 raw_code)
