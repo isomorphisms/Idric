@@ -33,6 +33,11 @@ driver retains stdout, stderr and process
 statuses for each actual invocation. This working-tree build does not establish
 standalone-package relocation or hosted CI acceptance.
 
+The existing unfiltered `Idriç build` workflow runs this driver after building
+the exact PR head, using the same pinned Ithon frontend. Its existing artifact
+upload retains the frontend receipt and each consumer's process evidence under
+`_/build/xbrl-acceptance/venn-batch-exit/`. A declared step is not a passing run.
+
 Tested bytes (SHA-256):
 
 - `Idris/Driver.idr`: `e059fd4dd60c27147389a1105905269de08b507dcee5475c244cb067c334c16a`
