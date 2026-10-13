@@ -1,0 +1,30 @@
+module JsonUnicode
+
+import Data.List
+import Language.JSON
+import System
+
+%default covering
+
+valid : Text → Text → Bool
+valid source expected = Language.JSON.parse source ≟ Just (JString expected)
+
+invalid : Text → Bool
+invalid source = Language.JSON.parse source ≟ Nothing
+
+main : IO ()
+main =
+  if all id [
+    valid "\"\\u002d\"" "-",
+    valid "\"\\u002D\"" "-",
+    valid "\"\\u00e9\"" "é",
+    valid "\"\\u00E9\"" "é",
+    valid "\"\\ud83d\\ude00\"" "😀",
+    valid "\"\\uD83D\\uDE00\"" "😀",
+    valid "\"A\\n\\u003b\"" "A\n;",
+    invalid "\"\\ud83d\"",
+    invalid "\"\\ude00\"",
+    invalid "\"\\ud83d\\u0041\"",
+    invalid "\"\\ude00\\ud83d\"",
+    invalid "\"\\u00xz\""
+  ] then putStrLn "PASS JSON Unicode escapes and scalar validation" else exitFailure
