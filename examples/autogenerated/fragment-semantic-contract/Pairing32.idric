@@ -1,0 +1,39 @@
+module Pairing32
+
+import MathematicalSpaces
+import EuclideanGeometry
+
+%unbound_implicits off
+
+last_coordinates : (preceding : Number) → ±Number → RawExactCoordinates (S preceding)
+last_coordinates Z value = UnsafeCoordinateCons value UnsafeCoordinateNil
+last_coordinates (S preceding) value =
+  UnsafeCoordinateCons 0 (last_coordinates preceding value)
+
+last_vector : ±Number → ExactVectorSample real32_space
+last_vector value = UnsafeVectorCoordinates (last_coordinates 31 value)
+
+last_covector : ±Number → ExactCovectorSample real32_space
+last_covector value = UnsafeCovectorCoordinates (last_coordinates 31 value)
+
+last_coordinate_pairing : contract (last_covector 7) (last_vector 5) = the ±Number 35
+last_coordinate_pairing = Refl
+
+last_coordinate_addition :
+  contract (last_covector 7) (add_vector (last_vector 5) (last_vector 2)) = the ±Number 49
+last_coordinate_addition = Refl
+
+last_coordinate_scaling :
+  contract (last_covector 7) (scale_vector 3 (last_vector 5)) = the ±Number 105
+last_coordinate_scaling = Refl
+
+declared_real_field : ambient_scalar_field real32_space = RealScalarField
+declared_real_field = Refl
+
+failing "Mismatch between: ExactVectorSample"
+  wrong_dual_role : ±Number
+  wrong_dual_role = contract (last_vector 7) (last_vector 5)
+
+failing "Mismatch between: Real32Name and OtherReal32Name."
+  wrong_named_space : ExactVectorSample other_real32_space
+  wrong_named_space = last_vector 5

@@ -26,6 +26,10 @@ public export
 real128_euclidean : EuclideanStructure real128_space
 real128_euclidean = StandardCoordinate
 
+public export
+real32_euclidean : EuclideanStructure real32_space
+real32_euclidean = StandardCoordinate
+
 -- The standard-coordinate metric is the explicit identification between a
 -- vector and its dual coordinate covector.  No such operation is exported
 -- without a EuclideanStructure argument.
