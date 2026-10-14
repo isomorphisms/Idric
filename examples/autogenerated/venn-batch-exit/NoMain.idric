@@ -1,0 +1,4 @@
+module NoMain
+
+message : String
+message = "This module has no executable entrypoint."
