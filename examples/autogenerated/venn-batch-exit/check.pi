@@ -1,0 +1,70 @@
+"""Observe real compiler exits and real generated consumer output."""
+import os
+import subprocess
+import sys
+import tempfile
+import shutil
+from pathlib import Path
+from builtins import dict, list, AssertionError
+
+args ∈ list[str] ← sys.argv
+compiler ∈ str ← str(Path(args[1]).resolve())
+prefix ∈ str ← str(Path(args[2]).resolve())
+sources ∈ Path ← Path(args[3]).resolve()
+evidence ∈ Path ← Path(args[4]).resolve()
+evidence.mkdir(parents=True, exist_ok=True)
+environment ∈ dict[str, str] ← dict(os.environ)
+variables ∈ list[str] ← list(environment.keys())
+for variable in variables:
+    if variable.startswith("IDRIS2_"):
+        environment.pop(variable)
+environment["IDRIS2_PREFIX"] ← prefix
+records ∈ list[str] ← []
+
+def observe(name ∈ str, command ∈ list[str], working ∈ str, env ∈ dict[str, str], success ∈ bool) → object:
+    result ∈ object ← subprocess.run(command, cwd=working, env=env, capture_output=True, timeout=120)
+    Path(str(evidence) + "/" + name + ".stdout").write_bytes(result.stdout)
+    Path(str(evidence) + "/" + name + ".stderr").write_bytes(result.stderr)
+    records.append(name + "\t" + str(result.returncode))
+    record_text ∈ str ← "\n".join(records)
+    Path(str(evidence) + "/exits.tsv").write_text(record_text + "\n")
+    if (int(result.returncode) == 0) != success:
+        raise AssertionError(name + ": unexpected exit " + str(result.returncode))
+    return result
+
+with tempfile.TemporaryDirectory(prefix="venn-compiler-consumer-") as temporary:
+    working ∈ str ← str(temporary)
+    for filename in ["Consumer.idric", "Compatibility.idr", "MissingDependency.idric", "NoMain.idric"]:
+        shutil.copyfile(str(sources) + "/" + filename, working + "/" + filename)
+    observe("idric-check", [compiler, "--check", "Consumer.idric"], working, environment, True)
+    observe("idr-check", [compiler, "--check", "Compatibility.idr"], working, environment, True)
+    observe("idric-compile", [compiler, "--cg", "node", "-o", "consumer", "Consumer.idric"], working, environment, True)
+    result ∈ object ← observe("idric-execute", ["node", working + "/build/exec/consumer"], working, environment, True)
+    if bytes(result.stdout) != b"venn-consumer-ready\n":
+        raise AssertionError("wrong generated program output")
+    observe("idr-compile", [compiler, "--cg", "node", "-o", "compatibility", "Compatibility.idr"], working, environment, True)
+    result ← observe("idr-execute", ["node", working + "/build/exec/compatibility"], working, environment, True)
+    if bytes(result.stdout) != b"venn-compatibility-ready\n":
+        raise AssertionError("wrong compatibility output")
+    observe("missing-main-compile", [compiler, "--cg", "node", "-o", "no-main", "NoMain.idric"], working, environment, False)
+    if Path(working + "/build/exec/no-main").exists():
+        raise AssertionError("missing main emitted an executable")
+    observe("missing-import-check", [compiler, "--check", "MissingDependency.idric"], working, environment, False)
+    observe("missing-import-compile", [compiler, "--cg", "node", "-o", "invalid", "MissingDependency.idric"], working, environment, False)
+    if Path(working + "/build/exec/invalid").exists():
+        raise AssertionError("failed compilation emitted an executable")
+    observe("missing-file-check", [compiler, "--check", "Absent.idric"], working, environment, False)
+    observe("missing-file-compile", [compiler, "--cg", "node", "-o", "absent", "Absent.idric"], working, environment, False)
+    empty ∈ dict[str, str] ← environment.copy()
+    empty["IDRIS2_PREFIX"] ← working + "/empty-prefix"
+    # A new source/build directory prevents previously checked imports from
+    # masking missing Prelude. Do not test a cached successful module.
+    isolated ∈ Path ← Path(working + "/isolated")
+    isolated.mkdir()
+    shutil.copyfile(str(sources) + "/Consumer.idric", str(isolated) + "/Consumer.idric")
+    observe("missing-prelude-check", [compiler, "--check", "Consumer.idric"], str(isolated), empty, False)
+    observe("missing-prelude-compile", [compiler, "--cg", "node", "-o", "invalid", "Consumer.idric"], str(isolated), empty, False)
+    if Path(str(isolated) + "/build/exec/invalid").exists():
+        raise AssertionError("missing Prelude emitted an executable")
+
+print("PASS: " + str(len(records)) + " actual compiler/runtime cases")

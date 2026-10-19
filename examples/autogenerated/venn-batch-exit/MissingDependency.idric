@@ -1,0 +1,6 @@
+module MissingDependency
+
+import MissingVennDependency
+
+main : IO ()
+main = putStrLn "must not execute"
