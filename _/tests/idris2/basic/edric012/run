@@ -1,0 +1,13 @@
+. ../../../testutils.sh
+
+run Main.idric
+
+if "$idris2" --check InvalidFP8Swap.idric > invalid-fp8-swap.log 2>&1; then
+  echo 'FAIL: E5M2 implicitly accepted as E4M3' >&2
+  exit 1
+fi
+if ! grep -Eiq 'E4M3|E5M2' invalid-fp8-swap.log; then
+  echo 'FAIL: missing named FP8 type diagnostic' >&2
+  cat invalid-fp8-swap.log >&2
+  exit 1
+fi

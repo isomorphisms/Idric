@@ -1,0 +1,100 @@
+module Main
+
+-- This suite exercises actual checked Idriç source against canonical Prelude.
+-- It does NOT claim binary32 arithmetic or target backend execution.
+
+exactly : Maybe (Integer, Integer) -> Integer -> Integer -> Bool
+exactly Nothing expected_numerator expected_denominator = False
+exactly (Just (numerator, denominator)) expected_numerator expected_denominator =
+  numerator * expected_denominator == denominator * expected_numerator
+
+all_code_roundtrips : Number -> Bool
+all_code_roundtrips Z = True
+all_code_roundtrips (S remaining) =
+  let raw : Bits8 = cast (natToInteger remaining)
+  in e4m3_code (e4m3_from_code raw) == raw
+     && e5m2_code (e5m2_from_code raw) == raw
+     && all_code_roundtrips remaining
+
+
+
+-- Every finite raw byte converts to its exact rational value and then
+-- requantizes to the same byte, including signed subnormals and negative zero.
+-- NaNs and E5M2 infinity have no rational representation and are classified
+-- by the separate tests above.
+exact_finite_roundtrips : Number -> Bool
+exact_finite_roundtrips Z = True
+exact_finite_roundtrips (S remaining) =
+  let code : Bits8 = cast (natToInteger remaining)
+      e4 = e4m3_from_code code
+      e5 = e5m2_from_code code
+      check_e4 = case e4m3_finite_fraction e4 of
+                   Nothing => True
+                   Just (numerator, denominator) =>
+                     case e4m3_from_exact_fraction (e4m3_negative e4)
+                                                    numerator denominator of
+                       Nothing => False
+                       Just rounded => e4m3_code rounded == code
+      check_e5 = case e5m2_finite_fraction e5 of
+                   Nothing => True
+                   Just (numerator, denominator) =>
+                     case e5m2_from_exact_fraction (e5m2_negative e5)
+                                                    numerator denominator of
+                       Nothing => False
+                       Just rounded => e5m2_code rounded == code
+  in check_e4 && check_e5 && exact_finite_roundtrips remaining
+
+is_e4_code : Maybe E4M3 -> Bits8 -> Bool
+is_e4_code Nothing expected = False
+is_e4_code (Just value) expected = e4m3_code value == expected
+
+is_e5_code : Maybe E5M2 -> Bits8 -> Bool
+is_e5_code Nothing expected = False
+is_e5_code (Just value) expected = e5m2_code value == expected
+
+main : IO ()
+main = do
+  printLn (all_code_roundtrips 256)
+  printLn (exactly (e4m3_finite_fraction (e4m3_from_code 0x38)) 1 1)
+  printLn (exactly (e4m3_finite_fraction (e4m3_from_code 0xb8)) (-1) 1)
+  printLn (exactly (e5m2_finite_fraction (e5m2_from_code 0x3c)) 1 1)
+  printLn (exactly (e5m2_finite_fraction (e5m2_from_code 0xbc)) (-1) 1)
+  printLn (exactly (e4m3_finite_fraction (e4m3_from_code 0x01)) 1 512)
+  printLn (exactly (e5m2_finite_fraction (e5m2_from_code 0x01)) 1 65536)
+  printLn (exactly (e4m3_finite_fraction (e4m3_from_code 0x7e)) 448 1)
+  printLn (exactly (e5m2_finite_fraction (e5m2_from_code 0x7b)) 57344 1)
+  printLn (e4m3_negative (e4m3_from_code 0x80)
+           && e4m3_is_zero (e4m3_from_code 0x80))
+  printLn (e5m2_negative (e5m2_from_code 0x80)
+           && e5m2_is_zero (e5m2_from_code 0x80))
+  printLn (e4m3_is_nan (e4m3_from_code 0x7f)
+           && e4m3_is_nan (e4m3_from_code 0xff))
+  printLn (e5m2_is_nan (e5m2_from_code 0x7d)
+           && e5m2_is_nan (e5m2_from_code 0xfd))
+  printLn (e5m2_is_infinite (e5m2_from_code 0x7c)
+           && e5m2_is_infinite (e5m2_from_code 0xfc))
+  printLn (not (e5m2_is_infinite (e5m2_from_code 0x7b)))
+
+  printLn (exact_finite_roundtrips 256)
+  printLn (is_e4_code (e4m3_from_exact_fraction False 1 1) 0x38)
+  printLn (is_e4_code (e4m3_from_exact_fraction False (-1) 1) 0xb8)
+  printLn (is_e5_code (e5m2_from_exact_fraction False 1 1) 0x3c)
+  printLn (is_e5_code (e5m2_from_exact_fraction False (-1) 1) 0xbc)
+  printLn (is_e4_code (e4m3_from_exact_fraction False 17 16) 0x38)
+  printLn (is_e4_code (e4m3_from_exact_fraction False 19 16) 0x3a)
+  printLn (is_e5_code (e5m2_from_exact_fraction False 9 8) 0x3c)
+  printLn (is_e5_code (e5m2_from_exact_fraction False 11 8) 0x3e)
+  printLn (is_e4_code (e4m3_from_exact_fraction False 1 1024) 0x00)
+  printLn (is_e4_code (e4m3_from_exact_fraction False 3 1024) 0x02)
+  printLn (is_e5_code (e5m2_from_exact_fraction False 1 131072) 0x00)
+  printLn (is_e5_code (e5m2_from_exact_fraction False 3 131072) 0x02)
+  printLn (is_e4_code (e4m3_from_exact_fraction False 1000 1) 0x7e)
+  printLn (is_e5_code (e5m2_from_exact_fraction False 100000 1) 0x7b)
+  printLn (is_e4_code (e4m3_from_exact_fraction True 0 1) 0x80)
+  printLn (is_e5_code (e5m2_from_exact_fraction True 0 1) 0x80)
+  printLn (case e4m3_from_exact_fraction False 1 0 of
+             Nothing => True
+             Just _ => False)
+  printLn (case e5m2_from_exact_fraction False 1 (-1) of
+             Nothing => True
+             Just _ => False)
