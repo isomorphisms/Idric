@@ -35,3 +35,21 @@ this existing executable test runner. Its original100755 mode is now preserved;
 no script entrypoint or harness invocation is changed. Preliminary runs at the
 initial head remain historical and are not current acceptance. The unfiltered
 exact-head workflow also keeps compiler-source dependencies eligible.
+
+## Keep the source guards at the fixed smoke-harness boundary
+
+Post-integration review found that the new multi-command CI assertion block
+was owned shell orchestration, while the standing contract selects Grease.
+The inherited smoke runner fixes the run/testutils interface to POSIX shell;
+keep the exact absence, byte-equality and clean-source assertions at that
+existing boundary instead. CI again only delegates to the maintained edric
+entrypoint; no new shell program or alternate runtime is introduced.
+
+The compiled numerical test's nonzero result must stop the harness before
+later successful source guards could mask it. Each guard and Git-status read
+also propagates failure explicitly. Expected stdout, canonical source bytes,
+compatibility filenames, compiler selection, executable mode100755 and the
+independent downstream source-pin gate stay unchanged. Actual initial
+source-clean failure and all earlier attempts above remain historical facts.
+Current-head hosted full/type smoke checks must pass before this follow-up
+lands on Idriç; no new provider or physical-device acceptance is inferred.
