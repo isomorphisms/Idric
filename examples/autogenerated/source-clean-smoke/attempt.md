@@ -78,3 +78,11 @@ the fixture build directory; variants mutate only that fixture. The child
 supplies known golden bytes and an optional bad status. Actual compiler
 acceptance remains the separate exact-head hosted full/type smoke runs.
 Local fixed-interface execution passed all6cases; syntax/diff checks pass.
+
+The local guard source SHA256 is221940d307a9f9c8a889c964cb4c7e889361960af94a9e5c18fc840cb68e1b2e.
+The recorded Grease launcher SHA256 is37088097c36a2f82cf45aaea9392e4a4cf16155fecb9da87d08a9c7fb4d92e4a;
+its declared host compatibility engine is7e31cd05b7a9d8fb2a4a9e003a7f3fcb0159138506d17f0fb28da8cbe22aa85c.
+The synthetic compiler fixture is an executable entrypoint100755; the child
+source is read and copied with explicit chmod by that fixture. The real smoke
+runner remains100755. These identities and local6case results do not replace
+the next exact-head full/type smoke runs.
