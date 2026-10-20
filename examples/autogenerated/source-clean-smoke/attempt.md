@@ -53,3 +53,28 @@ independent downstream source-pin gate stay unchanged. Actual initial
 source-clean failure and all earlier attempts above remain historical facts.
 Current-head hosted full/type smoke checks must pass before this follow-up
 lands on Idriç; no new provider or physical-device acceptance is inferred.
+
+The actual Golden.runTest implementation (libs/test/Test/Golden.idr) fixes
+the interface to `sh ./run`, pipes only stdout into its golden comparison,
+and ignores process status. A guard returning nonzero after the expected
+numerical stdout is therefore insufficient. The first follow-up candidate
+a135c322 is retained as a failed design attempt, not accepted evidence.
+Every failed child/guard now emits an explicit stdout diagnostic and exits1;
+compiler failure also stops before any previously created child can execute.
+
+Three Grease process fixtures exercise this exact fixed interface locally in
+new disposable Git repositories. They deliberately do not compile source:
+their tiny compiler/child subprocesses supply controlled bytes and statuses.
+The clean case preserves exact expected stdout and exit0. Five bad cases
+(compiler exit23, matching-output child exit57, original-style stray source,
+changed derived copy, unavailable Git identity) all exit1 and cannot equal the
+golden stdout. The recorded host compatibility Grease is used explicitly;
+this is not C++-free FP2 acceptance or an alternate product/compiler path.
+
+Type/effect sketch: the guard driver takes exact absolute runtime/source/new
+output paths and creates only disposable fixture trees and retained outputs.
+The synthetic compiler reads one finite variant and writes its child under
+the fixture build directory; variants mutate only that fixture. The child
+supplies known golden bytes and an optional bad status. Actual compiler
+acceptance remains the separate exact-head hosted full/type smoke runs.
+Local fixed-interface execution passed all6cases; syntax/diff checks pass.

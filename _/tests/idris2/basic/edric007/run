@@ -1,5 +1,13 @@
 . ../../../testutils.sh
 
+# Golden.runTest fixes this interface to `sh ./run` and compares only stdout.
+# Emit a diagnostic on stdout as well as failing, so a failed guard cannot
+# look like the successful golden value even when a caller ignores status.
+fixture_guard_failed() {
+    printf 'FAIL: fixture source guard: %s\n' "$1"
+    exit 1
+}
+
 fixture_dir=build/units-time-intervals
 mkdir -p "$fixture_dir"
 cp ../../../../examples/units-time-intervals/UnitsTimeIntervals.idric "$fixture_dir/UnitsTimeIntervals.idr"
@@ -7,15 +15,15 @@ cp ../../../../examples/units-time-intervals/Tests.idric "$fixture_dir/Tests.idr
 
 (
     cd "$fixture_dir"
-    "$idris2" Tests.idr -o units-time-intervals >/dev/null
+    "$idris2" Tests.idr -o units-time-intervals >/dev/null || exit 1
     ./build/exec/units-time-intervals
-) || exit 1
+) || fixture_guard_failed compiled-child
 
 # This file is the smoke runner's fixed POSIX-shell interface. Keep the
 # source-location guards here, rather than adding owned shell logic to CI.
-test ! -e Tests.idr || exit 1
-test ! -e UnitsTimeIntervals.idr || exit 1
-cmp ../../../../examples/units-time-intervals/Tests.idric "$fixture_dir/Tests.idr" || exit 1
-cmp ../../../../examples/units-time-intervals/UnitsTimeIntervals.idric "$fixture_dir/UnitsTimeIntervals.idr" || exit 1
-source_status=$(git status --porcelain --untracked-files=all -- .) || exit 1
-test -z "$source_status" || exit 1
+test ! -e Tests.idr || fixture_guard_failed stray-test-source
+test ! -e UnitsTimeIntervals.idr || fixture_guard_failed stray-units-source
+cmp ../../../../examples/units-time-intervals/Tests.idric "$fixture_dir/Tests.idr" || fixture_guard_failed changed-test-copy
+cmp ../../../../examples/units-time-intervals/UnitsTimeIntervals.idric "$fixture_dir/UnitsTimeIntervals.idr" || fixture_guard_failed changed-units-copy
+source_status=$(git status --porcelain --untracked-files=all -- .) || fixture_guard_failed source-status-unavailable
+test -z "$source_status" || fixture_guard_failed dirty-source
