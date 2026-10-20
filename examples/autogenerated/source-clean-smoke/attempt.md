@@ -29,3 +29,9 @@ previous real-source writer is the retained known-bad specimen; restoring it
 makes the new source-location gate fail after the same numerical test passes.
 Current-head hosted evidence and the downstream installed/provider rerun remain
 required before claiming either acceptance. Physical A1/C67 remains NOT_RUN.
+
+The initial Git-data publication31e359f2 inadvertently used mode100644 for
+this existing executable test runner. Its original100755 mode is now preserved;
+no script entrypoint or harness invocation is changed. Preliminary runs at the
+initial head remain historical and are not current acceptance. The unfiltered
+exact-head workflow also keeps compiler-source dependencies eligible.
