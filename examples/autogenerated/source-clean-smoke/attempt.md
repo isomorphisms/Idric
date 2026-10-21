@@ -86,3 +86,35 @@ The synthetic compiler fixture is an executable entrypoint100755; the child
 source is read and copied with explicit chmod by that fixture. The real smoke
 runner remains100755. These identities and local6case results do not replace
 the next exact-head full/type smoke runs.
+
+
+## Actual compiler refusal exposed on 21 October 2026
+
+The diagnostic follow-up ab85a4e12fb0582703879d0c9b3fc4b7fea3d632 preserved
+compiler stdout before refusing a failed compile. Actual build run39611136410
+then exposed three errors in the retained units fixture: unsolved dimensions
+for one_gallon_per_second and metres_per_second_squared, plus the concrete
+nilpotent epsilon equality failing Refl. The fixed runner must keep rejecting
+these failures; accepting the new stdout as golden is forbidden.
+
+Source inspection points to the inherited auto-implicit binding of bare
+lowercase constants in type signatures. The unit constructors must return
+Quantity at the named length/time/volume dimensions, rather than leave those
+names open to implicit binding. The result signatures must refer to the
+specific volume-flow and acceleration dimensions. The equality concerns the
+specific exported epsilon and dualZero values, not universally bound variables
+with those names.
+
+The repair qualifies those existing constants with UnitsTimeIntervals in the
+existing source and tests. It changes no arithmetic, expected equality, golden
+stdout, compiler flags, guard or backend. Type sketch: metres : Rat -> Quantity
+UnitsTimeIntervals.lengthDimension; division still maps two quantity indices
+through divideDimension. The dual proof still compares epsilon squared with
+the exported dual zero. This is a correction to fixture name resolution, not
+a new language or representation design.
+
+Required qualification: the actual current-head compiler must accept all
+existing Refl proofs, run the original executable, preserve the exact golden
+stdout, and pass the unchanged source/child guards plus full/type smoke.
+Until those runs finish this remains an unaccepted repair candidate. No
+synthetic process fixture or earlier successful run can certify it.
