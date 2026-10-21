@@ -15,7 +15,13 @@ cp ../../../../examples/units-time-intervals/Tests.idric "$fixture_dir/Tests.idr
 
 (
     cd "$fixture_dir"
-    "$idris2" Tests.idr -o units-time-intervals >/dev/null || exit 1
+    if "$idris2" Tests.idr -o units-time-intervals > compiler-output.txt 2>&1; then
+        :
+    else
+        compiler_status=$?
+        cat compiler-output.txt
+        fixture_guard_failed "compiler exited with status $compiler_status"
+    fi
     ./build/exec/units-time-intervals
 ) || fixture_guard_failed compiled-child
 
