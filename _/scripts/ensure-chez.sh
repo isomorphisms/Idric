@@ -33,10 +33,13 @@ scheme_is_threaded() {
 sha256_file() {
     if command -v sha256sum >/dev/null 2>&1; then
         sha256sum "$1" | awk '{print $1}'
+    elif command -v sha256 >/dev/null 2>&1; then
+        # NetBSD base supplies sha256(1), not necessarily GNU sha256sum.
+        sha256 -q "$1"
     elif command -v shasum >/dev/null 2>&1; then
         shasum -a 256 "$1" | awk '{print $1}'
     else
-        fail 'sha256sum or shasum is required'
+        fail 'sha256sum, sha256, or shasum is required'
     fi
 }
 
@@ -78,7 +81,9 @@ rm -rf "$source_dir" "$build_dir" "$prefix"
 unpack_dir="$toolchain_dir/src/.ChezScheme-${chez_version}.unpack"
 rm -rf "$unpack_dir"
 mkdir -p "$unpack_dir" "$build_dir"
-tar --no-same-owner -xzf "$archive" -C "$unpack_dir"
+ # Extraction runs as the ordinary user into a private directory. NetBSD tar
+# does not require GNU tar's --no-same-owner option.
+tar -xzf "$archive" -C "$unpack_dir"
 
 extracted_source=''
 for candidate in "$unpack_dir"/*; do
@@ -102,12 +107,14 @@ fi
 
 (
     cd "$build_dir"
-    "$source_dir/configure" \
-        --threads \
-        --disable-x11 \
-        --disable-curses \
-        --as-is \
+    set -- --threads --disable-x11 --disable-curses --as-is \
         --installprefix="$prefix"
+    if [ "$(uname -s)" = NetBSD ]; then
+        # NetBSD's paxctl may not be available to unprivileged SDF accounts.
+        # Use Chez's supported W^X cooperation instead of disabling protection.
+        set -- "$@" --enable-wx
+    fi
+    "$source_dir/configure" "$@"
     "$make_command" -j"$jobs"
     "$make_command" install
 )
