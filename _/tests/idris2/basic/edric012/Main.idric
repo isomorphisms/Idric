@@ -1,0 +1,17 @@
+module Main
+
+subtract_interval : Integer → Integer → Integer
+subtract_interval starting_pitch semitones = starting_pitch − semitones
+
+compact_subtraction : Integer
+compact_subtraction = 12−7
+
+precedence : Integer
+precedence = 20 − 3 × 4
+
+main : IO ()
+main = do
+  printLn (subtract_interval 2 3)
+  printLn compact_subtraction
+  printLn precedence
+  putStrLn "Keep − in text"
