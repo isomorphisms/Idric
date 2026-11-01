@@ -1,0 +1,4 @@
+module Input
+
+main : IO ()
+main = putStrLn "successful compiler control"
