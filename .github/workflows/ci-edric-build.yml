@@ -57,6 +57,9 @@ jobs:
       - name: Execute Idriç multiplication and division glyph regression
         run: ./edric test --only idris2/basic/edric011
 
+      - name: Execute canonical signed FP8 type and exact-dyadic regressions
+        run: ./edric test --only idris2/basic/edric012
+
       - name: Verify follower-visible environment export contract
         run: ./edric test --only base/system_environment_value
 
