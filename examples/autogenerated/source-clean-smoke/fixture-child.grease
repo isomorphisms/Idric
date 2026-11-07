@@ -1,0 +1,4 @@
+#!/usr/bin/env grease
+# Matching successful bytes followed by a deliberately bad process status.
+cat -- "$[ENV.SMOKE_GUARD_EXPECTED]"
+if (ENV.SMOKE_GUARD_VARIANT === 'compiled-exit') { exit 57 }

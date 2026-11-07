@@ -149,56 +149,56 @@ divideQuantity (MkQuantity left) (MkQuantity right) =
 
 -- Length.  Metre is the canonical scalar used internally in this fixture.
 public export
-metres : Rat -> Quantity lengthDimension
+metres : Rat -> Quantity UnitsTimeIntervals.lengthDimension
 metres amount = MkQuantity amount
 
 public export
-centimetres : Rat -> Quantity lengthDimension
+centimetres : Rat -> Quantity UnitsTimeIntervals.lengthDimension
 centimetres amount = MkQuantity (ratMultiply amount (fraction 1 100))
 
 public export
-millimetres : Rat -> Quantity lengthDimension
+millimetres : Rat -> Quantity UnitsTimeIntervals.lengthDimension
 millimetres amount = MkQuantity (ratMultiply amount (fraction 1 1000))
 
 public export
-inches : Rat -> Quantity lengthDimension
+inches : Rat -> Quantity UnitsTimeIntervals.lengthDimension
 inches amount = MkQuantity (ratMultiply amount (fraction 127 5000))
 
 public export
-feet : Rat -> Quantity lengthDimension
+feet : Rat -> Quantity UnitsTimeIntervals.lengthDimension
 feet amount = MkQuantity (ratMultiply amount (fraction 381 1250))
 
 -- Time as an ordinary physical dimension, for compound quantities such as
 -- volume/time.  This is separate from Instant below: an instant is a point,
 -- while a time-dimensional quantity is an elapsed displacement.
 public export
-secondsQuantity : Rat -> Quantity timeDimension
+secondsQuantity : Rat -> Quantity UnitsTimeIntervals.timeDimension
 secondsQuantity amount = MkQuantity amount
 
 -- Volume.  Cubic metre is canonical.  1 litre = 1/1000 m^3 exactly.
 public export
-litres : Rat -> Quantity volumeDimension
+litres : Rat -> Quantity UnitsTimeIntervals.volumeDimension
 litres amount = MkQuantity (ratMultiply amount (fraction 1 1000))
 
 -- US customary liquid units are named explicitly.  Do not silently identify
 -- these with imperial gallons/pints.  The US gallon is exactly 231 cubic inches,
 -- hence exactly 473176473 / 125000000000 cubic metres.
 public export
-usGallons : Rat -> Quantity volumeDimension
+usGallons : Rat -> Quantity UnitsTimeIntervals.volumeDimension
 usGallons amount =
   MkQuantity
     (ratMultiply amount (fraction 473176473 125000000000))
 
 public export
-usQuarts : Rat -> Quantity volumeDimension
+usQuarts : Rat -> Quantity UnitsTimeIntervals.volumeDimension
 usQuarts amount = usGallons (ratDivide amount (whole 4))
 
 public export
-usPints : Rat -> Quantity volumeDimension
+usPints : Rat -> Quantity UnitsTimeIntervals.volumeDimension
 usPints amount = usGallons (ratDivide amount (whole 8))
 
 public export
-usCups : Rat -> Quantity volumeDimension
+usCups : Rat -> Quantity UnitsTimeIntervals.volumeDimension
 usCups amount = usGallons (ratDivide amount (whole 16))
 
 -- --------------------------------------------------------------------------

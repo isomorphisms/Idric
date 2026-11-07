@@ -67,13 +67,13 @@ us_quarts_relation_test = Refl
 
 -- No special GallonsPerSecond class is declared.  The result type follows from
 -- division of the dimension exponents.
-one_gallon_per_second : Quantity volumeFlowDimension
+one_gallon_per_second : Quantity UnitsTimeIntervals.volumeFlowDimension
 one_gallon_per_second =
   divideQuantity
     (usGallons (whole 1))
     (secondsQuantity (whole 1))
 
-metres_per_second_squared : Quantity accelerationDimension
+metres_per_second_squared : Quantity UnitsTimeIntervals.accelerationDimension
 metres_per_second_squared =
   divideQuantity
     (divideQuantity
@@ -191,8 +191,8 @@ open_right_removes_endpoint_test = Refl
 -- by pretending this nilpotent value can be positive in an ordered ring.
 epsilon_squared_test :
   dualEqual
-    (dualMultiply epsilon epsilon)
-    dualZero = True
+    (dualMultiply UnitsTimeIntervals.epsilon UnitsTimeIntervals.epsilon)
+    UnitsTimeIntervals.dualZero = True
 epsilon_squared_test = Refl
 
 main : IO ()
