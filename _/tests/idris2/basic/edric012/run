@@ -1,0 +1,4 @@
+. ../../../testutils.sh
+
+run Main.idric
+run Compatibility.idr
