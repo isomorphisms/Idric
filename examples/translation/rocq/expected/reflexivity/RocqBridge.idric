@@ -1,0 +1,4 @@
+module RocqBridge
+
+quoted_reflexivity : (bound_0 : Type) → (bound_1 : bound_0) → (bound_1 = bound_1)
+quoted_reflexivity = (\bound_0 ⇒ (\bound_1 ⇒ Refl))

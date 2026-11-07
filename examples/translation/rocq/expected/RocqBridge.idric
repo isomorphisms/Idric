@@ -1,0 +1,4 @@
+module RocqBridge
+
+quoted_identity : (bound_0 : Type) → (bound_1 : bound_0) → bound_0
+quoted_identity = (\bound_0 ⇒ (\bound_1 ⇒ bound_1))

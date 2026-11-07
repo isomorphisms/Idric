@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+. ../../../testutils.sh
+
+# Propositional equality is exercised here with a HANDWRITTEN expected
+# Idriç candidate, not the output of a qualified MetaRocq run. Its
+# source/target logical correspondence remains an explicit obligation.
+cp ../../../../../examples/translation/rocq/expected/reflexivity/RocqBridge.idric RocqBridge.idric
+if ! idris2 --check RocqBridge.idric >check.log 2>&1; then
+    cat check.log >&2
+    exit 1
+fi
+printf '%s\n' 'IDRIC_ROCQ_EXPECTED_REFLEXIVITY_TYPECHECK_OK'
