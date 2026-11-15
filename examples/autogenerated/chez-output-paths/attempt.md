@@ -74,3 +74,31 @@ compiler: `chez039` printed all six expected PASS lines, and `chez037` refused
 the forced failure, found no executable and matched its stderr diagnostic.
 The unfiltered existing compiler workflow now executes both regressions and
 retains their raw compilation/execution files alongside its existing evidence.
+
+## Inherited smoke failure found by hosted qualification
+
+Exact-head run `43747425791` rebuilt the compiler and passed the first six
+existing smoke fixtures, then failed in `edric007` before either new Chez
+regression ran. Its old runner discarded compiler stdout and attempted to run
+an executable that had not been produced. Replaying the real compile exposed
+the two unresolved dimension constraints and the nilpotent epsilon equality
+already diagnosed in retained commit
+`78e7342b3df70f12366eec7b65be1c4157466bcf`.
+
+This continuation reuses that commit's two fixture-source changes byte-for-byte.
+Fully qualified names bind the intended existing length/time/volume dimensions,
+volume-flow and acceleration results, and the concrete exported epsilon/zero
+values instead of introducing auto-implicit variables. Arithmetic, all `Refl`
+proofs and the original expected stdout are unchanged. The actual rebuilt
+compiler now compiles the complete fixture and the generated executable prints
+`units, time, intervals: tests typecheck`; the original unqualified fixture
+failed those same obligations. This is a prerequisite fixture repair, not a
+new units implementation or a relaxed test.
+
+Reused source SHA-256 values:
+
+- `Tests.idric`: `001edea992262f52ae77082ff09fa6bbe8692b14e2f14471006a26d24016a159`
+- `UnitsTimeIntervals.idric`: `985279c0be5f54f3371085cf1b50e0f171c62dcdc682a7f78c378b20d56af4c5`
+
+Hosted qualification must rerun at the resulting new head. The original failed
+run remains evidence and is not relabeled successful.
