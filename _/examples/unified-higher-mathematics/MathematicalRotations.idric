@@ -1,0 +1,184 @@
+module MathematicalRotations
+
+import MathematicalSpaces
+import EuclideanGeometry
+import Data.So
+import Data.Text
+import Decidable.Equality
+
+%unbound_implicits off
+
+-- Axes are zero-based coordinate indices. The shared positive denominator
+-- describes exact rational coefficients, never a floating approximation.
+public export
+valid_plane : Number → Number → Number → ±Number → ±Number → ±Number → Bool
+valid_plane rank first second cosine sine denominator =
+  first < rank && second < rank && not (first ≟ second) &&
+  denominator > 0 &&
+  (cosine × cosine + sine × sine ≟ denominator × denominator)
+
+-- The frame label denotes an oriented standard orthonormal coordinate frame.
+-- Equal ranks do not identify spaces, and equal spaces do not identify frames.
+-- These constructors describe a restricted exact calculus; no arbitrary
+-- metric or general-real angle is admitted by this model.
+public export
+data Rotation :
+  {space : FiniteSpace} → EuclideanStructure space → Text → Type where
+  ClosedIdentity :
+    {space : FiniteSpace} → {structure : EuclideanStructure space} →
+    {frame : Text} → Rotation structure frame
+  ClosedPlane :
+    {space : FiniteSpace} → {structure : EuclideanStructure space} →
+    {frame : Text} →
+    (first : Number) → (second : Number) →
+    (cosine : ±Number) → (sine : ±Number) → (denominator : ±Number) →
+    So (valid_plane (space_rank space) first second cosine sine denominator) →
+    Rotation structure frame
+  ClosedInverse :
+    {space : FiniteSpace} → {structure : EuclideanStructure space} →
+    {frame : Text} → Rotation structure frame → Rotation structure frame
+  -- Conventional composition: right is applied first, then left.
+  ClosedComposition :
+    {space : FiniteSpace} → {structure : EuclideanStructure space} →
+    {frame : Text} → Rotation structure frame → Rotation structure frame →
+    Rotation structure frame
+
+public export
+checked_plane :
+  {space : FiniteSpace} → {structure : EuclideanStructure space} →
+  {frame : Text} →
+  Number → Number → ±Number → ±Number → ±Number →
+  Maybe (Rotation structure frame)
+checked_plane {space} first second cosine sine denominator =
+  case choose (valid_plane (space_rank space) first second cosine sine denominator) of
+    Left evidence ⇒ Just (ClosedPlane first second cosine sine denominator evidence)
+    Right _ ⇒ Nothing
+
+-- The evaluator is an exact rational sample oracle. An unreduced positive
+-- denominator is intentional: equality below compares mathematical values.
+public export
+record ExactCoordinate where
+  constructor RationalCoordinate
+  numerator : ±Number
+  denominator : Number
+
+public export
+whole_coordinate : ±Number → ExactCoordinate
+whole_coordinate value = RationalCoordinate value 1
+
+public export
+same_coordinate : ExactCoordinate → ExactCoordinate → Bool
+same_coordinate (RationalCoordinate left left_denominator)
+                (RationalCoordinate right right_denominator) =
+  left_denominator > 0 && right_denominator > 0 &&
+  (left × cast right_denominator ≟ right × cast left_denominator)
+
+scale_coordinate : ±Number → ±Number → ExactCoordinate → ExactCoordinate
+scale_coordinate scalar divisor (RationalCoordinate value denominator) =
+  RationalCoordinate (scalar × value) (cast divisor × denominator)
+
+add_coordinate : ExactCoordinate → ExactCoordinate → ExactCoordinate
+add_coordinate (RationalCoordinate left left_denominator)
+               (RationalCoordinate right right_denominator) =
+  RationalCoordinate
+    (left × cast right_denominator + right × cast left_denominator)
+    (left_denominator × right_denominator)
+
+coordinate_at : Number → List ExactCoordinate → Maybe ExactCoordinate
+coordinate_at _ [] = Nothing
+coordinate_at Z (value :: _) = Just value
+coordinate_at (S index) (_ :: rest) = coordinate_at index rest
+
+replace_coordinate : Number → ExactCoordinate → List ExactCoordinate → List ExactCoordinate
+replace_coordinate _ _ [] = []
+replace_coordinate Z value (_ :: rest) = value :: rest
+replace_coordinate (S index) value (first :: rest) =
+  first :: replace_coordinate index value rest
+
+plane_coordinates :
+  Number → Number → ±Number → ±Number → ±Number →
+  List ExactCoordinate → Maybe (List ExactCoordinate)
+plane_coordinates first second cosine sine denominator coordinates = do
+  first_value ← coordinate_at first coordinates
+  second_value ← coordinate_at second coordinates
+  let first_result = add_coordinate
+        (scale_coordinate cosine denominator first_value)
+        (scale_coordinate (-sine) denominator second_value)
+  let second_result = add_coordinate
+        (scale_coordinate sine denominator first_value)
+        (scale_coordinate cosine denominator second_value)
+  pure (replace_coordinate second second_result
+          (replace_coordinate first first_result coordinates))
+
+-- Lists occur only at this checked sample boundary. The ambient mathematical
+-- Vector is still the existing space-indexed object, not this representation.
+mutual
+  apply_coordinates :
+    {space : FiniteSpace} → {structure : EuclideanStructure space} → {frame : Text} →
+    Bool → Rotation structure frame → List ExactCoordinate → Maybe (List ExactCoordinate)
+  apply_coordinates _ ClosedIdentity coordinates = Just coordinates
+  apply_coordinates inverse (ClosedPlane first second cosine sine denominator _) coordinates =
+    plane_coordinates first second cosine (if inverse then -sine else sine) denominator coordinates
+  apply_coordinates inverse (ClosedInverse rotation) coordinates =
+    apply_coordinates (not inverse) rotation coordinates
+  apply_coordinates False (ClosedComposition left right) coordinates = do
+    intermediate ← apply_coordinates False right coordinates
+    apply_coordinates False left intermediate
+  apply_coordinates True (ClosedComposition left right) coordinates = do
+    intermediate ← apply_coordinates True left coordinates
+    apply_coordinates True right intermediate
+
+public export
+apply_exact :
+  {space : FiniteSpace} → {structure : EuclideanStructure space} → {frame : Text} →
+  Rotation structure frame → List ExactCoordinate → Maybe (List ExactCoordinate)
+apply_exact {space} rotation coordinates =
+  if length coordinates ≟ space_rank space && all ((> 0) . denominator) coordinates
+     then apply_coordinates False rotation coordinates
+     else Nothing
+
+-- Runtime dimensions use a genuine existential package. Composition obtains
+-- equality witnesses for rank, nominal space and frame before combining terms.
+public export
+data RuntimeRotation : Type where
+  RuntimeRotationValue :
+    (rank : Number) → (name : Text) → (frame : Text) →
+    Rotation {space = NamedFiniteSpace (AdditionalSpaceName rank name)}
+      StandardCoordinate frame → RuntimeRotation
+
+public export
+runtime_identity : Number → Text → Text → RuntimeRotation
+runtime_identity rank name frame = RuntimeRotationValue rank name frame ClosedIdentity
+
+public export
+runtime_plane :
+  Number → Text → Text → Number → Number → ±Number → ±Number → ±Number →
+  Maybe RuntimeRotation
+runtime_plane rank name frame first second cosine sine denominator = do
+  rotation ← checked_plane
+    {space = NamedFiniteSpace (AdditionalSpaceName rank name)}
+    {structure = StandardCoordinate} {frame}
+    first second cosine sine denominator
+  pure (RuntimeRotationValue rank name frame rotation)
+
+public export
+compose_matching :
+  {left_rank, right_rank : Number} → {left_name, right_name, left_frame, right_frame : Text} →
+  left_rank = right_rank → left_name = right_name → left_frame = right_frame →
+  Rotation {space = NamedFiniteSpace (AdditionalSpaceName left_rank left_name)} StandardCoordinate left_frame →
+  Rotation {space = NamedFiniteSpace (AdditionalSpaceName right_rank right_name)} StandardCoordinate right_frame →
+  Rotation {space = NamedFiniteSpace (AdditionalSpaceName left_rank left_name)} StandardCoordinate left_frame
+compose_matching Refl Refl Refl left right = ClosedComposition left right
+
+public export
+compose_runtime : RuntimeRotation → RuntimeRotation → Maybe RuntimeRotation
+compose_runtime (RuntimeRotationValue left_rank left_name left_frame left)
+                (RuntimeRotationValue right_rank right_name right_frame right) =
+  case decEq left_rank right_rank of
+    No _ ⇒ Nothing
+    Yes rank_equality ⇒ case decEq left_name right_name of
+      No _ ⇒ Nothing
+      Yes name_equality ⇒ case decEq left_frame right_frame of
+        No _ ⇒ Nothing
+        Yes frame_equality ⇒ Just (RuntimeRotationValue left_rank left_name left_frame
+          (compose_matching rank_equality name_equality frame_equality left right))

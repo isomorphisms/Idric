@@ -801,8 +801,14 @@ compileExp ctm outfile
               | Nothing =>
                    do iputStrLn (reflow "No such code generator available")
                       pure CompilationFailed
-         tm_erased <- prepareExp ctm
-         ok <- compile cg tm_erased outfile
+         defs <- get Ctxt
+         -- A mathematical export inspects its explicitly selected checked
+         -- definition. It must run before prepareExp's erasure and runtime
+         -- compilation; the ordinary executable/ANF paths retain that phase.
+         tm <- if codegen (session (options defs)) == Other "idric-mathematical"
+                  then pure (Erased EmptyFC Placeholder)
+                  else prepareExp ctm
+         ok <- compile cg tm outfile
          maybe (pure CompilationFailed)
                (pure . Compiled)
                ok

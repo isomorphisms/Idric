@@ -571,8 +571,10 @@ postOptions : {auto c : Ref Ctxt Defs} ->
               {auto m : Ref MD Metadata} ->
               REPLResult -> PostSession -> Core ControlFlow
 -- In case of error loading the output file, we abort immediately without doing anything
-postOptions res@(ErrorLoadingFile {}) (MkPostSession _ (Just _) _ _)
-    = pure Abort
+postOptions res@(ErrorLoadingFile {}) (MkPostSession check out _ _)
+    = if check || isJust out
+         then throw (InternalError "command-line source loading or typechecking failed")
+         else pure Continue
 -- otherwise, we compile the file and
 -- either :
 -- - execute the given expression
@@ -583,7 +585,8 @@ postOptions res@(ErrorLoadingFile {}) (MkPostSession _ (Just _) _ _)
 postOptions _ (MkPostSession check out ex runRepl)
     = do controlFlow <- newRef ControlFlow Continue
          whenJust out $ \ outfile => do
-             ignore $ compileExp (PRef EmptyFC (UN $ Basic "main")) outfile
+             Compiled _ <- compileExp (PRef EmptyFC (UN $ Basic "main")) outfile
+               | _ => throw (InternalError "command-line compilation failed")
              put ControlFlow Abort
          flip traverse_ (reverse ex) $ \ expr => do
              setCurrentElabSource expr
