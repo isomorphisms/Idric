@@ -47,11 +47,17 @@ The independently implemented importer compiled and executed 16 groups,
 including handwritten Unicode input and targeted corruptions. Neither of these
 results is yet an actual export receipt or completion of NIR-0.
 
+The existing edric009 geometry runner also executed all twelve output groups
+successfully with the added nominal-space constructor, through the existing
+owned bootstrap compiler. This does not test the new exporter.
+
 The new compiler modules typechecked with the owned Chez compiler reporting
 0.8.0-1b5176dc9 (its worktree is currently 2bce7677f513d711875e978bd6f5ad28b9e54d58).
 The whole modified compiler generated Chez source. Its normal optimize-level-3
 Chez object build was killed with status 137 in this disposable host. A
-level-zero build and actual exporter acceptance are being checked separately.
+level-zero object build failed with an invalid FASL procedure diagnostic. The
+existing incremental Chez build and actual exporter acceptance are being
+checked separately. The cause of status 137 has not been established.
 No RefC/generated-C/stock-compiler replacement is used.
 
 All source is based on isomorphisms/Idric at
@@ -74,3 +80,15 @@ No numerical plan, native ICK lowering, Fourier integration, Android execution
 or physical acceptance is established by these tests. Universal norm, dot and
 inverse laws are not proved; this slice independently validates a restricted
 constructor calculus and checks its selected exact samples.
+
+The current pinned shared style gate fails on `Nat` in the two new bootstrap
+`.idr` compiler modules. `STYLE.md` explicitly distinguishes that inherited
+compiler stratum from `.idric` source. `Number` is a filename-scoped parser
+alias, not an available inherited bootstrap type, as Parser.Source records.
+No spelling dodge or acceptance exclusion has been introduced. Reconciliation
+of that source-role conflict remains a separate required gate; the branch is
+not claimed merge-ready.
+
+Public branch publication was rejected by automatic approval review because
+the short NIR-0 request did not explicitly authorize public disclosure of the
+new local code. No push, PR, hosted CI, merge or release is claimed.
