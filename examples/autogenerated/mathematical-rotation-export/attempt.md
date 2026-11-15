@@ -64,8 +64,8 @@ The whole modified compiler generated Chez source. Its normal optimize-level-3
 Chez object build was killed with status 137 in this disposable host. A
 level-zero object build failed with an invalid FASL procedure diagnostic. The
 existing incremental Chez build succeeded and executed the actual exporter.
-The cause of status 137 has not been established. The compiler workflow's
-ordinary whole-program build has not run on this branch.
+The cause of status 137 has not been established. These are historical local
+build experiments; current hosted qualification is tracked in the live PR.
 No RefC/generated-C/stock-compiler replacement is used.
 
 All source is based on isomorphisms/Idric at
@@ -96,13 +96,20 @@ or physical acceptance is established by these tests. Universal norm, dot and
 inverse laws are not proved; this slice independently validates a restricted
 constructor calculus and checks its selected exact samples.
 
-The current pinned shared style gate fails on `Nat` in the two new bootstrap
-`.idr` compiler modules. `STYLE.md` explicitly distinguishes that inherited
-compiler stratum from `.idric` source. `Number` is a filename-scoped parser
-alias, not an available inherited bootstrap type, as Parser.Source records.
-No spelling dodge or acceptance exclusion has been introduced. Reconciliation
-of that source-role conflict remains a separate required gate; the branch is
-not claimed merge-ready.
+The original shared style gate rejected `Nat` in the two new bootstrap `.idr`
+compiler modules despite the filename-scoped language distinction in `STYLE.md`
+and Parser.Source. The repair is shared in
+[isomorphisms/ai-ci PR #352, “Respect the filename language boundary in Idriç style checks”](https://github.com/isomorphisms/ai-ci/pull/352)
+and pinned by full commit in the consumer workflow. Its regression accepts
+inherited `.idr` syntax, keeps the `.idric` hard stops, and rejects the same
+legacy text after renaming it to `.idric`.
+
+Hosted acceptance also exposed a separate process-environment boundary: the
+bootstrap wrapper's `CHEZ` variable does not survive into a later CI step.
+The mathematical target now resolves the pinned repository runtime (or an
+explicit caller override), verifies it exists, and passes `CHEZ` to both the
+runner compiler and every nested acceptance process. It was replayed from an
+environment with `CHEZ` unset, preserving all positive and negative controls.
 
 Current integration and acceptance status is tracked in
 [isomorphisms/Idric PR #152, “Preserve checked finite-dimensional rotations before erasure”](https://github.com/isomorphisms/Idric/pull/152).
