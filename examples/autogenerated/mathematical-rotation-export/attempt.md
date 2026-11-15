@@ -57,7 +57,9 @@ successfully with the added nominal-space constructor, through the existing
 owned bootstrap compiler. This does not test the new exporter.
 
 The new compiler modules typechecked with the owned Chez compiler reporting
-0.8.0-1b5176dc9 (its worktree is currently 2bce7677f513d711875e978bd6f5ad28b9e54d58).
+0.8.0-2bce7677f (its worktree is 2bce7677f513d711875e978bd6f5ad28b9e54d58).
+The 1b5176dc9 tag in that launcher's generated comment identifies the compiler
+that produced it, not the executable's own reported version.
 The whole modified compiler generated Chez source. Its normal optimize-level-3
 Chez object build was killed with status 137 in this disposable host. A
 level-zero object build failed with an invalid FASL procedure diagnostic. The
