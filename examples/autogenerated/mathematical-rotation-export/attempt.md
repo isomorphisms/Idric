@@ -1,6 +1,6 @@
 # Checked mathematical rotation export
 
-Status: PARTIAL
+Status: PASS for the restricted mathematical producer; NIR-0 remains incomplete
 
 Recover the NIR-S1 boundary on current Idriç. The October 8 report names an
 unpublished commit, 7126cb70e6da10332a387b3c8da149872dbcbc08, which neither the
@@ -44,8 +44,13 @@ denominators, and runtime space/rank/frame matching. Compile-time failing
 blocks verify invalid static construction.
 
 The independently implemented importer compiled and executed 16 groups,
-including handwritten Unicode input and targeted corruptions. Neither of these
-results is yet an actual export receipt or completion of NIR-0.
+including handwritten Unicode input and targeted corruptions. The rebuilt
+incremental Chez compiler then produced an actual R128 mathematical export.
+The independent importer checked its graph and retained/reproduced its bytes
+exactly. The acceptance entrypoint also rejects forged source coefficients,
+axes, frames, wrong root types, holes and missing root selection, and checks
+nonzero status for valid-but-wrong identity/sign results. These mathematical
+receipts do not establish completion of NIR-0.
 
 The existing edric009 geometry runner also executed all twelve output groups
 successfully with the added nominal-space constructor, through the existing
@@ -56,8 +61,9 @@ The new compiler modules typechecked with the owned Chez compiler reporting
 The whole modified compiler generated Chez source. Its normal optimize-level-3
 Chez object build was killed with status 137 in this disposable host. A
 level-zero object build failed with an invalid FASL procedure diagnostic. The
-existing incremental Chez build and actual exporter acceptance are being
-checked separately. The cause of status 137 has not been established.
+existing incremental Chez build succeeded and executed the actual exporter.
+The cause of status 137 has not been established. The compiler workflow's
+ordinary whole-program build has not run on this branch.
 No RefC/generated-C/stock-compiler replacement is used.
 
 All source is based on isomorphisms/Idric at
@@ -75,6 +81,13 @@ disable unbound implicit variables. This is internal constructor notation, not
 an approved mathematical source surface.
 
 ## Evidence boundary
+
+The make -C _ test-mathematical-ir entrypoint is exercised with the incremental
+compiler and the existing owned prelude/base/network libraries. It includes
+actual rank-zero/one named identity exports and a rank-five Unicode space/frame
+export, as well as the R128 rotation and rejection controls. The compiler's
+version metadata is regenerated from the source commit before the final replay;
+the supplied receipt records the complete commit and material hashes.
 
 No numerical plan, native ICK lowering, Fourier integration, Android execution
 or physical acceptance is established by these tests. Universal norm, dot and

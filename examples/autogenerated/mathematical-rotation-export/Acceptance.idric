@@ -58,6 +58,18 @@ rotation_type : Text
 rotation_type = "Rotation {space = real128_space} real128_euclidean \"standard-positive\""
 
 covering
+export_named_identity : List Text → Text → Number → Text → Text → IO ()
+export_named_identity compiler working rank name frame = do
+  let space = "NamedFiniteSpace (AdditionalSpaceName " ++ show rank ++ " " ++ show name ++ ")"
+  let signature = "Rotation {space = " ++ space ++ "} StandardCoordinate " ++ show frame
+  let body = "ClosedIdentity {space = " ++ space ++ "} {structure = StandardCoordinate} {frame = " ++ show frame ++ "}"
+  save_source "Negative.idric" (fixture_source signature body)
+  run_command True (compiler ++ ["--cg", "idric-mathematical", "--directive",
+                    "root=mathematical_rotation", "Negative.idric", "-o", "identity.math"])
+  run_command True [working ++ "/build/exec/artifact-tests", "--named-identity",
+                    "build/exec/identity.math", "named:" ++ name, show rank, frame]
+
+covering
 reject_source : Text → Text → Text → IO ()
 reject_source compiler description source = do
   save_source "Negative.idric" source
@@ -91,6 +103,9 @@ acceptance compiler root = do
   run_command True [compiler, "--cg", "idric-mathematical", "--directive",
                     "root=mathematical_rotation", "RotationExport.idric", "-o", "rotation.math"]
   run_command True [working ++ "/build/exec/artifact-tests", "--artifact", "build/exec/rotation.math"]
+  export_named_identity [compiler] working 0 "zero" "frame-zero"
+  export_named_identity [compiler] working 1 "one" "frame-one"
+  export_named_identity [compiler] working 5 "χώρος" "frame-α"
   run_command False [compiler, "--cg", "idric-mathematical", "RotationExport.idric", "-o", "missing-root.math"]
   run_command False [compiler, "--cg", "unavailable-negative-backend", "RotationExport.idric", "-o", "unknown.math"]
   reject_source compiler "forged unit evidence rejected"

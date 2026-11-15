@@ -39,6 +39,21 @@ expected_graph : RotationGraph → Bool
 expected_graph (Composition (Plane 2 127 3 4 5) (Plane 0 1 0 1 1)) = True
 expected_graph _ = False
 
+is_identity : RotationGraph → Bool
+is_identity Identity = True
+is_identity _ = False
+
+covering
+check_named_identity : Text → Text → Text → Text → IO ()
+check_named_identity path name rank frame = do
+  Right bytes ← readFile path
+    | Left error ⇒ do putStrLn (show error); exitFailure
+  Right artifact ← pure (parseArtifact bytes)
+    | Left error ⇒ do putStrLn error; exitFailure
+  assert_result "closed named identity export preserves rank, space and frame"
+    (artifact.space.nominalName ≟ name && show artifact.space.dimension ≟ rank &&
+     artifact.space.orientedFrame ≟ frame && is_identity artifact.graph)
+
 -- Reading an external file may wait for input; the pure parser remains total.
 covering
 check_export : Text → IO ()
@@ -97,4 +112,5 @@ main = do
   case drop 1 arguments of
     [] ⇒ pure ()
     ["--artifact", path] ⇒ check_export path
+    ["--named-identity", path, name, rank, frame] ⇒ check_named_identity path name rank frame
     _ ⇒ do putStrLn "expected --artifact PATH"; exitFailure
