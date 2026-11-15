@@ -121,5 +121,8 @@ main : IO ()
 main = do
   arguments ← getArgs
   case drop 1 arguments of
-    [compiler, root] ⇒ acceptance compiler root
+    [compiler, root] ⇒ do
+      assert_result "absolute compiler and repository paths"
+        (isPrefixOf "/" compiler && isPrefixOf "/" root)
+      acceptance compiler root
     _ ⇒ do putStrLn "expected absolute COMPILER and REPOSITORY paths"; exitFailure
