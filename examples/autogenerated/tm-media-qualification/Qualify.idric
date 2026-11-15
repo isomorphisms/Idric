@@ -1,0 +1,349 @@
+module Qualify
+
+import Data.List
+import Data.Text
+import System
+import System.Directory
+import System.File
+import System.Escape
+
+-- Finite source/log files and terminating compiler commands are external
+-- assumptions. Covering marks those I/O boundaries rather than asserting totality.
+covering
+fail_check : Text → IO value
+fail_check message = do
+  putStrLn ("FAIL " ++ message)
+  exitFailure
+
+covering
+save_text : Text → Text → IO ()
+save_text path contents = do
+  Right () ← writeFile path contents
+    | Left error ⇒ fail_check ("write " ++ path ++ ": " ++ show error)
+  pure ()
+
+covering
+read_text : Text → IO Text
+read_text path = do
+  Right contents ← readFile path
+    | Left error ⇒ fail_check ("read " ++ path ++ ": " ++ show error)
+  pure contents
+
+record Execution where
+  constructor Executed
+  exit_status : Int
+  standard_output : Text
+  standard_error : Text
+
+covering
+observe_command : Text → Text → List Text → IO Execution
+observe_command destination label arguments = do
+  let prefix = destination ++ "/" ++ label
+  let command = escapeCmd arguments ++
+        " > " ++ escapeArg (prefix ++ ".stdout") ++
+        " 2> " ++ escapeArg (prefix ++ ".stderr")
+  -- The inherited process API accepts a shell string. Only argument escaping
+  -- and fixed redirections occur here; this is not a shell-script implementation.
+  save_text (prefix ++ ".command") (command ++ "\n")
+  status ← system command
+  save_text (prefix ++ ".status") (show status ++ "\n")
+  output ← read_text (prefix ++ ".stdout")
+  errors ← read_text (prefix ++ ".stderr")
+  pure (Executed status output errors)
+
+covering
+require_success : Text → Execution → IO ()
+require_success label execution =
+  if exit_status execution ≟ 0 &&
+     not (isInfixOf "Error:" (standard_output execution ++ standard_error execution))
+     then putStrLn ("PASS " ++ label)
+     else fail_check (label ++ ": " ++ standard_output execution ++
+                      standard_error execution)
+
+covering
+require_output : Text → Text → Execution → IO ()
+require_output label expected execution =
+  if exit_status execution ≟ 0 && standard_output execution ≟ expected &&
+     standard_error execution ≟ ""
+     then putStrLn ("PASS " ++ label)
+     else fail_check (label ++ ": unexpected output")
+
+covering
+require_rejection : Text → List Text → Execution → IO ()
+require_rejection label diagnostics execution =
+  let message = standard_output execution ++ standard_error execution in
+  if exit_status execution ≟ 1 && all (\needle ⇒ isInfixOf needle message) diagnostics
+     then putStrLn ("PASS " ++ label)
+     else fail_check (label ++ ": rejection did not match: " ++ message)
+
+compiler_arguments : Text → Text → Text → List Text
+compiler_arguments destination label source =
+  ["--no-color", "--cg", "chez", "--build-dir", destination ++ "/" ++ label ++ "-build",
+   "--output-dir", destination ++ "/bin", "-o", label, source]
+
+covering
+compile_program : List Text → Text → Text → Text → IO ()
+compile_program compiler destination label source = do
+  result ← observe_command destination (label ++ "-compile")
+             (compiler ++ compiler_arguments destination label source)
+  require_success (label ++ " compilation") result
+
+covering
+check_negative : List Text → Text → Text → List Text → IO ()
+check_negative compiler destination name diagnostics = do
+  result ← observe_command destination name
+    (compiler ++ ["--no-color", "--build-dir", destination ++ "/" ++ name ++ "-build",
+     "--check", "Negative/" ++ name ++ ".idric"])
+  require_rejection name ("Mismatch between:" :: diagnostics) result
+
+covering
+qualify_media : List Text → List Text → List Text → Text → IO ()
+qualify_media compiler compiler_materials source_revision_command destination = do
+  Just runtime ← environment_value "CHEZ"
+    | Nothing ⇒ fail_check "CHEZ must identify the selected absolute runtime"
+  if isPrefixOf "/" runtime
+     then pure ()
+     else fail_check "CHEZ must be absolute"
+  Just expected_head ← environment_value "IDRIC_EXPECTED_HEAD"
+    | Nothing ⇒ fail_check "IDRIC_EXPECTED_HEAD must identify the source commit"
+  head ← observe_command destination "source-revision" source_revision_command
+  require_output "exact source commit" (expected_head ++ "\n") head
+  identities ← observe_command destination "material-identities"
+    (["sha256sum"] ++ compiler_materials ++ [runtime, "Qualify.idric",
+     "Main.idric", "MediaEvidence.idric", "RuntimeMedia.idric",
+     "Compatibility.idr", "PositiveBoundaries.idric", "expected.stdout",
+     "Negative/WrongArtifact.idric", "Negative/WrongChannel.idric",
+     "Negative/WrongClock.idric", "Negative/WrongInterlacing.idric"])
+  require_success "compiler, runtime and fixture identities recorded" identities
+  version ← observe_command destination "compiler-version" (compiler ++ ["--version"])
+  require_success "compiler version recorded" version
+  compile_program compiler destination "media" "Main.idric"
+  expected ← read_text "expected.stdout"
+  runtime ← observe_command destination "media-runtime" [destination ++ "/bin/media"]
+  require_output "ten original media checks" expected runtime
+
+  positive ← observe_command destination "positive-boundaries"
+    (compiler ++ ["--no-color", "--build-dir", destination ++ "/positive-build",
+     "--check", "PositiveBoundaries.idric"])
+  require_success "positive identity, channel, clock and storage siblings" positive
+
+  check_negative compiler destination "WrongArtifact" ["movie-A", "movie-B"]
+  check_negative compiler destination "WrongChannel" ["container_report", "decoded_frames"]
+  check_negative compiler destination "WrongClock" ["DecodeTime", "PresentationTime"]
+  check_negative compiler destination "WrongInterlacing" ["png_storage_order", "video_scan"]
+
+  compile_program compiler destination "compatibility" "Compatibility.idr"
+  compatibility ← observe_command destination "compatibility-runtime"
+    [destination ++ "/bin/compatibility"]
+  require_output "ordinary Idris compatibility" "True\nTrue\n" compatibility
+
+  compile_program compiler destination "runtime-media" "RuntimeMedia.idric"
+  let labels = replicate 180 "observed-frame"
+  let runtime_program = destination ++ "/bin/runtime-media"
+  accepted ← observe_command destination "runtime-count"
+    ([runtime_program, "288000", "48000", "30", "1"] ++ labels)
+  require_output "runtime-sized frame sequence" "PASS runtime duration for 180 frames\n" accepted
+  alternate ← observe_command destination "runtime-alternate-count"
+    [runtime_program, "4000", "1000", "1", "1", "first", "second", "third", "fourth"]
+  require_output "independent runtime count" "PASS runtime duration for 4 frames\n" alternate
+  wrong_count ← observe_command destination "runtime-missing-frame"
+    ([runtime_program, "288000", "48000", "30", "1"] ++ replicate 179 "observed-frame")
+  require_rejection "missing runtime frame refused" ["FAIL runtime duration"] wrong_count
+  wrong_duration ← observe_command destination "runtime-wrong-duration"
+    ([runtime_program, "287744", "48000", "30", "1"] ++ labels)
+  require_rejection "runtime duration failure returns nonzero" ["FAIL runtime duration"] wrong_duration
+  invalid_input ← observe_command destination "runtime-invalid-integer"
+    ([runtime_program, "288000garbage", "48000", "30", "1"] ++ labels)
+  require_rejection "invalid integer input" ["FAIL invalid integer input"] invalid_input
+  invalid_rate ← observe_command destination "runtime-invalid-rate"
+    ([runtime_program, "288000", "48000", "30", "0"] ++ labels)
+  require_rejection "zero frame-rate denominator" ["FAIL runtime duration"] invalid_rate
+  save_text (destination ++ "/qualification.txt") "PASS host Chez media qualification\n"
+
+covering
+qualify_from : List Text → List Text → List Text → Text → Text → IO ()
+qualify_from compiler materials revision_command sources destination = do
+  if all (isPrefixOf "/") [sources, destination]
+     then pure ()
+     else fail_check "all paths must be absolute"
+  True ← changeDir sources
+    | False ⇒ fail_check "source directory is unavailable"
+  Right () ← createDir destination
+    | Left error ⇒ fail_check ("fresh output directory required: " ++ show error)
+  Right () ← createDir (destination ++ "/bin")
+    | Left error ⇒ fail_check (show error)
+  qualify_media compiler materials revision_command destination
+
+covering
+successful_command : Text → Text → List Text → IO ()
+successful_command destination label arguments = do
+  observed ← observe_command destination label arguments
+  require_success label observed
+
+record PayloadRequirement where
+  constructor RequirePayload
+  original_file : Text
+  delivered_path : Text
+  required_mode : Text
+
+covering
+required_rows : Text → Number → List PayloadRequirement → IO Text
+required_rows destination ordinal [] = pure ""
+required_rows destination ordinal (requirement :: remaining) = do
+  observed ← observe_command destination ("required-source-" ++ show ordinal)
+    ["sha256sum", original_file requirement]
+  require_success ("required payload " ++ delivered_path requirement) observed
+  digest :: _ ← pure (words (standard_output observed))
+    | [] ⇒ fail_check "source digest is absent"
+  rest ← required_rows destination (S ordinal) remaining
+  pure (digest ++ "\t" ++ required_mode requirement ++ "\t" ++
+        delivered_path requirement ++ "\n" ++ rest)
+
+material_verifier_revision : Text
+material_verifier_revision = "f4c60ef97eff659dcaccbcf51ae0e04e61bb350a"
+
+covering
+prepare_bundle : Text → Text → Text → Text → Text → IO ()
+prepare_bundle repository shared_source controller package receipts = do
+  if all (isPrefixOf "/") [repository, shared_source, controller, package, receipts]
+     then pure () else fail_check "bundle preparation paths must be absolute"
+  Right () ← createDir package
+    | Left error ⇒ fail_check ("fresh package required: " ++ show error)
+  Right () ← createDir receipts
+    | Left error ⇒ fail_check ("fresh receipts required: " ++ show error)
+  Just expected_head ← environment_value "IDRIC_EXPECTED_HEAD"
+    | Nothing ⇒ fail_check "IDRIC_EXPECTED_HEAD is required"
+  source_head ← observe_command receipts "compiler-source-head"
+    ["git", "-C", repository, "rev-parse", "HEAD"]
+  require_output "compiler source pin" (expected_head ++ "\n") source_head
+  verifier_head ← observe_command receipts "material-verifier-source-head"
+    ["git", "-C", shared_source, "rev-parse", "HEAD"]
+  require_output "material verifier source pin" (material_verifier_revision ++ "\n") verifier_head
+  let compiler = repository ++ "/_/build/exec/idris2"
+  let runtime = repository ++ "/_/.tools/chez-10.4.1"
+  let fixtures = repository ++ "/examples/autogenerated/tm-media-qualification"
+  successful_command receipts "package-directories"
+    ["mkdir", "-p", package ++ "/compiler/app", package ++ "/verification",
+     receipts ++ "/admission-source", receipts ++ "/bin"]
+  successful_command receipts "install-compiler-libraries"
+    ["make", "-C", repository ++ "/_", "install-support", "install-libs",
+     "PREFIX=" ++ package ++ "/compiler", "IDRIS2_PREFIX=" ++ package ++ "/compiler"]
+  successful_command receipts "copy-pinned-runtime" ["cp", "-RL", runtime, package ++ "/runtime"]
+  successful_command receipts "copy-compiler"
+    ["cp", compiler ++ "_app/idris2.so", compiler ++ "_app/libidris2_support.so",
+     package ++ "/compiler/app"]
+  successful_command receipts "copy-compiler-license"
+    ["cp", repository ++ "/LICENSE", package ++ "/compiler/LICENSE"]
+  successful_command receipts "copy-runtime-notices"
+    ["cp", repository ++ "/_/.tools/src/ChezScheme-10.4.1/LICENSE",
+     repository ++ "/_/.tools/src/ChezScheme-10.4.1/NOTICE", package ++ "/runtime"]
+  successful_command receipts "copy-media-fixtures" ["cp", "-R", fixtures, package ++ "/fixtures"]
+  save_text (package ++ "/fixtures/source-revision.txt") (expected_head ++ "\n")
+  save_text (package ++ "/provenance.txt")
+    ("compiler\tisomorphisms/Idric\t" ++ expected_head ++
+     "\nruntime\tChezScheme\t10.4.1\n" ++
+     "runtime_source_sha256\t2e74952db7bc177f0c3602e2217a341ba677d733eec4cd7726418c3a4e1ef308\n" ++
+     "material_verifier\tisomorphisms/ai-ci\t" ++ material_verifier_revision ++
+     "\nplatform\tLinux x86_64\nproviders\tsystem libc, libm and ELF loader\n")
+  successful_command receipts "copy-material-observer-source"
+    ["cp", shared_source ++ "/examples/autogenerated/ick-package-replay/MaterialAdmission.idric",
+     shared_source ++ "/examples/autogenerated/source-admission/SourceProcess.idric",
+     receipts ++ "/admission-source"]
+  True ← changeDir (receipts ++ "/admission-source")
+    | False ⇒ fail_check "material observer source directory unavailable"
+  compile_program [compiler] receipts "material-admission" "MaterialAdmission.idric"
+  let observer = receipts ++ "/bin/material-admission_app/material-admission.so"
+  successful_command receipts "copy-qualification-programs"
+    ["cp", controller, observer, package ++ "/verification"]
+  inventory ← observe_command receipts "produce-material-inventory"
+    [compiler, "--cg", "chez", "--build-dir", receipts ++ "/inventory-build",
+     "--output-dir", receipts ++ "/inventory-program", "--exec",
+     "inspect_material " ++ show package ++ " >>= putStr", "MaterialAdmission.idric"]
+  require_success "unchanged ai-ci inventory operation" inventory
+  save_text (package ++ "/material.tsv") (standard_output inventory)
+  approved ← observe_command receipts "approved-inventory-digest"
+    ["sha256sum", package ++ "/material.tsv"]
+  require_success "inventory digest" approved
+  digest :: _ ← pure (words (standard_output approved))
+    | [] ⇒ fail_check "inventory digest is absent"
+  save_text (receipts ++ "/approved-material.txt") (digest ++ "\n")
+  required ← required_rows receipts 0
+    [ RequirePayload (compiler ++ "_app/idris2.so") "compiler/app/idris2.so" "755"
+    , RequirePayload (compiler ++ "_app/libidris2_support.so") "compiler/app/libidris2_support.so" "755"
+    , RequirePayload (runtime ++ "/bin/scheme") "runtime/bin/scheme" "555"
+    , RequirePayload (runtime ++ "/lib/csv10.4.1/ta6le/petite.boot") "runtime/lib/csv10.4.1/ta6le/petite.boot" "444"
+    , RequirePayload (runtime ++ "/lib/csv10.4.1/ta6le/scheme.boot") "runtime/lib/csv10.4.1/ta6le/scheme.boot" "444"
+    , RequirePayload (runtime ++ "/lib/csv10.4.1/ta6le/scheme-script.boot") "runtime/lib/csv10.4.1/ta6le/scheme-script.boot" "444"
+    , RequirePayload controller "verification/qualify.so" "755"
+    , RequirePayload observer "verification/material-admission.so" "755"
+    , RequirePayload (fixtures ++ "/RuntimeMedia.idric") "fixtures/RuntimeMedia.idric" "644"
+    , RequirePayload (fixtures ++ "/MediaEvidence.idric") "fixtures/MediaEvidence.idric" "644"
+    ]
+  save_text (receipts ++ "/required.tsv") required
+  successful_command receipts "record-platform" ["uname", "-srm"]
+  save_text (receipts ++ "/package.txt") "PASS package constructed; admission and replay required\n"
+
+covering
+verify_bundle : Text → Text → Text → Text → IO ()
+verify_bundle package approved_file required_file destination = do
+  if all (isPrefixOf "/") [package, approved_file, required_file, destination] &&
+     not (isPrefixOf (package ++ "/") destination) && not (package ≟ destination)
+     then pure () else fail_check "bundle admission requires separate absolute paths"
+  Right () ← createDir destination
+    | Left error ⇒ fail_check ("fresh admission output required: " ++ show error)
+  approved ← read_text approved_file
+  let verifier = [package ++ "/runtime/bin/scheme", "--script",
+                  package ++ "/verification/material-admission.so"]
+  positive ← observe_command destination "admit-original"
+    (verifier ++ [package, trim approved, required_file])
+  require_success "complete delivered material admitted" positive
+  let changed = destination ++ "/changed-payload"
+  successful_command destination "copy-payload-control" ["cp", "-R", package, changed]
+  save_text (changed ++ "/fixtures/RuntimeMedia.idric") "changed payload\n"
+  changed_result ← observe_command destination "reject-changed-payload"
+    (verifier ++ [changed, trim approved, required_file])
+  require_rejection "changed payload refused" ["FAIL MATERIAL-APPROVED-INVENTORY"] changed_result
+  let stale = destination ++ "/stale-record"
+  successful_command destination "copy-stale-control" ["cp", "-R", package, stale]
+  save_text (stale ++ "/material.tsv") "stale producer record\n"
+  stale_result ← observe_command destination "reject-stale-record"
+    (verifier ++ [stale, trim approved, required_file])
+  require_rejection "stale manifest refused" ["FAIL MATERIAL-RECORD"] stale_result
+  save_text (destination ++ "/qualification.txt") "PASS positive material admission and two corrupt controls\n"
+
+covering
+admit_bundle : Text → Text → Text → Text → IO ()
+admit_bundle package approved_file required_file destination = do
+  Right () ← createDir destination
+    | Left error ⇒ fail_check ("fresh admission output required: " ++ show error)
+  approved ← read_text approved_file
+  observed ← observe_command destination "admit-complete-material"
+    [package ++ "/runtime/bin/scheme", "--script",
+     package ++ "/verification/material-admission.so", package, trim approved, required_file]
+  require_success "complete delivered material remains identical" observed
+  save_text (destination ++ "/qualification.txt") "PASS complete delivered material identity\n"
+
+covering
+main : IO ()
+main = do
+  arguments ← getArgs
+  case arguments of
+    [_, "--prepare-bundle", repository, shared_source, controller, package, receipts] ⇒
+      prepare_bundle repository shared_source controller package receipts
+    [_, "--verify-bundle", package, approved, required, destination] ⇒
+      verify_bundle package approved required destination
+    [_, "--admit-bundle", package, approved, required, destination] ⇒
+      admit_bundle package approved required destination
+    [_, "--bundle", package, destination] ⇒ do
+      if isPrefixOf "/" package then pure () else fail_check "package must be absolute"
+      let runtime = package ++ "/runtime/bin/scheme"
+      let application = package ++ "/compiler/app/idris2.so"
+      qualify_from [runtime, "--script", application]
+        [application, package ++ "/compiler/app/libidris2_support.so"]
+        ["cat", "source-revision.txt"] (package ++ "/fixtures") destination
+    [_, compiler, sources, destination] ⇒ do
+      if isPrefixOf "/" compiler then pure () else fail_check "compiler must be absolute"
+      qualify_from [compiler]
+        [compiler, compiler ++ "_app/idris2.so", compiler ++ "_app/libidris2_support.so"]
+        ["git", "rev-parse", "HEAD"] sources destination
+    _ ⇒ fail_check "expected compiler/sources/output, --prepare-bundle, --verify-bundle or --bundle"

@@ -1,0 +1,240 @@
+module MediaEvidence
+
+import Data.So
+import Data.Text
+import Decidable.Equality
+
+-- Candidate Idriç source, NOT YET COMPILER-CHECKED.
+-- These proofs concern recorded values. They do not prove that an external
+-- decoder, adapter, filesystem, or observation is truthful.
+-- Integer is deliberate here: exact signed media counters and cross-products,
+-- not a machine-width numeric choice for the signal-processing application.
+
+public export
+choice evidence_channel one_of
+  container_report
+  bitstream_report
+  decoded_frames
+  scan_heuristic
+  sample_measurement
+  pixel_comparison
+
+public export
+choice video_codec one_of
+  h264
+  other_video_codec Text
+
+public export
+choice pixel_layout one_of
+  rgb24
+  yuv420p
+  yuv444p
+  other_pixel_layout Text
+
+public export
+choice video_scan one_of
+  progressive
+  top_field_first
+  bottom_field_first
+  mixed_scan
+  unreported_scan
+
+-- Image storage interlacing is not temporal video scanning.
+public export
+choice png_storage_order one_of
+  ordinary_png
+  adam7_png
+
+public export
+record VideoDescription where
+  constructor DescribeVideo
+  codec : video_codec
+  layout : pixel_layout
+  scan : video_scan
+  width : Integer
+  height : Integer
+
+public export
+record Observation (artifact_identity : Text)
+                   (channel : evidence_channel)
+                   (Value : Type) where
+  constructor RecordObservation
+  observer_revision : Text
+  raw_receipt_identity : Text
+  reported_value : Value
+
+-- A CheckedObservation proves a predicate ABOUT the recorded value. The
+-- artifact index prevents accidentally combining two differently indexed
+-- artifacts. Binding that index to actual immutable bytes is a separate,
+-- not-yet-implemented checked I/O boundary.
+public export
+record CheckedObservation (artifact_identity : Text)
+                          (channel : evidence_channel)
+                          (Value : Type)
+                          (property : Value → Type) where
+  constructor CheckObservation
+  observation : Observation artifact_identity channel Value
+  property_holds : property (reported_value observation)
+
+public export
+check_observation :
+  (observation : Observation artifact_identity channel Value) →
+  (property : Value → Type) →
+  ((value : Value) → Dec (property value)) →
+  Maybe (CheckedObservation artifact_identity channel Value property)
+check_observation observation property decide =
+  case decide (reported_value observation) of
+    Yes proof ⇒ Just (CheckObservation observation proof)
+    No _ ⇒ Nothing
+
+-- Failure to establish an external claim is not proof of its negation.
+-- Dec is used above only for a closed predicate on an already obtained value.
+
+public export
+proved_true : (condition : Bool) → Maybe (So condition)
+proved_true True = Just Oh
+proved_true False = Nothing
+
+public export
+data IsH264 : video_codec → Type where
+  H264Observed : IsH264 h264
+
+public export
+check_h264 : (observed : video_codec) → Maybe (IsH264 observed)
+check_h264 h264 = Just H264Observed
+check_h264 (other_video_codec _) = Nothing
+
+-- No function derives pixel_layout, scan, colourimetry, MP4 containment,
+-- bit-exactness, or monotone packet presentation times from IsH264.
+
+public export
+record SourceWindow (artifact_identity : Text)
+                    (sample_count : Integer)
+                    (start_sample : Integer)
+                    (window_length : Integer) where
+  constructor CheckedSourceWindow
+  valid_extent : So (sample_count >= 0 && start_sample >= 0 &&
+                     window_length > 0 &&
+                     start_sample + window_length <= sample_count)
+
+public export
+check_window :
+  (artifact_identity : Text) →
+  (sample_count : Integer) →
+  (start_sample : Integer) →
+  (window_length : Integer) →
+  Maybe (SourceWindow artifact_identity sample_count start_sample window_length)
+check_window artifact_identity sample_count start_sample window_length = do
+  extent ← proved_true (sample_count >= 0 && start_sample >= 0 &&
+                        window_length > 0 &&
+                        start_sample + window_length <= sample_count)
+  pure (CheckedSourceWindow extent)
+
+public export
+record DurationAgreement (sample_count : Integer)
+                         (sample_rate : Integer)
+                         (frame_count : Integer)
+                         (fps_numerator : Integer)
+                         (fps_denominator : Integer) where
+  constructor EqualDuration
+  valid_counts : So (sample_count >= 0 && frame_count >= 0)
+  valid_rates : So (sample_rate > 0 && fps_numerator > 0 && fps_denominator > 0)
+  cross_products_equal :
+    sample_count * fps_numerator = frame_count * fps_denominator * sample_rate
+
+public export
+check_equal_duration :
+  (sample_count : Integer) → (sample_rate : Integer) →
+  (frame_count : Integer) → (fps_numerator : Integer) →
+  (fps_denominator : Integer) →
+  Maybe (DurationAgreement sample_count sample_rate frame_count
+                           fps_numerator fps_denominator)
+check_equal_duration sample_count sample_rate frame_count fps_numerator fps_denominator = do
+  counts ← proved_true (sample_count >= 0 && frame_count >= 0)
+  rates ← proved_true (sample_rate > 0 && fps_numerator > 0 && fps_denominator > 0)
+  case decEq (sample_count * fps_numerator)
+             (frame_count * fps_denominator * sample_rate) of
+    Yes equality ⇒ Just (EqualDuration counts rates equality)
+    No _ ⇒ Nothing
+
+-- This contract is deliberately limited to regular forward windows beginning
+-- at sample zero. It does not define the eventual general sampling model.
+public export
+record RegularCoverage (sample_count : Integer)
+                       (frame_count : Integer)
+                       (hop_length : Integer)
+                       (window_length : Integer) where
+  constructor CoversRegularSchedule
+  positive_sizes : So (sample_count > 0 && frame_count > 0 &&
+                       hop_length > 0 && window_length > 0)
+  no_internal_gaps : So (hop_length <= window_length)
+  reaches_last_sample :
+    So ((frame_count - 1) * hop_length + window_length >= sample_count)
+
+public export
+check_regular_coverage :
+  (sample_count : Integer) → (frame_count : Integer) →
+  (hop_length : Integer) → (window_length : Integer) →
+  Maybe (RegularCoverage sample_count frame_count hop_length window_length)
+check_regular_coverage sample_count frame_count hop_length window_length = do
+  sizes ← proved_true (sample_count > 0 && frame_count > 0 &&
+                       hop_length > 0 && window_length > 0)
+  gaps ← proved_true (hop_length <= window_length)
+  ending ← proved_true ((frame_count - 1) * hop_length + window_length >= sample_count)
+  pure (CoversRegularSchedule sizes gaps ending)
+
+-- Presentation timestamps and decode timestamps have different semantic roles.
+-- Negative decode timestamps must remain representable.
+public export
+record PresentationTime (timeline_identity : Text) where
+  constructor AtPresentationTime
+  presentation_ticks : Integer
+  presentation_timebase_numerator : Integer
+  presentation_timebase_denominator : Integer
+  positive_presentation_timebase :
+    So (presentation_timebase_numerator > 0 && presentation_timebase_denominator > 0)
+
+public export
+record DecodeTime (timeline_identity : Text) where
+  constructor AtDecodeTime
+  decode_ticks : Integer
+  decode_timebase_numerator : Integer
+  decode_timebase_denominator : Integer
+  positive_decode_timebase :
+    So (decode_timebase_numerator > 0 && decode_timebase_denominator > 0)
+
+-- A duration equation alone does NOT prove constant cadence. This separate
+-- witness checks one observed presentation timestamp against a CFR schedule.
+public export
+record FrameAtTime (frame_index : Integer)
+                   (frame_count : Integer)
+                   (timestamp_ticks : Integer)
+                   (timebase_numerator : Integer)
+                   (timebase_denominator : Integer)
+                   (fps_numerator : Integer)
+                   (fps_denominator : Integer) where
+  constructor CorrectPresentationTime
+  index_in_sequence : So (frame_index >= 0 && frame_index < frame_count)
+  positive_clock_rates : So (timebase_numerator > 0 && timebase_denominator > 0 &&
+                             fps_numerator > 0 && fps_denominator > 0)
+  timestamp_agrees :
+    timestamp_ticks * timebase_numerator * fps_numerator =
+    frame_index * fps_denominator * timebase_denominator
+
+public export
+check_frame_time :
+  (frame_index : Integer) → (frame_count : Integer) →
+  (timestamp_ticks : Integer) → (timebase_numerator : Integer) →
+  (timebase_denominator : Integer) → (fps_numerator : Integer) →
+  (fps_denominator : Integer) →
+  Maybe (FrameAtTime frame_index frame_count timestamp_ticks timebase_numerator
+                     timebase_denominator fps_numerator fps_denominator)
+check_frame_time frame_index frame_count timestamp_ticks timebase_numerator
+                 timebase_denominator fps_numerator fps_denominator = do
+  index ← proved_true (frame_index >= 0 && frame_index < frame_count)
+  rates ← proved_true (timebase_numerator > 0 && timebase_denominator > 0 &&
+                       fps_numerator > 0 && fps_denominator > 0)
+  case decEq (timestamp_ticks * timebase_numerator * fps_numerator)
+             (frame_index * fps_denominator * timebase_denominator) of
+    Yes agreement ⇒ Just (CorrectPresentationTime index rates agreement)
+    No _ ⇒ Nothing

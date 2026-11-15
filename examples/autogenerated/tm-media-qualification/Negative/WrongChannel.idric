@@ -1,0 +1,7 @@
+module Negative.WrongChannel
+import MediaEvidence
+
+-- A metadata report must not be silently promoted into decoder evidence.
+bad : Observation identity container_report VideoDescription →
+      Observation identity decoded_frames VideoDescription
+bad observation = observation

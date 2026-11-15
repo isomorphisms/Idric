@@ -1,0 +1,6 @@
+module Negative.WrongClock
+import MediaEvidence
+
+-- Presentation and decode times are not interchangeable because both have ticks.
+bad : DecodeTime timeline → PresentationTime timeline
+bad timestamp = timestamp

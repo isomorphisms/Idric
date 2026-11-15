@@ -1,0 +1,10 @@
+PASS source PCM and video have equal duration
+PASS decoded AAC does not establish exact duration equality
+PASS a zero video denominator is refused
+PASS negative counts are refused
+PASS the actual first source window is valid
+PASS a source window beyond the end is refused
+PASS thirty-fps 1024-sample windows do not cover the six-second clip
+PASS a contiguous complete schedule has a coverage witness
+PASS frame one belongs at tick 512 in the observed video clock
+PASS a late frame is refused even when total frame count is unchanged
