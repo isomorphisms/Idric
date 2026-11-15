@@ -104,6 +104,7 @@ No spelling dodge or acceptance exclusion has been introduced. Reconciliation
 of that source-role conflict remains a separate required gate; the branch is
 not claimed merge-ready.
 
-Public branch publication was rejected by automatic approval review because
-the short NIR-0 request did not explicitly authorize public disclosure of the
-new local code. No push, PR, hosted CI, merge or release is claimed.
+Current integration and acceptance status is tracked in
+[isomorphisms/Idric PR #152, “Preserve checked finite-dimensional rotations before erasure”](https://github.com/isomorphisms/Idric/pull/152).
+The local mathematical receipts above do not establish hosted-check or
+physical-device acceptance.
