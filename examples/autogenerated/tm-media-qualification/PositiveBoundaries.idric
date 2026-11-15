@@ -1,0 +1,18 @@
+module PositiveBoundaries
+
+import MediaEvidence
+
+-- Each identity operation is the accepted sibling of one retained negative.
+same_artifact : Observation "movie-A" container_report Integer →
+                Observation "movie-A" container_report Integer
+same_artifact observation = observation
+
+same_channel : Observation identity decoded_frames VideoDescription →
+               Observation identity decoded_frames VideoDescription
+same_channel observation = observation
+
+same_clock : DecodeTime timeline → DecodeTime timeline
+same_clock timestamp = timestamp
+
+same_storage : png_storage_order → png_storage_order
+same_storage storage = storage

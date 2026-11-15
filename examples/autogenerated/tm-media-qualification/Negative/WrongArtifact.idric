@@ -1,0 +1,7 @@
+module Negative.WrongArtifact
+import MediaEvidence
+
+-- Must fail for artifact-identity mismatch, not because a compiler is missing.
+bad : Observation "movie-B" container_report Integer →
+      Observation "movie-A" container_report Integer
+bad observation = observation
