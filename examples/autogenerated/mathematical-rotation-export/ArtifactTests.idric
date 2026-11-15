@@ -1,0 +1,100 @@
+module ArtifactTests
+
+import Compiler.MathematicalIR
+import Data.Text
+import System
+import System.File
+
+fixture : Text
+fixture = unlines
+  [ "IDRIC_MATHEMATICAL\t1"
+  , "space\tnamed:χώρος\t128\tstandard-euclidean\tpositive-frame\tpositive"
+  , "evidence\tindependently-validated-closed-constructor"
+  , "node\tr\tcomposition\tr.l\tr.r"
+  , "node\tr.l\tplane\t2\t127\t3\t4\t5"
+  , "node\tr.r\tplane\t0\t1\t0\t1\t1"
+  , "source\tdefinition\tindependent.handwritten"
+  , "source\tspan\thandwritten"
+  , "source\tchecked_type\tprovenance-only"
+  , "source\tnormalized_term\tprovenance-only"
+  , "source\tchecker\tprovenance-only"
+  , "end"
+  ]
+
+change_line : Text → Text → Text
+change_line old new = unlines (map (\line ⇒ if line ≟ old then new else line) (lines fixture))
+
+is_rejected : Text → Bool
+is_rejected value = case parseArtifact value of
+  Left _ ⇒ True
+  Right _ ⇒ False
+
+assert_result : Text → Bool → IO ()
+assert_result description True = putStrLn ("PASS " ++ description)
+assert_result description False = do
+  putStrLn ("FAIL " ++ description)
+  exitFailure
+
+expected_graph : RotationGraph → Bool
+expected_graph (Composition (Plane 2 127 3 4 5) (Plane 0 1 0 1 1)) = True
+expected_graph _ = False
+
+-- Reading an external file may wait for input; the pure parser remains total.
+covering
+check_export : Text → IO ()
+check_export path = do
+  Right bytes ← readFile path
+    | Left error ⇒ do putStrLn (show error); exitFailure
+  Right artifact ← pure (parseArtifact bytes)
+    | Left error ⇒ do putStrLn error; exitFailure
+  assert_result "real pre-erasure export matches expected mathematical graph"
+    (artifact.space.dimension ≟ 128 && artifact.space.nominalName ≟ "Real128" &&
+     artifact.space.orientedFrame ≟ "standard-positive" && expected_graph artifact.graph)
+  assert_result "original export retained byte for byte" (artifact.originalArtifact ≟ bytes)
+  Right replay ← pure (renderArtifact artifact.space artifact.graph artifact.provenance)
+    | Left error ⇒ do putStrLn error; exitFailure
+  assert_result "deterministic lossless artifact round trip" (replay ≟ bytes)
+
+covering
+main : IO ()
+main = do
+  Right artifact ← pure (parseArtifact fixture)
+    | Left error ⇒ do putStrLn error; exitFailure
+  assert_result "independent fixture and Unicode labels"
+    (artifact.space.nominalName ≟ "named:χώρος" && expected_graph artifact.graph)
+  assert_result "repeated axes rejected"
+    (is_rejected (change_line "node\tr.l\tplane\t2\t127\t3\t4\t5" "node\tr.l\tplane\t2\t2\t3\t4\t5"))
+  assert_result "out-of-bounds axes rejected"
+    (is_rejected (change_line "node\tr.l\tplane\t2\t127\t3\t4\t5" "node\tr.l\tplane\t2\t128\t3\t4\t5"))
+  assert_result "nonunit coefficients rejected"
+    (is_rejected (change_line "node\tr.l\tplane\t2\t127\t3\t4\t5" "node\tr.l\tplane\t2\t127\t1\t1\t1"))
+  assert_result "zero denominator rejected"
+    (is_rejected (change_line "node\tr.l\tplane\t2\t127\t3\t4\t5" "node\tr.l\tplane\t2\t127\t3\t4\t0"))
+  assert_result "negative denominator rejected"
+    (is_rejected (change_line "node\tr.l\tplane\t2\t127\t3\t4\t5" "node\tr.l\tplane\t2\t127\t3\t4\t-5"))
+  assert_result "unknown node rejected"
+    (is_rejected (change_line "node\tr.r\tplane\t0\t1\t0\t1\t1" "node\tr.r\treflection"))
+  assert_result "missing node rejected"
+    (is_rejected (change_line "node\tr.r\tplane\t0\t1\t0\t1\t1" "hole\tr.r"))
+  assert_result "dangling reference rejected"
+    (is_rejected (change_line "node\tr\tcomposition\tr.l\tr.r" "node\tr\tcomposition\tr.missing\tr.r"))
+  assert_result "duplicate node identity rejected"
+    (is_rejected (change_line "node\tr.r\tplane\t0\t1\t0\t1\t1" "node\tr.l\tplane\t0\t1\t0\t1\t1"))
+  assert_result "fake evidence rejected"
+    (is_rejected (change_line "evidence\tindependently-validated-closed-constructor" "evidence\tcore_typecheck PASS"))
+  assert_result "unsupported metric rejected"
+    (is_rejected (change_line "space\tnamed:χώρος\t128\tstandard-euclidean\tpositive-frame\tpositive"
+      "space\tnamed:χώρος\t128\tarbitrary-metric\tpositive-frame\tpositive"))
+  assert_result "reversing orientation rejected"
+    (is_rejected (change_line "space\tnamed:χώρος\t128\tstandard-euclidean\tpositive-frame\tpositive"
+      "space\tnamed:χώρος\t128\tstandard-euclidean\tpositive-frame\treversing"))
+  assert_result "trailing data rejected" (is_rejected (fixture ++ "ignored\n"))
+  assert_result "missing provenance rejected"
+    (is_rejected (change_line "source\tchecker\tprovenance-only" ""))
+  assert_result "noncanonical axis rejected"
+    (is_rejected (change_line "node\tr.r\tplane\t0\t1\t0\t1\t1" "node\tr.r\tplane\t00\t1\t0\t1\t1"))
+  arguments ← getArgs
+  case drop 1 arguments of
+    [] ⇒ pure ()
+    ["--artifact", path] ⇒ check_export path
+    _ ⇒ do putStrLn "expected --artifact PATH"; exitFailure

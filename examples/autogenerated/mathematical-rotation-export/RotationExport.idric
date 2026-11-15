@@ -1,0 +1,19 @@
+module RotationExport
+
+import MathematicalSpaces
+import EuclideanGeometry
+import MathematicalRotations
+import Data.So
+
+%unbound_implicits off
+
+public export
+mathematical_rotation : Rotation {space = real128_space} real128_euclidean "standard-positive"
+mathematical_rotation = ClosedComposition {space = real128_space}
+  (ClosedPlane {space = real128_space} {structure = real128_euclidean}
+    {frame = "standard-positive"} 2 127 3 4 5 Oh)
+  (ClosedPlane {space = real128_space} {structure = real128_euclidean}
+    {frame = "standard-positive"} 0 1 0 1 1 Oh)
+
+main : IO ()
+main = pure ()

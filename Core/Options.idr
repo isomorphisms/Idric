@@ -233,6 +233,7 @@ availableCGs o
        ("refc", RefC),
        ("gambit", Gambit),
        ("idric-one-step", Other "idric-one-step"),
+       ("idric-mathematical", Other "idric-mathematical"),
        ("vmcode-interp", VMCodeInterp)] ++ additionalCGs o
 
 export

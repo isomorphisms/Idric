@@ -1,5 +1,7 @@
 module MathematicalSpaces
 
+import Data.Text
+
 %unbound_implicits off
 
 -- Signed whole numbers keep their Idriç-facing name in this exact sample.
@@ -27,6 +29,8 @@ data SpaceName : Number → Type where
   Real32Name     : SpaceName 32
   OtherReal32Name : SpaceName 32
   Real128Name    : SpaceName 128
+  -- An explicitly named finite space outside the small built-in fixtures.
+  AdditionalSpaceName : (rank : Number) → Text → SpaceName rank
 
 public export
 data FiniteSpace : Type where

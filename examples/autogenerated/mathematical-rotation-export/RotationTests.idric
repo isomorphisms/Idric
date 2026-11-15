@@ -1,0 +1,124 @@
+module RotationTests
+
+import MathematicalSpaces
+import EuclideanGeometry
+import MathematicalRotations
+import Data.So
+import Data.Text
+import System
+
+%unbound_implicits off
+
+quarter : Rotation {space = real128_space} real128_euclidean "standard-positive"
+quarter = ClosedPlane {space = real128_space} {structure = real128_euclidean}
+  {frame = "standard-positive"} 0 1 0 1 1 Oh
+
+rational : Rotation {space = real128_space} real128_euclidean "standard-positive"
+rational = ClosedPlane {space = real128_space} {structure = real128_euclidean}
+  {frame = "standard-positive"} 2 127 3 4 5 Oh
+
+failing "Mismatch between"
+  wrong_frame : Rotation {space = real128_space} real128_euclidean "another-frame"
+  wrong_frame = ClosedComposition quarter (the (Rotation {space = real128_space} real128_euclidean "another-frame") ClosedIdentity)
+
+failing "Mismatch between"
+  wrong_space : Rotation {space = real128_space} real128_euclidean "standard-positive"
+  wrong_space = the (Rotation {space = real32_space} real32_euclidean "standard-positive") ClosedIdentity
+
+failing "Mismatch between: True and False"
+  repeated_axes : Rotation {space = real128_space} real128_euclidean "standard-positive"
+  repeated_axes = ClosedPlane 0 0 0 1 1 Oh
+
+failing "Mismatch between: True and False"
+  nonunit_coefficients : Rotation {space = real128_space} real128_euclidean "standard-positive"
+  nonunit_coefficients = ClosedPlane 0 1 1 1 1 Oh
+
+unit_pair_is_exact : valid_plane 128 2 127 3 4 5 = True
+unit_pair_is_exact = Refl
+
+sample : List ExactCoordinate
+sample = map whole_coordinate ([3, 4, 12] ++ replicate 124 0 ++ [9])
+
+second_sample : List ExactCoordinate
+second_sample = map whole_coordinate ([5, -2, 7] ++ replicate 124 0 ++ [11])
+
+same_samples : List ExactCoordinate → List ExactCoordinate → Bool
+same_samples [] [] = True
+same_samples (left :: rest) (right :: others) =
+  same_coordinate left right && same_samples rest others
+same_samples _ _ = False
+
+expected_sample : Maybe (List ExactCoordinate) → List ±Number → Bool
+expected_sample Nothing _ = False
+expected_sample (Just actual) expected = same_samples actual (map whole_coordinate expected)
+
+-- Independent rational dot-product arithmetic in the acceptance oracle.
+sample_dot : List ExactCoordinate → List ExactCoordinate → ExactCoordinate
+sample_dot [] [] = whole_coordinate 0
+sample_dot (RationalCoordinate left left_denominator :: rest)
+           (RationalCoordinate right right_denominator :: others) =
+  let RationalCoordinate tail tail_denominator = sample_dot rest others
+      denominator = left_denominator × right_denominator in
+  RationalCoordinate
+    (left × right × cast tail_denominator + tail × cast denominator)
+    (denominator × tail_denominator)
+sample_dot _ _ = RationalCoordinate 0 0
+
+is_missing : {value : Type} → Maybe value → Bool
+is_missing Nothing = True
+is_missing _ = False
+
+assert_result : Text → Bool → IO ()
+assert_result description True = putStrLn ("PASS " ++ description)
+assert_result description False = do
+  putStrLn ("FAIL " ++ description)
+  exitFailure
+
+main : IO ()
+main = do
+  assert_result "R128 quarter-turn and inactive coordinates"
+    (expected_sample (apply_exact quarter sample) ([-4, 3, 12] ++ replicate 124 0 ++ [9]))
+  assert_result "R128 exact rational plane"
+    (expected_sample (apply_exact rational sample) ([3, 4, 0] ++ replicate 124 0 ++ [15]))
+  assert_result "norms and dot oracle"
+    (same_coordinate (sample_dot sample sample) (whole_coordinate 250) &&
+     same_coordinate (sample_dot second_sample second_sample) (whole_coordinate 199) &&
+     same_coordinate (sample_dot sample second_sample) (whole_coordinate 190))
+  let sequence : Rotation {space = real128_space} real128_euclidean "standard-positive"
+      sequence = ClosedComposition {space = real128_space} rational quarter
+  let restored = do
+    result ← apply_exact sequence sample
+    apply_exact (ClosedInverse sequence) result
+  assert_result "ordered composition and reversed inverse"
+    (maybe False (same_samples sample) restored)
+  let four : Rotation {space = real128_space} real128_euclidean "standard-positive"
+      four = ClosedComposition {space = real128_space} quarter
+        (ClosedComposition {space = real128_space} quarter
+          (ClosedComposition {space = real128_space} quarter quarter))
+  assert_result "four quarter-turns" (maybe False (same_samples sample) (apply_exact four sample))
+  let paired = do
+    left ← apply_exact sequence sample
+    right ← apply_exact sequence second_sample
+    pure (same_coordinate (sample_dot left right) (whole_coordinate 190))
+  assert_result "rotation preserves sample dot" (paired ≟ Just True)
+  assert_result "rank-zero identity"
+    (expected_sample (apply_exact {space = NamedFiniteSpace (AdditionalSpaceName 0 "zero")} {structure = StandardCoordinate}
+      {frame = "standard"} ClosedIdentity []) [])
+  assert_result "rank-one identity"
+    (expected_sample (apply_exact {space = NamedFiniteSpace (AdditionalSpaceName 1 "one")} {structure = StandardCoordinate}
+      {frame = "standard"} ClosedIdentity [whole_coordinate 7]) [7])
+  assert_result "invalid plane rank, axes and coefficients"
+    (not (valid_plane 0 0 1 0 1 1) && not (valid_plane 1 0 1 0 1 1) &&
+     not (valid_plane 128 0 128 0 1 1) && not (valid_plane 128 0 0 0 1 1) &&
+     not (valid_plane 128 0 1 1 1 1) && not (valid_plane 128 0 1 0 1 0))
+  assert_result "wrong sample length rejected" (is_missing (apply_exact quarter []))
+  assert_result "zero sample denominator rejected"
+    (is_missing (apply_exact quarter (RationalCoordinate 3 0 :: drop 1 sample)))
+  let left = runtime_identity 128 "R128" "standard"
+  assert_result "runtime matching space admitted" (not (is_missing (compose_runtime left left)))
+  assert_result "runtime rank mismatch rejected"
+    (is_missing (compose_runtime left (runtime_identity 32 "R128" "standard")))
+  assert_result "runtime nominal space mismatch rejected"
+    (is_missing (compose_runtime left (runtime_identity 128 "other" "standard")))
+  assert_result "runtime frame mismatch rejected"
+    (is_missing (compose_runtime left (runtime_identity 128 "R128" "other")))
