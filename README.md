@@ -33,3 +33,7 @@ implemented. Consult each implementation's current contract and exact receipts.
 The [live pull requests](https://github.com/isomorphisms/Idric/pulls) are the
 current work queue; merged work on an experimental branch is not necessarily
 integrated into `Idriç`.
+
+## Inspecting compiler decisions
+
+[Where lowering decisions are made](notes/lowering-decision-locations.md) maps Idriç semantics and intermediate forms to the separately owned ComputerScience choice process, direct DEX backend and ART/machine execution. It identifies the editing and verification points without promising a new optimizer.

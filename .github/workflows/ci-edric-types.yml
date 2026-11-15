@@ -2,26 +2,37 @@ name: Idriç type-system smoke
 
 on:
   pull_request:
-    paths:
-      - '_/examples/units-time-intervals/**'
-      - '_/tests/idris2/basic/edric007/**'
-      - '_/edric'
-      - '.github/workflows/ci-edric-types.yml'
   push:
-    paths:
-      - '_/examples/units-time-intervals/**'
-      - '_/tests/idris2/basic/edric007/**'
-      - '_/edric'
-      - '.github/workflows/ci-edric-types.yml'
+
+permissions:
+  contents: read
 
 jobs:
+  qualified-ick:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: isomorphisms/ai-ci/ick-host@903b2cb27ea572c9c6cb2ffa9f39e0fbf06ec9f8
   units-time-intervals:
-    runs-on: ubuntu-latest
+    needs: qualified-ick
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
+      - name: Qualify the selected native compiler for owned support code
+        id: ick
+        uses: isomorphisms/ai-ci/ick-host@903b2cb27ea572c9c6cb2ffa9f39e0fbf06ec9f8
       - name: Bootstrap Idriç and run focused smoke suite
+        env:
+          CC: ${{ steps.ick.outputs.compiler }}
+          CFLAGS: -fno-link-libatomic -static-libgcc
         run: ./_/edric all
+      - name: Keep generated smoke sources inside the existing build directory
+        run: |
+          test ! -e _/tests/idris2/basic/edric007/Tests.idr
+          test ! -e _/tests/idris2/basic/edric007/UnitsTimeIntervals.idr
+          cmp _/examples/units-time-intervals/Tests.idric _/tests/idris2/basic/edric007/build/units-time-intervals/Tests.idr
+          cmp _/examples/units-time-intervals/UnitsTimeIntervals.idric _/tests/idris2/basic/edric007/build/units-time-intervals/UnitsTimeIntervals.idr
+          test -z "$(git status --porcelain --untracked-files=all -- _/tests/idris2/basic/edric007)"

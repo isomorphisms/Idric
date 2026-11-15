@@ -141,3 +141,7 @@ Use these words distinctly:
   it.
 
 This vocabulary should make future compiler discussions much less ambiguous.
+
+## Locating the implementation decision
+
+This is a semantic contract, not proof that a current pass makes a given predication choice. See [the lowering decision locator](lowering-decision-locations.md) and [ComputerScience's cross-target decision atlas](https://github.com/walnut-burgundy/computer-science/pull/82) for the requested chain: exact deciding function, alternative, edit point, and evidence after lowering.

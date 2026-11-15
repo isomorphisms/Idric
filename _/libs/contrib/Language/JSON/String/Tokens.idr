@@ -48,15 +48,19 @@ simpleEscapeValue x
                         _    => '\NUL'
 
 private
-unicodeEscapeValue : String -> Char
+-- Keep a UTF-16 code unit as an integer until the parser checks surrogate pairs.
+-- Constructing a host Char for an isolated surrogate is not valid Unicode.
+unicodeEscapeValue : String -> Int
 unicodeEscapeValue x = fromHex (drop 2 $ fastUnpack x) 0
   where hexVal : Char -> Int
-        hexVal c = if c >= 'A'
-                      then ord c - ord 'A' + 10
-                      else ord c - ord '0'
+        hexVal c = if c >= 'a' && c <= 'f'
+                      then ord c - ord 'a' + 10
+                      else if c >= 'A' && c <= 'F'
+                           then ord c - ord 'A' + 10
+                           else ord c - ord '0'
 
-        fromHex : List Char -> Int -> Char
-        fromHex       [] acc = chr acc
+        fromHex : List Char -> Int -> Int
+        fromHex       [] acc = acc
         fromHex (h :: t) acc = fromHex t (hexVal h + 16 * acc)
 
 public export
@@ -64,7 +68,7 @@ TokenKind JSONStringTokenKind where
   TokType JSTQuote = ()
   TokType JSTChar = Char
   TokType JSTSimpleEscape = Char
-  TokType JSTUnicodeEscape = Char
+  TokType JSTUnicodeEscape = Int
 
   tokValue JSTQuote = const ()
   tokValue JSTChar = charValue

@@ -24,6 +24,8 @@ data SpaceName : Number → Type where
   PlaneName      : SpaceName 2
   ImagePlaneName : SpaceName 2
   RealThreeName  : SpaceName 3
+  Real32Name     : SpaceName 32
+  OtherReal32Name : SpaceName 32
   Real128Name    : SpaceName 128
 
 public export
@@ -53,6 +55,23 @@ real_three_space = NamedFiniteSpace RealThreeName
 public export
 real128_space : FiniteSpace
 real128_space = NamedFiniteSpace Real128Name
+
+public export
+real32_space : FiniteSpace
+real32_space = NamedFiniteSpace Real32Name
+
+public export
+other_real32_space : FiniteSpace
+other_real32_space = NamedFiniteSpace OtherReal32Name
+
+-- This describes the ambient mathematical field, not the executable sample
+-- carrier below. Integer samples do not become an implementation of all reals.
+public export
+data AmbientScalarField = RealScalarField
+
+public export
+ambient_scalar_field : FiniteSpace → AmbientScalarField
+ambient_scalar_field _ = RealScalarField
 
 -- ±Number coordinates are exact executable samples of the named real
 -- coordinate spaces. ExactVectorSample and ExactCovectorSample below

@@ -2,7 +2,9 @@ include ../config.mk
 
 .PHONY: build build-c build-refc build-chez
 
-build: build-c build-refc build-chez
+# The maintained host bootstrap uses Chez, not the inherited RefC backend.
+# RefC support remains an explicit compatibility target only.
+build: build-c build-chez
 
 build-c:
 	@${MAKE} -C c
@@ -28,7 +30,7 @@ clean-chez:
 
 .PHONY: install install-docs install-racket install-gambit install-js install-c install-refc install-chez
 
-install: install-docs install-racket install-gambit install-js install-c install-refc install-chez
+install: install-docs install-racket install-gambit install-js install-c install-chez
 
 install-docs:
 	mkdir -p ${DESTDIR}${PREFIX}/${NAME_VERSION}/support/docs

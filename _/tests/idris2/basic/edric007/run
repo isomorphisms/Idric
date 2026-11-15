@@ -1,7 +1,12 @@
 . ../../../testutils.sh
 
-cp ../../../../examples/units-time-intervals/UnitsTimeIntervals.idric UnitsTimeIntervals.idr
-cp ../../../../examples/units-time-intervals/Tests.idric Tests.idr
+fixture_dir=build/units-time-intervals
+mkdir -p "$fixture_dir"
+cp ../../../../examples/units-time-intervals/UnitsTimeIntervals.idric "$fixture_dir/UnitsTimeIntervals.idr"
+cp ../../../../examples/units-time-intervals/Tests.idric "$fixture_dir/Tests.idr"
 
-"$idris2" Tests.idr -o units-time-intervals >/dev/null
-./build/exec/units-time-intervals
+(
+    cd "$fixture_dir"
+    "$idris2" Tests.idr -o units-time-intervals >/dev/null
+    ./build/exec/units-time-intervals
+)
