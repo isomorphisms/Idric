@@ -1,2 +1,15 @@
 . ../../testutils.sh
-CHEZ=false idris2 -c Hello.idr -o hello
+mkdir -p build
+if CHEZ=false idris2_no_clean --quiet -c Hello.idr -o hello > build/compile.stdout 2> build/compile.stderr; then
+    echo 'FAIL: failed Chez generation returned success'
+    exit 1
+fi
+if [ -e build/exec/hello ]; then
+    echo 'FAIL: failed Chez generation left an executable'
+    exit 1
+fi
+if ! grep -Fx 'Error: INTERNAL ERROR: Chez exited with return code 1' build/compile.stderr; then
+    echo 'FAIL: expected Chez-generation diagnostic absent'
+    exit 1
+fi
+echo 'failed-codegen-status=PASS'

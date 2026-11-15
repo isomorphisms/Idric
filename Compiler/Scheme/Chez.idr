@@ -526,7 +526,7 @@ compileToSO prof chez appDirRel outSsAbs
                      ++ (if prof then "[compile-profile #t] "
                                 else "") ++
                      "[compile-file-message #f]) (compile-program " ++
-                    show outSsAbs ++ "))"
+                    build (chezString outSsAbs) ++ "))"
          Right () <- coreLift $ writeFile tmpFileAbs build
             | Left err => throw (FileErr tmpFileAbs err)
          coreLift_ $ chmodRaw tmpFileAbs 0o755
