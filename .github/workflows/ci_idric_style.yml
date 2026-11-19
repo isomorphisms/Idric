@@ -17,4 +17,4 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Check newly added Idriç source
-        uses: isomorphisms/ai-ci/idric-style@cc9ec54451e5675ff034521d3a3d22eed84634ff
+        uses: isomorphisms/ai-ci/idric-style@a0e777ec9c2d47740c4d3f5ec11154aefa40c701
