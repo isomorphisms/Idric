@@ -92,7 +92,10 @@ operators or inexact arithmetic require their own decisions.
    target execution. Record missing primitive or representation support at the
    first failed case.
 
-The semantics of chaining also need tests. For example, (−6 ÷ 3) ÷ 2
-already has a complex left operand after the first step. The second step must
-dispatch to the complex operation. This experiment models the first exact
-integer step only.
+The executable two-step client now covers an already promoted quotient
+divided by another exact integer. In (−7 ÷ −3) ÷ 5 the positive real
+coordinate stays embedded in the complex domain and the result is 7/15 + 0i.
+The same client accepts positive inputs and propagates a zero divisor from
+either step. It imports the checked result type through a module interface.
+General complex divisors and integration with the production operator remain
+open.

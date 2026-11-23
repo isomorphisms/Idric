@@ -51,3 +51,25 @@ division in the shared numeric layer. See the [design and downstream acceptance
 cases](../../../notes/ordinary-division-of-signed-integers.md). This run covers
 only the named model on the Chez host. Source-operator integration and direct
 backend execution remain open.
+
+## Composing two divisions
+
+The second experiment makes the result type abstract across a compiler module
+boundary. Given a prior quotient and another signed integer, divide by that
+integer while preserving an already selected complex domain. Two independent
+runtime sign choices can now occur in one process. A zero divisor at either
+step propagates. Both operations return the same static type. The existing
+positive-denominator invariant makes the exact second quotient
+numerator / (positive_denominator × next_divisor) before sign normalization.
+A client asking for an Integer directly from either operation must be rejected.
+
+The edric011 runner checks SignedDivision first, moves its staged source out of
+the import path, then compiles Main against the checked interface. The caller's
+implicit Integer return is a required type error. The eight new runtime cases
+cover a real and an already-complex quotient with identical coordinates, later
+promotion, preserved complex zero, either zero-divisor position, and a
+denominator product of 2^64. The complete golden output matched with the
+compiler identified above. A mutant that discards the prior complex domain
+passed all 12 original cases but printed real 7/15 on arguments −7, −3, 5.
+The new expected output is complex 7/15 + 0i. All executions here use the
+named experimental operations on Chez.
