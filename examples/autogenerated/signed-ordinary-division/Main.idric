@@ -1,0 +1,67 @@
+module Main
+
+import Data.Text
+import System
+
+record ExactRatio where
+  constructor Ratio
+  numerator : Integer
+  positive_denominator : Integer
+
+-- Embedding a rational in the complex field fixes its imaginary part at zero.
+data OrdinaryQuotient = ZeroDivisor | RealRatio ExactRatio | ComplexOfReal ExactRatio
+
+ordinary_quotient : Integer → Integer → OrdinaryQuotient
+ordinary_quotient dividend divisor =
+  if divisor ≟ 0 then ZeroDivisor else
+    let ratio = if divisor < 0 then Ratio (negate dividend) (negate divisor)
+                               else Ratio dividend divisor
+    in if dividend < 0 || divisor < 0 then ComplexOfReal ratio else RealRatio ratio
+
+same_ratio : ExactRatio → ExactRatio → Bool
+same_ratio left right =
+  left.positive_denominator > 0 && right.positive_denominator > 0 &&
+  (left.numerator × right.positive_denominator ≟ right.numerator × left.positive_denominator)
+
+same_quotient : OrdinaryQuotient → OrdinaryQuotient → Bool
+same_quotient ZeroDivisor ZeroDivisor = True
+same_quotient (RealRatio left) (RealRatio right) = same_ratio left right
+same_quotient (ComplexOfReal left) (ComplexOfReal right) = same_ratio left right
+same_quotient _ _ = False
+
+cases : List (Integer, Integer, OrdinaryQuotient)
+cases = [
+  (7, 3, RealRatio (Ratio 7 3)),
+  (-7, 3, ComplexOfReal (Ratio (-7) 3)),
+  (7, -3, ComplexOfReal (Ratio (-7) 3)),
+  (-7, -3, ComplexOfReal (Ratio 7 3)),
+  (-6, 3, ComplexOfReal (Ratio (-2) 1)),
+  (-8, -4, ComplexOfReal (Ratio 2 1)),
+  (0, 3, RealRatio (Ratio 0 1)),
+  (0, -3, ComplexOfReal (Ratio 0 1)),
+  (3, 0, ZeroDivisor),
+  (-3, 0, ZeroDivisor),
+  (0, 0, ZeroDivisor),
+  (-18446744073709551617, 3, ComplexOfReal (Ratio (-18446744073709551617) 3))]
+
+check_case : (Integer, Integer, OrdinaryQuotient) → Bool
+check_case (dividend, divisor, expected) = same_quotient (ordinary_quotient dividend divisor) expected
+
+ratio_text : ExactRatio → Text
+ratio_text ratio = show ratio.numerator ++ "/" ++ show ratio.positive_denominator
+
+describe : OrdinaryQuotient → Text
+describe ZeroDivisor = "zero divisor"
+describe (RealRatio ratio) = "real " ++ ratio_text ratio
+describe (ComplexOfReal ratio) = "complex " ++ ratio_text ratio ++ " + 0i"
+
+main : IO ()
+main = do
+  arguments ← getArgs
+  case arguments of
+    [_] ⇒ if all check_case cases then putStrLn "PASS 12 signed division cases"
+                                  else die "signed division case failed"
+    [_, left, right] ⇒ case (parseInteger left, parseInteger right) of
+      (Just dividend, Just divisor) ⇒ putStrLn (describe (ordinary_quotient dividend divisor))
+      _ ⇒ die "expected two signed integers"
+    _ ⇒ die "supply zero arguments or two signed integers"
