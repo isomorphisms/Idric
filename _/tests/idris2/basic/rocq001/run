@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+. ../../../testutils.sh
+
+# This is a syntax/type-check qualification of a HANDWRITTEN expected
+# Idriç candidate. It does not claim that a Rocq quotation generated it
+# or that a translation-preservation theorem has been established.
+cp ../../../../../examples/translation/rocq/expected/RocqBridge.idric RocqBridge.idric
+if ! idris2 --check RocqBridge.idric >check.log 2>&1; then
+    cat check.log >&2
+    exit 1
+fi
+printf '%s\n' 'IDRIC_ROCQ_EXPECTED_CANDIDATE_TYPECHECK_OK'
