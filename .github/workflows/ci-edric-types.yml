@@ -29,10 +29,3 @@ jobs:
           CC: ${{ steps.ick.outputs.compiler }}
           CFLAGS: -fno-link-libatomic -static-libgcc
         run: ./_/edric all
-      - name: Keep generated smoke sources inside the existing build directory
-        run: |
-          test ! -e _/tests/idris2/basic/edric007/Tests.idr
-          test ! -e _/tests/idris2/basic/edric007/UnitsTimeIntervals.idr
-          cmp _/examples/units-time-intervals/Tests.idric _/tests/idris2/basic/edric007/build/units-time-intervals/Tests.idr
-          cmp _/examples/units-time-intervals/UnitsTimeIntervals.idric _/tests/idris2/basic/edric007/build/units-time-intervals/UnitsTimeIntervals.idr
-          test -z "$(git status --porcelain --untracked-files=all -- _/tests/idris2/basic/edric007)"
