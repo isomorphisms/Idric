@@ -219,7 +219,10 @@ stMain cgs opts
 
                post <- get PostS
                Continue <- catch (postOptions result post)
-                               (\err => emitError err *> pure Abort)
+                               (\err => do
+                                   emitError err
+                                   coreLift $ exitWith (ExitFailure 1)
+                                   pure Abort)
                 | Abort => do
                     -- exit with an error code if there was an error, otherwise
                     -- just exit

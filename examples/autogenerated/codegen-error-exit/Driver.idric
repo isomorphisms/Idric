@@ -1,0 +1,23 @@
+module Driver
+
+import Compiler.Common
+import Core.Core
+import Core.Context
+import Core.TT
+import Idris.Syntax
+import Idris.Driver
+
+-- The external compiler driver and failing generator are effectful actions.
+%default covering
+
+-- This is an external compiler-plugin ABI fixture, not a replacement compiler.
+rejecting_generator : Codegen
+rejecting_generator = MkCG
+  (\definitions, syntax, temporary, output, term, name ⇒
+    throw (UserError "deliberate code-generator failure"))
+  (\definitions, syntax, temporary, term ⇒
+    throw (UserError "deliberate execution failure"))
+  Nothing Nothing
+
+main : IO ()
+main = mainWithCodegens [("rejecting-fixture", rejecting_generator)]
