@@ -77,61 +77,81 @@ mutual
     compare Administrative_Normal_Form_Erased_Variable (Administrative_Normal_Form_Local_Variable _) = LT
     compare Administrative_Normal_Form_Erased_Variable Administrative_Normal_Form_Erased_Variable = EQ
 
-  export
-  covering
-  Show Administrative_Normal_Form where
-    show (Administrative_Normal_Form_Variable_Expression _ v) = show v
-    show (Administrative_Normal_Form_Named_Function_Application fc lazy n args)
-        = show n ++ showLazy lazy ++ "(" ++ showSep ", " (map show args) ++ ")"
-    show (Administrative_Normal_Form_Partial_Application fc n m args)
-        = "<" ++ show n ++ " underapp " ++ show m ++ ">(" ++
-          showSep ", " (map show args) ++ ")"
-    show (Administrative_Normal_Form_Closure_Application fc lazy c arg)
-        = show c ++ showLazy lazy ++ " @ (" ++ show arg ++ ")"
-    show (Administrative_Normal_Form_Binding fc x val sc)
-        = "%let v" ++ show x ++ " = (" ++ show val ++ ") in (" ++ show sc ++ ")"
-    show (Administrative_Normal_Form_Constructor_Value fc n _ t args)
-        = "%con " ++ show n ++ "(" ++ showSep ", " (map show args) ++ ")"
-    show (Administrative_Normal_Form_Primitive_Operation fc lazy op args)
-        = "%op " ++ show op ++ showLazy lazy ++ "(" ++ showSep ", " (toList (map show args)) ++ ")"
-    show (Administrative_Normal_Form_External_Primitive fc lazy p args)
-        = "%extprim " ++ show p ++ showLazy lazy ++ "(" ++ showSep ", " (map show args) ++ ")"
-    show (Administrative_Normal_Form_Constructor_Case fc sc alts def)
-        = "%case " ++ show sc ++ " of { "
-             ++ showSep "| " (map show alts) ++ " " ++ show def ++ " }"
-    show (Administrative_Normal_Form_Constant_Case fc sc alts def)
-        = "%case " ++ show sc ++ " of { "
-             ++ showSep "| " (map show alts) ++ " " ++ show def ++ " }"
-    show (Administrative_Normal_Form_Primitive_Value _ x) = show x
-    show (Administrative_Normal_Form_Erased_Value _) = "___"
-    show (Administrative_Normal_Form_Crash _ x) = "%CRASH(" ++ show x ++ ")"
+mutual
+  renderDefault : (Name -> String) -> Maybe Administrative_Normal_Form -> String
+  renderDefault symbol Nothing = "Nothing"
+  renderDefault symbol (Just expression) = "Just " ++ renderExpression symbol expression
 
-  export
-  covering
-  Show Administrative_Normal_Form_Constructor_Alternative where
-    show (Make_Administrative_Normal_Form_Constructor_Alternative n _ t args sc)
-        = "%conalt " ++ show n ++
-             "(" ++ showSep ", " (map showArg args) ++ ") => " ++ show sc
-      where
-        showArg : Int -> String
-        showArg i = "v" ++ show i
+  renderExpression : (Name -> String) -> Administrative_Normal_Form -> String
+  renderExpression symbol (Administrative_Normal_Form_Variable_Expression _ v) = show v
+  renderExpression symbol (Administrative_Normal_Form_Named_Function_Application fc lazy n args)
+      = symbol n ++ showLazy lazy ++ "(" ++ showSep ", " (map show args) ++ ")"
+  renderExpression symbol (Administrative_Normal_Form_Partial_Application fc n m args)
+      = "<" ++ symbol n ++ " underapp " ++ show m ++ ">(" ++
+        showSep ", " (map show args) ++ ")"
+  renderExpression symbol (Administrative_Normal_Form_Closure_Application fc lazy c arg)
+      = show c ++ showLazy lazy ++ " @ (" ++ show arg ++ ")"
+  renderExpression symbol (Administrative_Normal_Form_Binding fc x val sc)
+      = "%let v" ++ show x ++ " = (" ++ renderExpression symbol val ++ ") in (" ++ renderExpression symbol sc ++ ")"
+  renderExpression symbol (Administrative_Normal_Form_Constructor_Value fc n _ t args)
+      = "%con " ++ symbol n ++ "(" ++ showSep ", " (map show args) ++ ")"
+  renderExpression symbol (Administrative_Normal_Form_Primitive_Operation fc lazy op args)
+      = "%op " ++ show op ++ showLazy lazy ++ "(" ++ showSep ", " (toList (map show args)) ++ ")"
+  renderExpression symbol (Administrative_Normal_Form_External_Primitive fc lazy p args)
+      = "%extprim " ++ symbol p ++ showLazy lazy ++ "(" ++ showSep ", " (map show args) ++ ")"
+  renderExpression symbol (Administrative_Normal_Form_Constructor_Case fc sc alts def)
+      = "%case " ++ show sc ++ " of { "
+           ++ showSep "| " (map (renderConstructorAlternative symbol) alts) ++ " "
+           ++ renderDefault symbol def ++ " }"
+  renderExpression symbol (Administrative_Normal_Form_Constant_Case fc sc alts def)
+      = "%case " ++ show sc ++ " of { "
+           ++ showSep "| " (map (renderConstantAlternative symbol) alts) ++ " "
+           ++ renderDefault symbol def ++ " }"
+  renderExpression symbol (Administrative_Normal_Form_Primitive_Value _ x) = show x
+  renderExpression symbol (Administrative_Normal_Form_Erased_Value _) = "___"
+  renderExpression symbol (Administrative_Normal_Form_Crash _ x) = "%CRASH(" ++ show x ++ ")"
 
-  export
-  covering
-  Show Administrative_Normal_Form_Constant_Alternative where
-    show (Make_Administrative_Normal_Form_Constant_Alternative c sc)
-        = "%constalt(" ++ show c ++ ") => " ++ show sc
+  renderConstructorAlternative : (Name -> String) -> Administrative_Normal_Form_Constructor_Alternative -> String
+  renderConstructorAlternative symbol (Make_Administrative_Normal_Form_Constructor_Alternative n _ t args sc)
+      = "%conalt " ++ symbol n ++
+           "(" ++ showSep ", " (map showArg args) ++ ") => " ++ renderExpression symbol sc
+    where
+      showArg : Int -> String
+      showArg i = "v" ++ show i
+
+  renderConstantAlternative : (Name -> String) -> Administrative_Normal_Form_Constant_Alternative -> String
+  renderConstantAlternative symbol (Make_Administrative_Normal_Form_Constant_Alternative c sc)
+      = "%constalt(" ++ show c ++ ") => " ++ renderExpression symbol sc
+
+export
+renderDefinitionWith : (Name -> String) -> Administrative_Normal_Form_Definition -> String
+renderDefinitionWith symbol (Make_Administrative_Normal_Form_Function args exp) = show args ++ ": " ++ renderExpression symbol exp
+renderDefinitionWith symbol (Make_Administrative_Normal_Form_Constructor tag arity nt)
+    = "Constructor tag " ++ show tag ++ " arity " ++ show arity ++ " newtype by " ++ show nt
+renderDefinitionWith symbol (Make_Administrative_Normal_Form_Foreign_Function ccs args ret)
+    = "Foreign call " ++ show ccs ++ " " ++
+      show args ++ " -> " ++ show ret
+renderDefinitionWith symbol (Make_Administrative_Normal_Form_Error exp) = "Error: " ++ renderExpression symbol exp
+
+export
+covering
+Show Administrative_Normal_Form where
+  show = renderExpression show
+
+export
+covering
+Show Administrative_Normal_Form_Constructor_Alternative where
+  show = renderConstructorAlternative show
+
+export
+covering
+Show Administrative_Normal_Form_Constant_Alternative where
+  show = renderConstantAlternative show
 
 export
 covering
 Show Administrative_Normal_Form_Definition where
-  show (Make_Administrative_Normal_Form_Function args exp) = show args ++ ": " ++ show exp
-  show (Make_Administrative_Normal_Form_Constructor tag arity nt)
-      = "Constructor tag " ++ show tag ++ " arity " ++ show arity ++ " newtype by " ++ show nt
-  show (Make_Administrative_Normal_Form_Foreign_Function ccs args ret)
-      = "Foreign call " ++ show ccs ++ " " ++
-        show args ++ " -> " ++ show ret
-  show (Make_Administrative_Normal_Form_Error exp) = "Error: " ++ show exp
+  show = renderDefinitionWith show
 
 Administrative_Normal_Form_Variable_Environment : Scope -> Type
 Administrative_Normal_Form_Variable_Environment = All (\_ => Int)
