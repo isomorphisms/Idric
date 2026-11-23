@@ -1,0 +1,47 @@
+module RuntimeMedia
+
+import Data.Text
+import MediaEvidence
+import System
+
+-- Frame count is discovered from runtime input and travels with its sequence.
+-- These labels stand for observed frames; they do not authenticate image bytes.
+data FrameSequence : Number → Type where
+  NoFrames : FrameSequence 0
+  NextFrame : Text → FrameSequence count → FrameSequence (S count)
+
+record CountedFrames where
+  constructor CountFrames
+  frame_count : Number
+  frames : FrameSequence frame_count
+
+count_frames : List Text → CountedFrames
+count_frames [] = CountFrames 0 NoFrames
+count_frames (label :: remaining) =
+  let counted = count_frames remaining in
+      CountFrames (S (frame_count counted)) (NextFrame label (frames counted))
+
+check_runtime_duration : List Text → IO ()
+check_runtime_duration (samples :: rate :: numerator :: denominator :: labels) =
+  case (parseInteger samples, parseInteger rate,
+        parseInteger numerator, parseInteger denominator) of
+    (Just sample_count, Just sample_rate, Just fps_numerator, Just fps_denominator) ⇒
+      let counted = count_frames labels in
+      case check_equal_duration sample_count sample_rate
+             (cast (frame_count counted)) fps_numerator fps_denominator of
+        Just _ ⇒ putStrLn ("PASS runtime duration for " ++
+                           show (frame_count counted) ++ " frames")
+        Nothing ⇒ do
+          putStrLn "FAIL runtime duration"
+          exitFailure
+    _ ⇒ do
+      putStrLn "FAIL invalid integer input"
+      exitFailure
+check_runtime_duration _ = do
+  putStrLn "FAIL expected samples, sample rate, frame rate and frame labels"
+  exitFailure
+
+main : IO ()
+main = do
+  arguments ← getArgs
+  check_runtime_duration (drop 1 arguments)

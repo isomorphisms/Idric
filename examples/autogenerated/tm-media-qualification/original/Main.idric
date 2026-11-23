@@ -1,0 +1,60 @@
+module Main
+
+import MediaEvidence
+import System
+import Data.List
+import Data.Text
+
+-- Candidate executable fixtures. NOT RUN until the exact Idriç compiler is
+-- bootstrapped. The input numbers came from retained external observations;
+-- this program does not yet parse or authenticate those observations itself.
+
+fixture_pcm_identity : Text
+fixture_pcm_identity = "f355fda3b8c15719a1f00bc14ad9c3baa00f521194aeffed5ccd6ebe36503038"
+
+is_established : Maybe value → Bool
+is_established (Just _) = True
+is_established Nothing = False
+
+record TestCase where
+  constructor Expect
+  name : Text
+  succeeded : Bool
+
+cases : List TestCase
+cases =
+  [ Expect "source PCM and video have equal duration"
+      (is_established (check_equal_duration 288000 48000 180 30 1))
+  , Expect "decoded AAC does not establish exact duration equality"
+      (not (is_established (check_equal_duration 287744 48000 180 30 1)))
+  , Expect "a zero video denominator is refused"
+      (not (is_established (check_equal_duration 0 48000 0 30 0)))
+  , Expect "negative counts are refused"
+      (not (is_established (check_equal_duration (-1) 48000 180 30 1)))
+  , Expect "the actual first source window is valid"
+      (is_established (check_window fixture_pcm_identity 288000 0 1024))
+  , Expect "a source window beyond the end is refused"
+      (not (is_established (check_window fixture_pcm_identity 288000 287900 1024)))
+  , Expect "thirty-fps 1024-sample windows do not cover the six-second clip"
+      (not (is_established (check_regular_coverage 288000 180 1600 1024)))
+  , Expect "a contiguous complete schedule has a coverage witness"
+      (is_established (check_regular_coverage 4096 4 1024 1024))
+  , Expect "frame one belongs at tick 512 in the observed video clock"
+      (is_established (check_frame_time 1 180 512 1 15360 30 1))
+  , Expect "a late frame is refused even when total frame count is unchanged"
+      (not (is_established (check_frame_time 1 180 640 1 15360 30 1)))
+  ]
+
+report : TestCase → IO ()
+report test = putStrLn ((if succeeded test then "PASS " else "FAIL ") ++ name test)
+
+report_all : List TestCase → IO ()
+report_all [] = pure ()
+report_all (test :: remaining) = do
+  report test
+  report_all remaining
+
+main : IO ()
+main = do
+  report_all cases
+  if all succeeded cases then pure () else exitFailure

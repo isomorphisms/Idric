@@ -1,0 +1,6 @@
+module WrongInterlacing
+import MediaEvidence
+
+-- Adam7 PNG storage order does not establish temporal interlaced scanning.
+bad : png_storage_order → video_scan
+bad storage_order = storage_order
