@@ -29,6 +29,13 @@ jobs:
           CC: ${{ steps.ick.outputs.compiler }}
           CFLAGS: -fno-link-libatomic -static-libgcc
         run: ./_/edric all
+      - name: Keep generated smoke sources inside the existing build directory
+        run: |
+          test ! -e _/tests/idris2/basic/edric007/Tests.idr
+          test ! -e _/tests/idris2/basic/edric007/UnitsTimeIntervals.idr
+          cmp _/examples/units-time-intervals/Tests.idric _/tests/idris2/basic/edric007/build/units-time-intervals/Tests.idr
+          cmp _/examples/units-time-intervals/UnitsTimeIntervals.idric _/tests/idris2/basic/edric007/build/units-time-intervals/UnitsTimeIntervals.idr
+          test -z "$(git status --porcelain --untracked-files=all -- _/tests/idris2/basic/edric007)"
       - name: Check named and nested with clauses in Idris and IDE mode
         run: |
           for suite in idris2/with/with005 idris2/with/with010 idris2/with/with012 ideMode/ideMode014; do
@@ -60,10 +67,3 @@ jobs:
           ./build/exec/with-binding read baseline.bin
           ./build/exec/with-binding write candidate.bin
           cmp baseline.bin candidate.bin
-      - name: Keep generated smoke sources inside the existing build directory
-        run: |
-          test ! -e _/tests/idris2/basic/edric007/Tests.idr
-          test ! -e _/tests/idris2/basic/edric007/UnitsTimeIntervals.idr
-          cmp _/examples/units-time-intervals/Tests.idric _/tests/idris2/basic/edric007/build/units-time-intervals/Tests.idr
-          cmp _/examples/units-time-intervals/UnitsTimeIntervals.idric _/tests/idris2/basic/edric007/build/units-time-intervals/UnitsTimeIntervals.idr
-          test -z "$(git status --porcelain --untracked-files=all -- _/tests/idris2/basic/edric007)"
