@@ -1,0 +1,39 @@
+module BinaryFilePrefix
+
+import Data.Buffer
+import Data.Text
+import System
+import System.File
+
+-- One small bounded read makes the runtime count and EOF path visible.
+prefix_capacity : Int
+prefix_capacity = 32
+
+write_file_prefix : File → IO Bool
+write_file_prefix source = do
+  Just buffer ← newBuffer prefix_capacity
+    | Nothing ⇒ pure False
+  Right bytes_read ← readBufferData source buffer 0 prefix_capacity
+    | Left _ ⇒ pure False
+  if bytes_read ≟ 0
+    then pure True
+    else do
+      Right () ← writeBufferData stdout buffer 0 bytes_read
+        | Left _ ⇒ pure False
+      pure True
+
+read_file_prefix : Text → IO ()
+read_file_prefix path = do
+  when (path ≟ "") (exitWith (ExitFailure 66))
+  Right source ← openFile path Read
+    | Left _ ⇒ exitWith (ExitFailure 66)
+  copied ← write_file_prefix source
+  closeFile source
+  if copied then pure () else exitWith (ExitFailure 74)
+
+main : IO ()
+main = do
+  arguments ← getArgs
+  case arguments of
+    [_, path] ⇒ read_file_prefix path
+    _ ⇒ exitWith (ExitFailure 64)
