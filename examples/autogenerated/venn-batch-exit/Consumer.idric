@@ -1,0 +1,4 @@
+module Consumer
+
+main : IO ()
+main = putStrLn "venn-consumer-ready"

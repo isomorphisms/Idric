@@ -570,9 +570,6 @@ postOptions : {auto c : Ref Ctxt Defs} ->
               {auto o : Ref ROpts REPLOpts} ->
               {auto m : Ref MD Metadata} ->
               REPLResult -> PostSession -> Core ControlFlow
--- In case of error loading the output file, we abort immediately without doing anything
-postOptions res@(ErrorLoadingFile {}) (MkPostSession _ (Just _) _ _)
-    = pure Abort
 -- otherwise, we compile the file and
 -- either :
 -- - execute the given expression
@@ -580,10 +577,18 @@ postOptions res@(ErrorLoadingFile {}) (MkPostSession _ (Just _) _ _)
 -- - run the REPL
 -- in this order, if either of those happened, we abort execution
 -- if none happened we continue
-postOptions _ (MkPostSession check out ex runRepl)
-    = do controlFlow <- newRef ControlFlow Continue
+postOptions result (MkPostSession check out ex runRepl)
+    = do -- An error may have no physical source location (for example a
+         -- missing Prelude). Batch failure must not depend on errorLine.
+         when (check || isJust out || isCons ex || isJust runRepl) $
+           case result of
+             ErrorLoadingFile {} => coreLift $ exitWith (ExitFailure 1)
+             ErrorsBuildingFile {} => coreLift $ exitWith (ExitFailure 1)
+             _ => pure ()
+         controlFlow <- newRef ControlFlow Continue
          whenJust out $ \ outfile => do
-             ignore $ compileExp (PRef EmptyFC (UN $ Basic "main")) outfile
+             Compiled _ <- compileExp (PRef EmptyFC (UN $ Basic "main")) outfile
+               | _ => coreLift $ exitWith (ExitFailure 1)
              put ControlFlow Abort
          flip traverse_ (reverse ex) $ \ expr => do
              setCurrentElabSource expr
