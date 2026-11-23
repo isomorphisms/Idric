@@ -440,7 +440,7 @@ checkClause {vars} mult vis totreq hashit n opts nest env (PatClause fc lhs_in r
          pure (Right (MkClause env' lhstm' rhstm))
 -- TODO: (to decide) With is complicated. Move this into its own module?
 checkClause {vars} mult vis totreq hashit n opts nest env
-    (WithClause ifc lhs_in rig wval_raw mprf flags cs)
+    (WithClause ifc lhs_in rig wval_raw with_equality_binding flags cs)
     = do (lhs, (vars'  ** (sub', env', nest', lhspat, reqty))) <-
              checkLHS False mult n opts nest env ifc lhs_in
          let wmode
@@ -472,7 +472,7 @@ checkClause {vars} mult vis totreq hashit n opts nest env
 
          -- Abstracting over 'wval' in the scope of bNotReq in order
          -- to get the 'magic with' behaviour
-         (wargs ** (scenv, var, binder)) <- bindWithArgs rig wvalTy ((,wval) <$> mprf) wvalEnv
+         (wargs ** (scenv, var, binder)) <- bindWithArgs rig wvalTy ((,wval) <$> with_equality_binding) wvalEnv
 
          let bnr = bindNotReq vfc 0 env' withSub [] reqty
          let notreqns = fst bnr
@@ -515,12 +515,12 @@ checkClause {vars} mult vis totreq hashit n opts nest env
          let toWarg : Maybe (PiInfo RawImp, Name) -> List (Maybe Name, RawImp)
                := flip maybe (\pn => [(Nothing, Elaborable_Name vfc (snd pn))]) $
                     (Nothing, wval_raw) ::
-                    case mprf of
+                    case with_equality_binding of
                       Nothing => []
                       Just _  =>
                        let fc = emptyFC in
                        let refl = Elaborable_Name fc (NS builtinNS (UN $ Basic "Refl")) in
-                       [(map snd mprf, Elaborable_Named_Apply fc refl (UN $ Basic "x") wval_raw)]
+                       [(map snd with_equality_binding, Elaborable_Named_Apply fc refl (UN $ Basic "x") wval_raw)]
 
          let rhs_in = gapply (Elaborable_Name vfc wname)
                     $ map (\ nm => (Nothing, Elaborable_Name vfc nm)) envns
@@ -641,12 +641,12 @@ checkClause {vars} mult vis totreq hashit n opts nest env
              newlhs <- getNewLHS ploc drop nest wname wargnames lhs patlhs
              newrhs <- withRHS ploc drop wname wargnames rhs lhs
              pure (PatClause ploc newlhs newrhs)
-    mkClauseWith drop wname wargnames lhs (WithClause ploc patlhs rig wval prf flags ws)
+    mkClauseWith drop wname wargnames lhs (WithClause ploc patlhs rig wval with_equality_binding flags ws)
         = do log "declare.def.clause.with" 20 "WithClause"
              newlhs <- getNewLHS ploc drop nest wname wargnames lhs patlhs
              newwval <- withRHS ploc drop wname wargnames wval lhs
              ws' <- traverse (mkClauseWith (S drop) wname wargnames lhs) ws
-             pure (WithClause ploc newlhs rig newwval prf flags ws')
+             pure (WithClause ploc newlhs rig newwval with_equality_binding flags ws')
     mkClauseWith drop wname wargnames lhs (ImpossibleClause ploc patlhs)
         = do log "declare.def.clause.with" 20 "ImpossibleClause"
              newlhs <- getNewLHS ploc drop nest wname wargnames lhs patlhs

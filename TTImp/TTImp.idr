@@ -437,11 +437,11 @@ mutual
   Show nm => Show (ImpClause' nm) where
     show (PatClause fc lhs rhs)
        = show lhs ++ " = " ++ show rhs
-    show (WithClause fc lhs rig wval prf flags block)
+    show (WithClause fc lhs rig wval with_equality_binding flags block)
        = show lhs
        ++ " with " ++ showCount rig ++ "(" ++ show wval ++ ")"
           -- TODO: remove `the` after fix idris-lang/Idris2#3418
-       ++ maybe "" (the (_ -> _) $ \(rg, nm) => " proof " ++ showCount rg ++ show nm) prf
+       ++ maybe "" (the (_ -> _) $ \(rg, nm) => " proof " ++ showCount rg ++ show nm) with_equality_binding
        ++ "\n\t" ++ show block
     show (ImpossibleClause fc lhs)
        = show lhs ++ " impossible"
@@ -519,12 +519,12 @@ mutual
 export
 mkWithClause : FC -> RawImp' nm -> List1 (RigCount, RawImp' nm, Maybe (RigCount, Name)) ->
                List WithFlag -> List (ImpClause' nm) -> ImpClause' nm
-mkWithClause fc lhs ((rig, wval, prf) ::: []) flags cls
-  = WithClause fc lhs rig wval prf flags cls
-mkWithClause fc lhs ((rig, wval, prf) ::: wp :: wps) flags cls
+mkWithClause fc lhs ((rig, wval, with_equality_binding) ::: []) flags cls
+  = WithClause fc lhs rig wval with_equality_binding flags cls
+mkWithClause fc lhs ((rig, wval, with_equality_binding) ::: wp :: wps) flags cls
   = let vfc = virtualiseFC fc
         arg = UN $ Basic "arg"
-     in WithClause fc lhs rig wval prf flags
+     in WithClause fc lhs rig wval with_equality_binding flags
           [mkWithClause fc (Elaborable_Apply vfc lhs $ Elaborable_Bind_Name vfc arg) (wp ::: wps) flags cls]
 
 -- Extract the RawImp term from a FieldUpdate.

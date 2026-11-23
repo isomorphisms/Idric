@@ -1229,10 +1229,11 @@ withProblem fname col indents
   = do rig <- multiplicity fname
        start <- mustWork $ bounds (decoratedSymbol fname "(")
        wval <- bracketedExpr fname start indents
-       prf <- optional $ do
+       -- The parser records the requested name and quantity. Elaboration binds the equality.
+       with_equality_binding <- optional $ do
                 decoratedKeyword fname "proof"
                 pure (!(multiplicity fname), !(decoratedSimpleBinderUName fname))
-       pure (MkPWithProblem rig wval prf)
+       pure (MkPWithProblem rig wval with_equality_binding)
 
 mutual
   parseRHS : (withArgs : Nat) ->

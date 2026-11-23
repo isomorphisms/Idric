@@ -468,10 +468,10 @@ mutual
       = pure (MkPatClause fc !(toPTerm startPrec lhs)
                              !(toPTerm startPrec rhs)
                              [])
-  toPClause (WithClause fc lhs rig wval prf flags cs)
+  toPClause (WithClause fc lhs rig wval with_equality_binding flags cs)
       = pure $ MkWithClause fc
                  !(toPTerm startPrec lhs)
-                 (MkPWithProblem rig !(toPTerm startPrec wval) prf ::: [])
+                 (MkPWithProblem rig !(toPTerm startPrec wval) with_equality_binding ::: [])
                  flags
                  !(traverse toPClause cs)
   toPClause (ImpossibleClause fc lhs)

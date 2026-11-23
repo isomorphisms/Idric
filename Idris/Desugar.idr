@@ -943,8 +943,8 @@ mutual
     {auto o : Ref ROpts REPLOpts} ->
     List Name -> PWithProblem ->
     Core (RigCount, RawImp, Maybe (RigCount, Name))
-  desugarWithProblem ps (MkPWithProblem rig wval mnm)
-    = (rig,,mnm) <$> desugar AnyExpr ps wval
+  desugarWithProblem ps (MkPWithProblem rig wval with_equality_binding)
+    = (rig,,with_equality_binding) <$> desugar AnyExpr ps wval
 
   desugarClause : {auto s : Ref Syn SyntaxInfo} ->
                   {auto c : Ref Ctxt Defs} ->
@@ -1113,8 +1113,8 @@ mutual
       toIDef : Name -> ImpClause -> Core ImpDecl
       toIDef nm (PatClause fc lhs rhs)
           = pure $ Elaborable_Definition fc nm [PatClause fc lhs rhs]
-      toIDef nm (WithClause fc lhs rig rhs prf flags cs)
-          = pure $ Elaborable_Definition fc nm [WithClause fc lhs rig rhs prf flags cs]
+      toIDef nm (WithClause fc lhs rig rhs with_equality_binding flags cs)
+          = pure $ Elaborable_Definition fc nm [WithClause fc lhs rig rhs with_equality_binding flags cs]
       toIDef nm (ImpossibleClause fc lhs)
           = pure $ Elaborable_Definition fc nm [ImpossibleClause fc lhs]
 
