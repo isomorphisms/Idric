@@ -29,6 +29,21 @@ jobs:
           CC: ${{ steps.ick.outputs.compiler }}
           CFLAGS: -fno-link-libatomic -static-libgcc
         run: ./_/edric all
+      - name: Exercise both source-level scope alignment APIs
+        working-directory: ${{ runner.temp }}
+        run: |
+          work=$(mktemp -d)
+          cd "$work"
+          for tree in Core Libraries Idris; do
+            ln -s "$GITHUB_WORKSPACE/$tree" "$tree"
+          done
+          fixture="$GITHUB_WORKSPACE/_/tests/compiler/scope-alignment"
+          cp "$fixture/ScopeAlignment.idr" .
+          export IDRIS2_PREFIX="$GITHUB_WORKSPACE/_/bootstrap-build"
+          export PATH="$GITHUB_WORKSPACE/_/.tools/bin:$PATH"
+          "$GITHUB_WORKSPACE/_/build/exec/idris2" --cg chez -o scope-alignment ScopeAlignment.idr
+          ./build/exec/scope-alignment > observed
+          diff -u "$fixture/expected" observed
       - name: Keep generated smoke sources inside the existing build directory
         run: |
           test ! -e _/tests/idris2/basic/edric007/Tests.idr
