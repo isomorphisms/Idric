@@ -526,13 +526,13 @@ mutual
            symbol "("
            wval <- expr fname indents
            symbol ")"
-           prf <- optional $ do
+           with_equality_binding <- optional $ do
                     keyword "proof"
                     pure (!(getMult !multiplicity), !name)
            ws <- nonEmptyBlock (clause (S withArgs) fname)
            end <- location
            let fc = MkFC fname start end
-           pure (MkPair !(getFn lhs) $ WithClause fc lhs rig wval prf [] (forget $ map snd ws))
+           pure (MkPair !(getFn lhs) $ WithClause fc lhs rig wval with_equality_binding [] (forget $ map snd ws))
 
     <|> do keyword "impossible"
            atEnd indents

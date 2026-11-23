@@ -239,13 +239,13 @@ mutual
         = do tag 0; toBuf fc; toBuf lhs; toBuf rhs
     toBuf (ImpossibleClause fc lhs)
         = do tag 1; toBuf fc; toBuf lhs
-    toBuf (WithClause fc lhs rig wval prf flags cs)
+    toBuf (WithClause fc lhs rig wval with_equality_binding flags cs)
         = do tag 2
              toBuf fc
              toBuf lhs
              toBuf rig
              toBuf wval
-             toBuf prf
+             toBuf with_equality_binding
              toBuf cs
 
     fromBuf
@@ -257,9 +257,9 @@ mutual
                        pure (ImpossibleClause fc lhs)
                2 => do fc <- fromBuf; lhs <- fromBuf;
                        rig <- fromBuf; wval <- fromBuf;
-                       prf <- fromBuf;
+                       with_equality_binding <- fromBuf;
                        cs <- fromBuf
-                       pure (WithClause fc lhs rig wval prf [] cs)
+                       pure (WithClause fc lhs rig wval with_equality_binding [] cs)
                _ => corrupt "ImpClause"
 
   export

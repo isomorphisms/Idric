@@ -1,0 +1,17 @@
+module ObservedValue
+
+closed_gate : Bool → Bool
+closed_gate True = False
+closed_gate False = False
+
+gate_cannot_open : (input : Bool) → Not (closed_gate input = True)
+gate_cannot_open True = uninhabited
+gate_cannot_open False = uninhabited
+
+observe_gate : Bool → Bool
+observe_gate input with (closed_gate input) proof result_matches
+  observe_gate input | True = absurd $ gate_cannot_open input result_matches
+  observe_gate input | False = False
+
+main : IO ()
+main = printLn (observe_gate True, observe_gate False)

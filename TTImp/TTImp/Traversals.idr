@@ -21,8 +21,8 @@ parameters (f : RawImp' nm -> RawImp' nm)
   export
   mapImpClause : ImpClause' nm -> ImpClause' nm
   mapImpClause (PatClause fc lhs rhs) = PatClause fc (mapTTImp lhs) (mapTTImp rhs)
-  mapImpClause (WithClause fc lhs rig wval prf flags cls)
-    = WithClause fc (mapTTImp lhs) rig (mapTTImp wval) prf flags (assert_total $ map mapImpClause cls)
+  mapImpClause (WithClause fc lhs rig wval with_equality_binding flags cls)
+    = WithClause fc (mapTTImp lhs) rig (mapTTImp wval) with_equality_binding flags (assert_total $ map mapImpClause cls)
   mapImpClause (ImpossibleClause fc lhs) = ImpossibleClause fc (mapTTImp lhs)
 
   export

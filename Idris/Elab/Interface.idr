@@ -449,12 +449,12 @@ elabInterface {vars} ifc def_vis env nest constraints iname params dets mcon bod
         changeName : Name -> ImpClause -> Core ImpClause
         changeName dn (PatClause fc lhs rhs)
             = PatClause fc <$> changeNameTerm dn lhs <*> pure rhs
-        changeName dn (WithClause fc lhs rig wval prf flags cs)
+        changeName dn (WithClause fc lhs rig wval with_equality_binding flags cs)
             = WithClause fc
                  <$> changeNameTerm dn lhs
                  <*> pure rig
                  <*> pure wval
-                 <*> pure prf
+                 <*> pure with_equality_binding
                  <*> pure flags
                  <*> traverse (changeName dn) cs
         changeName dn (ImpossibleClause fc lhs)

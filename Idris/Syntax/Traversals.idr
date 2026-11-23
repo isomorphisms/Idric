@@ -240,8 +240,8 @@ mapPTermM f = goPTerm where
     goPClause (MkImpossible fc lhs) = MkImpossible fc <$> goPTerm lhs
 
     goPWithProblem : PWithProblem' nm -> Core (PWithProblem' nm)
-    goPWithProblem (MkPWithProblem rig wval mnm)
-      = MkPWithProblem rig <$> goPTerm wval <*> pure mnm
+    goPWithProblem (MkPWithProblem rig wval with_equality_binding)
+      = MkPWithProblem rig <$> goPTerm wval <*> pure with_equality_binding
 
     goPClaim : PClaimData' nm -> Core (PClaimData' nm)
     goPClaim (MkPClaim c v opts tdecl) =
@@ -526,7 +526,7 @@ mapPTerm f = goPTerm where
     goPDo (DoRewrite fc t) = DoRewrite fc $ goPTerm t
 
     goPWithProblem : PWithProblem' nm -> PWithProblem' nm
-    goPWithProblem (MkPWithProblem rig wval mnm)= MkPWithProblem rig (goPTerm wval) mnm
+    goPWithProblem (MkPWithProblem rig wval with_equality_binding)= MkPWithProblem rig (goPTerm wval) with_equality_binding
 
     goPClause : PClause' nm -> PClause' nm
     goPClause (MkPatClause fc lhs rhs wh)

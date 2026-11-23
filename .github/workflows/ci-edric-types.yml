@@ -36,3 +36,34 @@ jobs:
           cmp _/examples/units-time-intervals/Tests.idric _/tests/idris2/basic/edric007/build/units-time-intervals/Tests.idr
           cmp _/examples/units-time-intervals/UnitsTimeIntervals.idric _/tests/idris2/basic/edric007/build/units-time-intervals/UnitsTimeIntervals.idr
           test -z "$(git status --porcelain --untracked-files=all -- _/tests/idris2/basic/edric007)"
+      - name: Check named and nested with clauses in Idris and IDE mode
+        run: |
+          for suite in idris2/with/with005 idris2/with/with010 idris2/with/with012 ideMode/ideMode014; do
+            ./_/edric test --only "$suite"
+          done
+      - name: Read previous with-clause bytes and preserve the writer's representation
+        working-directory: ${{ runner.temp }}
+        run: |
+          work=$(mktemp -d)
+          cd "$work"
+          fixture="$GITHUB_WORKSPACE/_/tests/compiler/with-equality-binding"
+          cp "$fixture/WithBinding.idr" "$fixture/ObservedValue.idric" .
+          export IDRIS2_PATH="$GITHUB_WORKSPACE/_/build/ttc"
+          export IDRIS2_PREFIX="$GITHUB_WORKSPACE/_/bootstrap-build"
+          export PATH="$GITHUB_WORKSPACE/_/.tools/bin:$PATH"
+          compiler="$GITHUB_WORKSPACE/_/build/exec/idris2"
+          "$compiler" --check ObservedValue.idric
+          "$compiler" --cg chez -o observed-value ObservedValue.idric
+          test "$(./build/exec/observed-value)" = "(False, False)"
+          mkdir dropped
+          sed 's/ proof result_matches$//' ObservedValue.idric > dropped/ObservedValue.idric
+          if (cd dropped && "$compiler" --check ObservedValue.idric) > dropped.log 2>&1; then
+            exit 1
+          fi
+          grep -F "Undefined name result_matches" dropped.log
+          "$compiler" --check WithBinding.idr
+          "$compiler" --cg chez -o with-binding WithBinding.idr
+          xxd -r -p "$fixture/baseline.hex" > baseline.bin
+          ./build/exec/with-binding read baseline.bin
+          ./build/exec/with-binding write candidate.bin
+          cmp baseline.bin candidate.bin

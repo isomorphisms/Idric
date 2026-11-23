@@ -211,7 +211,7 @@ printClause l i (PatClause _ lhsraw rhsraw)
     = do lhs <- pterm $ map defaultKindedName lhsraw -- hack
          rhs <- pterm $ map defaultKindedName rhsraw -- hack
          pure (relit l (pack (replicate i ' ') ++ show lhs ++ " = " ++ show rhs))
-printClause l i (WithClause _ lhsraw rig wvraw prf flags csraw)
+printClause l i (WithClause _ lhsraw rig wvraw with_equality_binding flags csraw)
     = do lhs <- pterm $ map defaultKindedName lhsraw -- hack
          wval <- pterm $ map defaultKindedName wvraw -- hack
          cs <- traverse (printClause l (i + 2)) csraw
@@ -219,7 +219,7 @@ printClause l i (WithClause _ lhsraw rig wvraw prf flags csraw)
                 ++ show lhs
                 ++ " with " ++ showCount rig ++ "(" ++ show wval ++ ")"
                    -- TODO: remove `the` after fix idris-lang/Idris2#3418
-                ++ maybe "" (the (_ -> _) $ \(rg, nm) => " proof " ++ showCount rg ++ show nm) prf
+                ++ maybe "" (the (_ -> _) $ \(rg, nm) => " proof " ++ showCount rg ++ show nm) with_equality_binding
                 ++ "\n")
                ++ showSep "\n" cs)
 printClause l i (ImpossibleClause _ lhsraw)
