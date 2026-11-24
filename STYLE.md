@@ -55,6 +55,11 @@ it is not a ceremonial prefix for every definition.
 Use ordinary or domain vocabulary instead of inherited implementation jargon.
 A name should tell the reader what a value or action means in this program.
 
+Name a carried value for what it relates. In the compiler, for example,
+`scope_alignment` relates variable slots in two scopes. A function that
+consumes a proposed alignment to derive a contradiction has a different
+role, expressed by `refute_remaining_alignment`.
+
 Use `snake_case`, not lowerCamelCase, for ordinary identifiers.
 
 Avoid names such as `ExternalInvocation`, `InvokeExternal`, abbreviations that

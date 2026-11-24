@@ -319,12 +319,12 @@ uniqifyEnv env = uenv [] env
     uenv used {vars = v :: vs} (b :: bs)
         = if v `elem` used
              then let v' = uniqueLocal used v
-                      (vs' ** (env', compat)) = uenv (v' :: used) bs
-                      b' = map (compatNs compat) b in
-                  (v' :: vs' ** (b' :: env', Ext compat))
-             else let (vs' ** (env', compat)) = uenv (v :: used) bs
-                      b' = map (compatNs compat) b in
-                  (v :: vs' ** (b' :: env', Ext compat))
+                      (vs' ** (env', scope_alignment)) = uenv (v' :: used) bs
+                      b' = map (compatNs scope_alignment) b in
+                  (v' :: vs' ** (b' :: env', Ext scope_alignment))
+             else let (vs' ** (env', scope_alignment)) = uenv (v :: used) bs
+                      b' = map (compatNs scope_alignment) b in
+                  (v :: vs' ** (b' :: env', Ext scope_alignment))
 
 export
 allVars : {0 vars : _} -> Env Term vars -> List (Var vars)

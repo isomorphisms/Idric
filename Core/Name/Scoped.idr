@@ -84,6 +84,7 @@ mkFresh vs n
 ------------------------------------------------------------------------
 -- Compatible variables
 
+||| Slots correspond by position; the names in corresponding slots may differ.
 public export
 data CompatibleVars : (xs, ys : List a) -> Type where
    Pre : CompatibleVars xs xs
@@ -92,20 +93,20 @@ data CompatibleVars : (xs, ys : List a) -> Type where
 export
 invertExt : CompatibleVars (n :: xs) (m :: ys) -> CompatibleVars xs ys
 invertExt Pre = Pre
-invertExt (Ext p) = p
+invertExt (Ext remaining_alignment) = remaining_alignment
 
 export
 extendCompats : (args : List a) ->
                 CompatibleVars xs ys ->
                 CompatibleVars (args ++ xs) (args ++ ys)
 extendCompats args Pre = Pre
-extendCompats args prf = go args prf where
+extendCompats args scope_alignment = go args scope_alignment where
 
   go : (args : List a) ->
        CompatibleVars xs ys ->
        CompatibleVars (args ++ xs) (args ++ ys)
-  go [] prf = prf
-  go (x :: xs) prf = Ext (go xs prf)
+  go [] scope_alignment = scope_alignment
+  go (x :: xs) scope_alignment = Ext (go xs scope_alignment)
 
 export
 decCompatibleVars : (xs, ys : List a) -> Dec (CompatibleVars xs ys)
@@ -113,16 +114,16 @@ decCompatibleVars [] [] = Yes Pre
 decCompatibleVars [] (x :: xs) = No (\case p impossible)
 decCompatibleVars (x :: xs) [] = No (\case p impossible)
 decCompatibleVars (x :: xs) (y :: ys) = case decCompatibleVars xs ys of
-  Yes prf => Yes (Ext prf)
-  No nprf => No (nprf . invertExt)
+  Yes remaining_alignment => Yes (Ext remaining_alignment)
+  No refute_remaining_alignment => No (refute_remaining_alignment . invertExt)
 
 export
 areCompatibleVars : (xs, ys : List a) ->
                     Maybe (CompatibleVars xs ys)
 areCompatibleVars [] [] = pure Pre
 areCompatibleVars (x :: xs) (y :: ys)
-    = do compat <- areCompatibleVars xs ys
-         pure (Ext compat)
+    = do remaining_alignment <- areCompatibleVars xs ys
+         pure (Ext remaining_alignment)
 areCompatibleVars _ _ = Nothing
 
 ------------------------------------------------------------------------
