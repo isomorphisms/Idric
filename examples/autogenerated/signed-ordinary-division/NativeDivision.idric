@@ -1,0 +1,13 @@
+module NativeDivision
+
+import SignedDivision
+
+-- A separately retained quotient must preserve its complex domain across a join.
+%noinline
+check_components : Integer → Integer → Char
+check_components numerator denominator =
+  if 0 < denominator && numerator × 15 ≟ 7 × denominator then 'C' else '!'
+
+main : IO ()
+main = putChar (inspect_quotient 'Z' (\_, _ ⇒ 'R') check_components
+                    (divide_quotient_by_integer (ordinary_quotient (-7) (-3)) 5))

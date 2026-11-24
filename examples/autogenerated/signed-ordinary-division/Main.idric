@@ -1,0 +1,28 @@
+module Main
+
+import Data.Text
+import SignedDivision
+import System
+
+divide_twice : Integer → Integer → Integer → OrdinaryQuotient
+divide_twice dividend first_divisor second_divisor =
+  divide_quotient_by_integer (ordinary_quotient dividend first_divisor) second_divisor
+
+failing "Mismatch between: OrdinaryQuotient and Integer"
+  implicit_narrowing : Integer → Integer → Integer
+  implicit_narrowing dividend divisor = ordinary_quotient dividend divisor
+
+main : IO ()
+main = do
+  arguments ← getArgs
+  case arguments of
+    [_] ⇒ if model_cases_pass then putStrLn "PASS 12 signed division cases"
+                                  else die "signed division case failed"
+    [_, left, right] ⇒ case (parseInteger left, parseInteger right) of
+      (Just dividend, Just divisor) ⇒ putStrLn (describe (ordinary_quotient dividend divisor))
+      _ ⇒ die "expected two signed integers"
+    [_, left, middle, right] ⇒ case (parseInteger left, parseInteger middle, parseInteger right) of
+      (Just dividend, Just first_divisor, Just second_divisor) ⇒
+        putStrLn (describe (divide_twice dividend first_divisor second_divisor))
+      _ ⇒ die "expected three signed integers"
+    _ ⇒ die "supply zero, two or three signed integers"

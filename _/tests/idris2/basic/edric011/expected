@@ -4,3 +4,18 @@ True
 True
 True
 84 ÷ 2 and 3 × 4
+PASS 12 signed division cases
+complex -7/3 + 0i
+complex 7/3 + 0i
+zero divisor
+real 7/15
+complex 7/15 + 0i
+complex 7/15 + 0i
+complex -7/15 + 0i
+complex 0/15 + 0i
+zero divisor
+zero divisor
+complex -1/18446744073709551616 + 0i
+RCCCCZ!
+C
+W
