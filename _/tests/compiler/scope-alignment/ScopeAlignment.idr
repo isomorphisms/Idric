@@ -2,6 +2,7 @@ module ScopeAlignment
 
 import Core.Name.CompatibleVars as Snoc
 import Core.Name.Scoped as Cons
+import ScopeTransport
 
 snoc_shape : Snoc.CompatibleVars xs ys -> List Nat
 snoc_shape Snoc.Pre = []
@@ -55,3 +56,4 @@ main = do
   printLn (list_shape list_added, list_shape (Cons.invertExt list_added))
   printLn $ snoc_shape (Snoc.extendCompats [<3,4] (the (Snoc.CompatibleVars [<1] [<1]) Snoc.Pre))
   printLn $ list_shape (Cons.extendCompats [3,4] (the (Cons.CompatibleVars [1] [1]) Cons.Pre))
+  observe_transport

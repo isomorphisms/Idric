@@ -4,3 +4,6 @@
 ([1, 1, 1], [1, 1])
 []
 []
+[sensor, {sensor:0}, {sensor:1}]
+[(0, (sensor, Rig1)), (1, ({sensor:0}, RigW)), (2, ({sensor:1}, Rig0))]
+Just (1, {sensor:1})

@@ -34,11 +34,11 @@ jobs:
         run: |
           work=$(mktemp -d)
           cd "$work"
-          for tree in Core Libraries Idris; do
+          for tree in Core Libraries Idris Algebra Algebra.idr; do
             ln -s "$GITHUB_WORKSPACE/$tree" "$tree"
           done
           fixture="$GITHUB_WORKSPACE/_/tests/compiler/scope-alignment"
-          cp "$fixture/ScopeAlignment.idr" .
+          cp "$fixture/ScopeAlignment.idr" "$fixture/ScopeTransport.idr" .
           export IDRIS2_PREFIX="$GITHUB_WORKSPACE/_/bootstrap-build"
           export PATH="$GITHUB_WORKSPACE/_/.tools/bin:$PATH"
           "$GITHUB_WORKSPACE/_/build/exec/idris2" --cg chez -o scope-alignment ScopeAlignment.idr

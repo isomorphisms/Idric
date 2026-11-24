@@ -373,7 +373,8 @@ compatIsVar (Ext {n} x) First = First
 compatIsVar (Ext {n} x) (Later p) = Later (compatIsVar x p)
 
 compatVar : CompatibleVars xs ys -> Var xs -> Var ys
-compatVar prf (MkVar p) = MkVar (compatIsVar prf p)
+compatVar scope_alignment (MkVar variable_position) =
+  MkVar (compatIsVar scope_alignment variable_position)
 
 ------------------------------------------------------------------------
 -- Thinning
