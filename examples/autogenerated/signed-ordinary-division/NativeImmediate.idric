@@ -1,0 +1,26 @@
+module NativeImmediate
+
+import SignedDivision
+
+%noinline
+check_ratio : Char → Integer → Integer → Integer → Integer → Char
+check_ratio domain expected_numerator expected_denominator numerator denominator =
+  if 0 < denominator && numerator × expected_denominator ≟ expected_numerator × denominator
+    then domain
+    else '!'
+
+%noinline
+observe : Integer → Integer → Integer → Integer → Char
+observe expected_numerator expected_denominator =
+  inspect_integer_division 'Z' (check_ratio 'R' expected_numerator expected_denominator)
+                               (check_ratio 'C' expected_numerator expected_denominator)
+
+main : IO ()
+main = do
+  putChar (observe 7 3 7 3)
+  putChar (observe (-7) 3 (-7) 3)
+  putChar (observe (-7) 3 7 (-3))
+  putChar (observe 7 3 (-7) (-3))
+  putChar (observe 0 1 0 (-3))
+  putChar (observe 1 1 (-7) 0)
+  putChar (observe 999 1 7 3)

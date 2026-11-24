@@ -73,3 +73,42 @@ compiler identified above. A mutant that discards the prior complex domain
 passed all 12 original cases but printed real 7/15 on arguments −7, −3, 5.
 The new expected output is complex 7/15 + 0i. All executions here use the
 named experimental operations on Chez.
+
+## Native Linux x86-64
+
+The experiment now shares one sign/zero decision between two ways to consume
+a quotient. A consumer can retain its tagged result and inspect it later, or
+supply a zero case and two functions that receive exact components immediately.
+Both paths select the same real or complex domain. Components use a positive
+denominator, which need not be reduced.
+
+The three client modules isolate computation from command-line parsing,
+integer-to-text conversion and general-purpose I/O. On Chez they print:
+
+| Client | Output | What changes the answer |
+| --- | --- | --- |
+| NativeImmediate | RCCCCZ! | Positive inputs, each negative position, two negatives, zero over a negative divisor, zero divisor, and a deliberately wrong expected fraction |
+| NativeDivision | C | (−7 ÷ −3) ÷ 5 retains the complex domain and has exact real coordinate 7/15 |
+| WideDivision | W | The denominator of 1 ÷ (−2^63) normalizes to exactly +2^63 |
+
+With the checked compiler at `29420f7e5a954ba0a66f622f0311298f823fbfff`
+and direct x86-64 encoder at `7b8434777aca1efbaa614e4c361cc2c3535591a1`,
+NativeImmediate produced and executed a Linux ELF. It wrote hex
+`52434343435a21`, no stderr, exit 0. Its checked handoff SHA-256 was
+`c531357b9402076952c61a0012f2d8dfb0d699e4943d18d23370f07f4d619e09`;
+the ELF was `9ceaf5791dcd56030ef27d2206a479f1862993b7038e2618b90d9d4227489c9a`.
+Each output checks positive denominator and rational equality by exact integer
+cross-products, except the dedicated zero-divisor case. Changing the shared
+decision to ignore a negative dividend produced a different native executable:
+its output was RRCCCZ! and the expected-output check exited 1.
+
+The same encoder rejected the checked NativeDivision handoff with
+`observable_constructor: SignedDivision.inspect_integer_division`: its scalar
+case join cannot yet return alternative constructed quotient values. It
+rejected WideDivision with `unproved_integer_range: WideDivision.main:
+9223372036854775808` before emitting an ELF. This exact denominator separates
+arbitrary-precision semantics from the signed native scalar range even when
+both original operands fit. The complete CLI also requires argument handling.
+The compiler workflow runs the immediate consumer on Linux x86-64 and the
+edric011 harness checks all three consumers on Chez. The production operator,
+other source numeric types, and other native targets remain separate work.

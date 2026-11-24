@@ -9,13 +9,21 @@ record ExactRatio where
 export
 data OrdinaryQuotient = ZeroDivisor | RealRatio ExactRatio | ComplexOfReal ExactRatio
 
+-- Consume exact components immediately or retain the tagged quotient below.
+export
+inspect_integer_division :
+  result → (Integer → Integer → result) → (Integer → Integer → result) →
+  Integer → Integer → result
+inspect_integer_division zero real complex dividend divisor =
+  if divisor ≟ 0 then zero else
+    if divisor < 0 then complex (negate dividend) (negate divisor) else
+      if dividend < 0 then complex dividend divisor else real dividend divisor
+
 export
 ordinary_quotient : Integer → Integer → OrdinaryQuotient
-ordinary_quotient dividend divisor =
-  if divisor ≟ 0 then ZeroDivisor else
-    let ratio = if divisor < 0 then Ratio (negate dividend) (negate divisor)
-                               else Ratio dividend divisor
-    in if dividend < 0 || divisor < 0 then ComplexOfReal ratio else RealRatio ratio
+ordinary_quotient = inspect_integer_division ZeroDivisor
+  (\numerator, denominator ⇒ RealRatio (Ratio numerator denominator))
+  (\numerator, denominator ⇒ ComplexOfReal (Ratio numerator denominator))
 
 -- A complex value stays complex when its exact real coordinate changes sign.
 as_complex : OrdinaryQuotient → OrdinaryQuotient
@@ -29,6 +37,17 @@ divide_quotient_by_integer (RealRatio ratio) divisor =
   ordinary_quotient ratio.numerator (ratio.positive_denominator × divisor)
 divide_quotient_by_integer (ComplexOfReal ratio) divisor =
   as_complex (ordinary_quotient ratio.numerator (ratio.positive_denominator × divisor))
+
+-- Observe domain and exact component values without exposing a ratio constructor.
+export
+inspect_quotient :
+  result → (Integer → Integer → result) → (Integer → Integer → result) →
+  OrdinaryQuotient → result
+inspect_quotient zero real complex ZeroDivisor = zero
+inspect_quotient zero real complex (RealRatio ratio) =
+  real ratio.numerator ratio.positive_denominator
+inspect_quotient zero real complex (ComplexOfReal ratio) =
+  complex ratio.numerator ratio.positive_denominator
 
 same_ratio : ExactRatio → ExactRatio → Bool
 same_ratio left right =

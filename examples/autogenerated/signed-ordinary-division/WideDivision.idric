@@ -1,0 +1,14 @@
+module WideDivision
+
+import SignedDivision
+
+-- Every input fits signed 64 bits. The positive denominator after normalization
+-- is exactly 2^63 and requires more range than a signed native scalar.
+%noinline
+check_components : Integer → Integer → Char
+check_components numerator denominator =
+  if numerator ≟ (-1) && denominator - 9223372036854775807 ≟ 1 then 'W' else '!'
+
+main : IO ()
+main = putChar (inspect_integer_division 'Z' (\_, _ ⇒ 'R') check_components
+                    1 (-9223372036854775808))
